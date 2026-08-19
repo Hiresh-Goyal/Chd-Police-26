@@ -82,7 +82,7 @@ export const UniversalSearch: React.FC = () => {
 
       {/* Results Grid */}
       {hasExecuted && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Column 1: Entity Matches */}
           <div className="flex flex-col gap-3">
             <h3 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider border-b border-[#D9E1EA] pb-2 flex items-center gap-1.5">
@@ -178,49 +178,6 @@ export const UniversalSearch: React.FC = () => {
               </div>
               <h4 className="font-semibold text-xs text-[#191C1E]">SIM Swap Investigation</h4>
               <div className="text-[11px] text-[#64748B]">Same handset IMEI previously recorded in 2025.</div>
-            </div>
-          </div>
-
-          {/* Column 3: Data Ingestion Artifacts */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider border-b border-[#D9E1EA] pb-2 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[#0B5CAB] text-[16px]">dataset</span>
-              Evidence Logs & Telecom Streams
-            </h3>
-
-            <div className="space-y-2 text-xs">
-              <div
-                onClick={() => navigate('/cases/2847/timeline')}
-                className="p-3 bg-white border border-[#D9E1EA] rounded-md hover:border-[#0B5CAB] cursor-pointer transition-all"
-              >
-                <div className="font-bold text-[#191C1E] flex items-center justify-between">
-                  <span>target_number_cdr_oct.csv</span>
-                  <DomainBadge domain="CDR" size="sm" />
-                </div>
-                <div className="text-[11px] text-[#64748B] mt-1 font-mono">147 Call records • 14m call logged</div>
-              </div>
-
-              <div
-                onClick={() => navigate('/cases/2847/timeline')}
-                className="p-3 bg-white border border-[#D9E1EA] rounded-md hover:border-[#0B5CAB] cursor-pointer transition-all"
-              >
-                <div className="font-bold text-[#191C1E] flex items-center justify-between">
-                  <span>ipdr_fastnet_cybercafe.csv</span>
-                  <DomainBadge domain="IPDR" size="sm" />
-                </div>
-                <div className="text-[11px] text-[#64748B] mt-1 font-mono">IP 103.76.234.12 • Port 443 Session</div>
-              </div>
-
-              <div
-                onClick={() => navigate('/cases/2847/criminal-flow')}
-                className="p-3 bg-white border border-[#D9E1EA] rounded-md hover:border-[#0B5CAB] cursor-pointer transition-all"
-              >
-                <div className="font-bold text-[#191C1E] flex items-center justify-between">
-                  <span>hdfc_bank_statement_q3.csv</span>
-                  <DomainBadge domain="BANK" size="sm" />
-                </div>
-                <div className="text-[11px] text-[#64748B] mt-1 font-mono">₹48,000 IMPS entry • Row #991</div>
-              </div>
             </div>
           </div>
         </div>

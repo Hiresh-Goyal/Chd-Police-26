@@ -101,48 +101,6 @@ export const MyCases: React.FC = () => {
         </Button>
       </div>
 
-      {/* Summary Strip (Bento-style compact cards) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="bg-white rounded border border-[#D9E1EA] p-3.5 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-[#0B5CAB]/10 flex items-center justify-center text-[#0B5CAB] shrink-0">
-            <span className="material-symbols-outlined">folder_open</span>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">Active Cases</div>
-            <div className="text-2xl font-bold text-[#191C1E]">24</div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded border border-[#D9E1EA] p-3.5 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-[#DC2626]/10 flex items-center justify-center text-[#DC2626] shrink-0">
-            <span className="material-symbols-outlined">warning</span>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">Critical</div>
-            <div className="text-2xl font-bold text-[#191C1E]">4</div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded border border-[#D9E1EA] p-3.5 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-[#7C3AED]/10 flex items-center justify-center text-[#7C3AED] shrink-0">
-            <span className="material-symbols-outlined">pending_actions</span>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">Under Review</div>
-            <div className="text-2xl font-bold text-[#191C1E]">7</div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded border border-[#D9E1EA] p-3.5 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded bg-slate-100 flex items-center justify-center text-[#424751] shrink-0">
-            <span className="material-symbols-outlined">inventory_2</span>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">Closed</div>
-            <div className="text-2xl font-bold text-[#191C1E]">13</div>
-          </div>
-        </div>
-      </div>
 
       {/* Filter Bar */}
       <div className="bg-white rounded border border-[#D9E1EA] p-3 shadow-xs flex flex-wrap items-center gap-3 justify-between">

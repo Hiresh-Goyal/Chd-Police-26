@@ -65,15 +65,11 @@ export const Sidebar: React.FC = () => {
           <span>Universal Search</span>
         </NavLink>
 
-        <button
-          type="button"
-          onClick={() => showToast('Live alerts are actively streamed on Dashboard & SentinelWatch.', 'info')}
-          className="w-[calc(100%-16px)] flex items-center gap-2.5 mx-2 my-0.5 px-3 py-2 rounded text-sm text-[#334155] hover:bg-[#F8FBFF] hover:text-[#0B5CAB] transition-colors border-l-[3px] border-l-transparent text-left"
-        >
+        <NavLink to="/alerts" className={navItemClass}>
           <span className="material-symbols-outlined text-[18px]">notifications</span>
           <span className="flex-1">Alerts</span>
-          <span className="px-1.5 py-0.2 bg-[#DC2626]/10 text-[#DC2626] rounded text-[10px] font-mono font-bold">3</span>
-        </button>
+          <span className="px-1.5 py-0.5 bg-[#DC2626]/10 text-[#DC2626] rounded text-[10px] font-mono font-bold">3</span>
+        </NavLink>
 
         <NavLink to="/sentinelwatch" className={navItemClass}>
           <span className="material-symbols-outlined text-[18px]">visibility</span>

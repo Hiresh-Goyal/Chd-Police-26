@@ -60,54 +60,6 @@ export const AuditLog: React.FC = () => {
         </p>
       </div>
 
-      {/* Metrics Bento */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Total Logs (24h)</span>
-            <span className="material-symbols-outlined text-[#0B5CAB] text-[20px]">dataset</span>
-          </div>
-          <div className="flex items-baseline gap-2 mt-auto">
-            <span className="text-2xl font-bold text-[#0B2340] font-mono">14,285</span>
-            <span className="text-xs font-semibold text-emerald-600 flex items-center gap-0.5">
-              <span className="material-symbols-outlined text-[14px]">arrow_upward</span> 12%
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col border-l-4 border-l-[#DC2626]">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider">High-Severity Alerts</span>
-            <span className="material-symbols-outlined text-[#DC2626] text-[20px]">warning</span>
-          </div>
-          <div className="flex items-baseline gap-2 mt-auto">
-            <span className="text-2xl font-bold text-[#DC2626] font-mono">24</span>
-            <span className="text-xs text-[#64748B]">Requires review</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Active Investigators</span>
-            <span className="material-symbols-outlined text-[#0B5CAB] text-[20px]">badge</span>
-          </div>
-          <div className="flex items-baseline gap-2 mt-auto">
-            <span className="text-2xl font-bold text-[#0B2340] font-mono">142</span>
-            <span className="text-xs text-[#64748B]">Currently logged in</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Data Exports</span>
-            <span className="material-symbols-outlined text-[#0B5CAB] text-[20px]">download</span>
-          </div>
-          <div className="flex items-baseline gap-2 mt-auto">
-            <span className="text-2xl font-bold text-[#0B2340] font-mono">87</span>
-            <span className="text-xs text-[#64748B]">In last 24h</span>
-          </div>
-        </div>
-      </div>
 
       {/* Controls & Table Layout */}
       <div className="flex flex-col xl:flex-row gap-4 items-start">

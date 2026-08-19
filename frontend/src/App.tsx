@@ -6,6 +6,7 @@ import { AppShell } from './components/shell/AppShell';
 // Pages
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { Alerts } from './pages/Alerts';
 import { MyCases } from './pages/MyCases';
 import { CaseWorkspace } from './pages/CaseWorkspace';
 import { UploadEvidence } from './pages/UploadEvidence';
@@ -31,8 +32,9 @@ export const App: React.FC = () => {
           {/* Protected Routes (AppShell) */}
           <Route element={<AppShell />}>
             {/* Global Dashboard & Cases */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/cases" element={<MyCases />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="alerts" element={<Alerts />} />
+            <Route path="cases" element={<MyCases />} />
 
             {/* Case #2847 Contextual Analysis Routes */}
             <Route path="/cases/2847" element={<CaseWorkspace />} />

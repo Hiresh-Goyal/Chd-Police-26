@@ -1,21 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
+import L from 'leaflet';
 import { AnalysisNav } from '../components/shell/AnalysisNav';
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
+
+// Fix Leaflet default icon issue with Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 interface GeoLocationNode {
   id: string;
   name: string;
   type: 'CDR_TOWER' | 'IP_LOCATION' | 'BANK_BRANCH' | 'ATM_CASHOUT';
   domain: 'CDR' | 'IPDR' | 'BANK';
-  coordinates: string;
+  lat: number;
+  lng: number;
   time: string;
   address: string;
   radiusKm: number;
   details: string;
-  xPercent: number;
-  yPercent: number;
+  color: string;
 }
 
 const GEO_POINTS: GeoLocationNode[] = [
@@ -24,66 +34,101 @@ const GEO_POINTS: GeoLocationNode[] = [
     name: 'Cell Tower Sector 17 (Tower A)',
     type: 'CDR_TOWER',
     domain: 'CDR',
-    coordinates: '30.7398° N, 76.7827° E',
+    lat: 30.7398,
+    lng: 76.7827,
     time: '14:00:12 IST (15 Aug 2026)',
     address: 'Sector 17 Plaza Telecom Mast #45892',
     radiusKm: 1.8,
     details: '14m 23s voice call to victim handset (+91 9988776655)',
-    xPercent: 32,
-    yPercent: 42
+    color: '#0891B2',
   },
   {
     id: 'geo_2',
     name: 'Cyber Cafe Proxy Hub (Node Alpha)',
     type: 'IP_LOCATION',
     domain: 'IPDR',
-    coordinates: '30.7412° N, 76.7795° E',
+    lat: 30.7412,
+    lng: 76.7795,
     time: '14:28:44 IST (15 Aug 2026)',
     address: 'Shop 14, Sector 17-D Market, Chandigarh',
     radiusKm: 0.5,
     details: 'IP 103.76.234.12 logged data transmission to NetBanking',
-    xPercent: 44,
-    yPercent: 34
+    color: '#7C3AED',
   },
   {
     id: 'geo_3',
     name: 'HDFC Bank Sector 22 Branch',
     type: 'BANK_BRANCH',
     domain: 'BANK',
-    coordinates: '30.7324° N, 76.7690° E',
+    lat: 30.7324,
+    lng: 76.769,
     time: '14:32:05 IST (15 Aug 2026)',
     address: 'SCO 88-89, Sector 22-C, Chandigarh',
     radiusKm: 0.8,
     details: '₹48,000 IMPS credit to HDFC XXXXXXX4521',
-    xPercent: 62,
-    yPercent: 55
+    color: '#F97316',
   },
   {
     id: 'geo_4',
     name: 'Sector 22 Market ATM Booth',
     type: 'ATM_CASHOUT',
     domain: 'BANK',
-    coordinates: '30.7298° N, 76.7712° E',
+    lat: 30.7298,
+    lng: 76.7712,
     time: '15:10:18 IST (15 Aug 2026)',
     address: 'ATM ID SIB8922, Near Bus Stand, Sector 22',
     radiusKm: 0.2,
     details: 'Physical cash withdrawal of ₹47,500',
-    xPercent: 78,
-    yPercent: 68
-  }
+    color: '#DC2626',
+  },
 ];
+
+// Custom colored marker icons
+const createColoredIcon = (color: string) =>
+  L.divIcon({
+    className: '',
+    html: `<div style="width:34px;height:34px;background:${color};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.35);"></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -38],
+  });
+
+// Component to re-center map
+const MapCenterControl: React.FC<{ center: [number, number]; trigger: number }> = ({ center, trigger }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (trigger > 0) map.flyTo(center, 14, { duration: 1.5 });
+  }, [trigger]);
+  return null;
+};
 
 export const GeospatialMap: React.FC = () => {
   const { showToast } = useToast();
-
   const [selectedPoint, setSelectedPoint] = useState<GeoLocationNode | null>(GEO_POINTS[0]);
   const [radiusBuffer, setRadiusBuffer] = useState<number>(2.5);
-  const [layers, setLayers] = useState({
-    cdr: true,
-    bank: true,
-    ipdr: true,
-    geofence: true
-  });
+  const [centerTrigger, setCenterTrigger] = useState(0);
+  const [layers, setLayers] = useState({ cdr: true, bank: true, ipdr: true });
+
+  const CENTER: [number, number] = [30.7350, 76.7760];
+  const trajectoryPath: [number, number][] = GEO_POINTS.map(p => [p.lat, p.lng]);
+
+  const handleExportGeoJSON = () => {
+    const geojson = {
+      type: 'FeatureCollection',
+      features: GEO_POINTS.map(p => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: { name: p.name, domain: p.domain, time: p.time, address: p.address, details: p.details },
+      })),
+    };
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'case_2847_geodossier.geojson';
+    a.click();
+    showToast('Exported GeoJSON dossier for Case #2847.', 'success');
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,37 +138,27 @@ export const GeospatialMap: React.FC = () => {
           <div className="flex items-center gap-2 text-xs text-[#64748B] mb-1">
             <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#2847</span>
             <span>•</span>
-            <span>Spatial Geo-Trajectory & Cell Tower Triangulation</span>
+            <span>Spatial Geo-Trajectory &amp; Cell Tower Triangulation</span>
           </div>
           <h1 className="text-2xl font-bold text-[#0B2340] tracking-tight">Geospatial Investigation</h1>
         </div>
-
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon="my_location"
-            onClick={() => showToast('Recentered map on Chandigarh UT Cyber Operations sector.', 'info')}
-          >
+          <Button variant="secondary" size="sm" icon="my_location"
+            onClick={() => { setCenterTrigger(t => t + 1); showToast('Recentered map on Chandigarh UT.', 'info'); }}>
             Center on Target
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon="download"
-            onClick={() => showToast('Exported KML geo-dossier.', 'success')}
-          >
+          <Button variant="primary" size="sm" icon="download" onClick={handleExportGeoJSON}>
             Export GeoJSON
           </Button>
         </div>
       </header>
 
-      {/* Analysis Tabs */}
       <AnalysisNav />
 
       {/* Map Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[650px] items-stretch">
-        {/* Left HUD Panel: Controls (4 cols / ~32%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch" style={{ height: '640px' }}>
+
+        {/* Left HUD Panel */}
         <div className="lg:col-span-4 bg-white border border-[#D9E1EA] rounded-md shadow-xs flex flex-col overflow-hidden">
           <div className="px-4 py-3 border-b border-[#D9E1EA] bg-[#F8FAFC] flex justify-between items-center">
             <h3 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider">Spatial Parameters</h3>
@@ -131,47 +166,30 @@ export const GeospatialMap: React.FC = () => {
           </div>
 
           <div className="p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar text-xs">
-            {/* Search Location */}
+            {/* Search */}
             <div>
-              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-1.5">
-                Search Location / Landmark
-              </label>
+              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-1.5">Search Location / Landmark</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-2.5 top-2 text-[#64748B] text-[16px]">
-                  location_on
-                </span>
-                <input
-                  type="text"
-                  defaultValue="Sector 17 & Sector 22, Chandigarh"
-                  className="w-full pl-8 pr-3 py-1.5 bg-[#F8FAFC] border border-[#D9E1EA] rounded text-xs focus:outline-none focus:border-[#0B5CAB]"
-                />
+                <span className="material-symbols-outlined absolute left-2.5 top-2 text-[#64748B] text-[16px]">location_on</span>
+                <input type="text" defaultValue="Sector 17 & Sector 22, Chandigarh"
+                  className="w-full pl-8 pr-3 py-1.5 bg-[#F8FAFC] border border-[#D9E1EA] rounded text-xs focus:outline-none focus:border-[#0B5CAB]" />
               </div>
             </div>
 
-            {/* Radius Buffer Slider */}
+            {/* Radius Slider */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">
-                  Radius Buffer
-                </label>
+                <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">Radius Buffer</label>
                 <span className="font-mono font-bold text-[#0B5CAB]">{radiusBuffer} km</span>
               </div>
-              <input
-                type="range"
-                min="0.5"
-                max="10"
-                step="0.5"
-                value={radiusBuffer}
+              <input type="range" min="0.5" max="10" step="0.5" value={radiusBuffer}
                 onChange={e => setRadiusBuffer(parseFloat(e.target.value))}
-                className="w-full accent-[#0B5CAB] cursor-pointer"
-              />
+                className="w-full accent-[#0B5CAB] cursor-pointer" />
             </div>
 
             {/* Target Entity */}
             <div>
-              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-1.5">
-                Target Entity
-              </label>
+              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-1.5">Target Entity</label>
               <select className="w-full py-1.5 px-3 bg-[#F8FAFC] border border-[#D9E1EA] rounded text-xs font-medium cursor-pointer">
                 <option>Rajesh Verma (Case #2847 Primary)</option>
                 <option>IMEI 864359012345219 (OnePlus)</option>
@@ -179,186 +197,133 @@ export const GeospatialMap: React.FC = () => {
               </select>
             </div>
 
-            {/* Data Overlays Toggles */}
+            {/* Layer Toggles */}
             <div className="pt-2 border-t border-[#EDF0F4]">
-              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-2.5">
-                Data Overlays
-              </label>
+              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-2.5">Data Overlays</label>
               <div className="space-y-2">
-                <label className="flex items-center justify-between p-2 rounded bg-[#F8FAFC] border border-[#EDF0F4] cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#0891B2] text-[18px]">cell_tower</span>
-                    <span className="font-medium text-[#191C1E]">Cell Towers (CDR)</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={layers.cdr}
-                    onChange={e => setLayers({ ...layers, cdr: e.target.checked })}
-                    className="w-4 h-4 text-[#0B5CAB] rounded accent-[#0B5CAB]"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between p-2 rounded bg-[#F8FAFC] border border-[#EDF0F4] cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#F97316] text-[18px]">local_atm</span>
-                    <span className="font-medium text-[#191C1E]">Financial Nodes (ATMs/Banks)</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={layers.bank}
-                    onChange={e => setLayers({ ...layers, bank: e.target.checked })}
-                    className="w-4 h-4 text-[#0B5CAB] rounded accent-[#0B5CAB]"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between p-2 rounded bg-[#F8FAFC] border border-[#EDF0F4] cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#7C3AED] text-[18px]">router</span>
-                    <span className="font-medium text-[#191C1E]">IP Geolocation</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={layers.ipdr}
-                    onChange={e => setLayers({ ...layers, ipdr: e.target.checked })}
-                    className="w-4 h-4 text-[#0B5CAB] rounded accent-[#0B5CAB]"
-                  />
-                </label>
+                {[
+                  { key: 'cdr', icon: 'cell_tower', color: '#0891B2', label: 'Cell Towers (CDR)' },
+                  { key: 'bank', icon: 'local_atm', color: '#F97316', label: 'Financial Nodes (ATMs/Banks)' },
+                  { key: 'ipdr', icon: 'router', color: '#7C3AED', label: 'IP Geolocation' },
+                ].map(({ key, icon, color, label }) => (
+                  <label key={key} className="flex items-center justify-between p-2 rounded bg-[#F8FAFC] border border-[#EDF0F4] cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]" style={{ color }}>{icon}</span>
+                      <span className="font-medium text-[#191C1E]">{label}</span>
+                    </div>
+                    <input type="checkbox" checked={(layers as any)[key]}
+                      onChange={e => setLayers({ ...layers, [key]: e.target.checked })}
+                      className="w-4 h-4 rounded accent-[#0B5CAB]" />
+                  </label>
+                ))}
               </div>
             </div>
 
-            {/* Selected Waypoint Info in Left Sidebar */}
+            {/* Selected Waypoint Info */}
             {selectedPoint && (
-              <div className="p-3 rounded bg-[#EFF6FF] border border-[#0B5CAB]/30 mt-3">
+              <div className="p-3 rounded bg-[#EFF6FF] border border-[#0B5CAB]/30">
                 <div className="flex items-center justify-between mb-1.5">
                   <DomainBadge domain={selectedPoint.domain} size="sm" />
                   <span className="font-mono text-[10px] text-[#0B5CAB] font-bold">WAYPOINT</span>
                 </div>
                 <div className="font-bold text-xs text-[#0B2340] mb-0.5">{selectedPoint.name}</div>
-                <div className="text-[11px] text-[#64748B] mb-2">{selectedPoint.address}</div>
-                <div className="font-mono text-[10px] text-[#191C1E] bg-white p-1.5 rounded border border-[#0B5CAB]/20">
-                  {selectedPoint.time} • {selectedPoint.coordinates}
-                </div>
+                <div className="text-[11px] text-[#64748B] mb-1">{selectedPoint.address}</div>
+                <div className="font-mono text-[10px] text-[#191C1E] bg-white p-1.5 rounded border border-[#0B5CAB]/20 mb-1">{selectedPoint.time}</div>
+                <div className="text-[11px] text-[#424751] italic leading-relaxed">{selectedPoint.details}</div>
               </div>
             )}
+
+            {/* Geo-Points List */}
+            <div className="pt-2 border-t border-[#EDF0F4]">
+              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-2">
+                Geo-Points ({GEO_POINTS.length})
+              </label>
+              <div className="space-y-1.5">
+                {GEO_POINTS.map((pt, idx) => (
+                  <button key={pt.id} onClick={() => setSelectedPoint(pt)}
+                    className={`w-full text-left p-2 rounded border text-[11px] transition-colors ${
+                      selectedPoint?.id === pt.id
+                        ? 'bg-[#EFF6FF] border-[#0B5CAB]/40 text-[#0B2340]'
+                        : 'bg-[#F8FAFC] border-[#EDF0F4] text-[#424751] hover:bg-[#EFF6FF]/50'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: pt.color }} />
+                      <span className="font-semibold truncate">#{idx + 1} {pt.name}</span>
+                    </div>
+                    <div className="font-mono text-[10px] text-[#64748B] mt-0.5 pl-4">{pt.time.split(' ')[0]}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Map View Canvas (8 cols / ~68%) */}
-        <div className="lg:col-span-8 bg-[#0F172A] border border-[#334155] rounded-md shadow-xs relative overflow-hidden flex flex-col">
-          {/* Tactical Map Canvas with Real Police Styling & Roads Simulation */}
-          <div className="w-full h-full relative grid-pattern-dark flex items-center justify-center select-none">
-            {/* Compass HUD */}
-            <div className="absolute top-4 right-4 z-10 bg-[#1E293B]/80 backdrop-blur-xs border border-gray-700 text-gray-300 rounded p-2 text-center text-[10px] font-mono">
-              <span className="font-bold block text-cyan-400">N ↑</span>
-              <span>GRID UT</span>
-            </div>
+        {/* Leaflet Map */}
+        <div className="lg:col-span-8 rounded-md overflow-hidden border border-[#D9E1EA] shadow-xs relative" style={{ height: '640px' }}>
+          <MapContainer center={CENTER} zoom={14} style={{ height: '100%', width: '100%' }} zoomControl={true}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
 
-            {/* Sector Boundary Label HUD */}
-            <div className="absolute top-4 left-4 z-10 bg-[#1E293B]/80 backdrop-blur-xs border border-gray-700 text-gray-300 rounded px-3 py-1.5 text-xs font-mono">
-              <span className="text-cyan-400 font-bold">SECTOR 17 ↔ SECTOR 22 CORRIDOR</span>
-              <span className="block text-[10px] text-gray-400">Chandigarh Police Tactical GIS</span>
-            </div>
+            <MapCenterControl center={CENTER} trigger={centerTrigger} />
 
-            {/* Vector Roads & Movement Trajectory SVG */}
-            <svg className="absolute inset-0 w-full h-full">
-              {/* Road Grid Lines */}
-              <line x1="10%" y1="20%" x2="90%" y2="80%" stroke="#334155" strokeWidth="6" strokeOpacity="0.4" />
-              <line x1="20%" y1="70%" x2="80%" y2="20%" stroke="#334155" strokeWidth="6" strokeOpacity="0.4" />
-              <line x1="10%" y1="50%" x2="90%" y2="50%" stroke="#334155" strokeWidth="4" strokeOpacity="0.3" />
-              <line x1="50%" y1="10%" x2="50%" y2="90%" stroke="#334155" strokeWidth="4" strokeOpacity="0.3" />
+            {/* Suspect trajectory line */}
+            <Polyline positions={trajectoryPath} color="#DC2626" weight={3} dashArray="8, 6" opacity={0.85} />
 
-              {/* Suspect Path Trajectory (14:00 to 15:10) */}
-              <path
-                d="M 280 280 Q 420 220 540 360 T 720 440"
-                fill="none"
-                stroke="#DC2626"
-                strokeWidth="3"
-                strokeDasharray="6,4"
-                className="anim-dash"
-              />
+            {/* Radius buffer circle (from slider) */}
+            <Circle center={[GEO_POINTS[0].lat, GEO_POINTS[0].lng]} radius={radiusBuffer * 1000}
+              pathOptions={{ color: '#0B5CAB', fillColor: '#0B5CAB', fillOpacity: 0.04, weight: 2, dashArray: '8, 4' }} />
 
-              {/* Tower Coverage Radar Circles */}
-              {layers.cdr && (
-                <circle
-                  cx="280"
-                  cy="280"
-                  r={radiusBuffer * 35}
-                  fill="#0891B2"
-                  fillOpacity="0.08"
-                  stroke="#0891B2"
-                  strokeWidth="1.5"
-                  strokeDasharray="4,4"
-                />
-              )}
+            {/* Individual geo-point markers */}
+            {GEO_POINTS.map((pt, idx) => {
+              const show =
+                (pt.domain === 'CDR' && layers.cdr) ||
+                (pt.domain === 'BANK' && layers.bank) ||
+                (pt.domain === 'IPDR' && layers.ipdr);
+              if (!show) return null;
 
-              {layers.bank && (
-                <circle
-                  cx="720"
-                  cy="440"
-                  r="45"
-                  fill="#F97316"
-                  fillOpacity="0.12"
-                  stroke="#F97316"
-                  strokeWidth="1.5"
-                />
-              )}
-            </svg>
+              return (
+                <React.Fragment key={pt.id}>
+                  <Circle center={[pt.lat, pt.lng]} radius={pt.radiusKm * 1000}
+                    pathOptions={{ color: pt.color, fillColor: pt.color, fillOpacity: 0.08, weight: 1.5, dashArray: '5,5' }} />
+                  <Marker position={[pt.lat, pt.lng]} icon={createColoredIcon(pt.color)}
+                    eventHandlers={{ click: () => setSelectedPoint(pt) }}>
+                    <Popup maxWidth={260}>
+                      <div style={{ fontFamily: 'inherit', fontSize: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span style={{ background: pt.color, color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, fontFamily: 'monospace' }}>
+                            {pt.domain}
+                          </span>
+                          <span style={{ color: '#64748B', fontSize: '10px', fontFamily: 'monospace' }}>#{idx + 1}</span>
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#0B2340', marginBottom: '4px' }}>{pt.name}</div>
+                        <div style={{ color: '#64748B', marginBottom: '4px', fontSize: '11px' }}>{pt.address}</div>
+                        <div style={{ background: '#F8FAFC', border: '1px solid #D9E1EA', borderRadius: '4px', padding: '4px 6px', fontFamily: 'monospace', fontSize: '10px', color: '#191C1E', marginBottom: '6px' }}>{pt.time}</div>
+                        <div style={{ color: '#424751', fontSize: '11px', lineHeight: '1.5' }}>{pt.details}</div>
+                        <div style={{ marginTop: '6px', fontSize: '10px', color: '#0B5CAB', fontFamily: 'monospace' }}>Radius: {pt.radiusKm} km</div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </React.Fragment>
+              );
+            })}
+          </MapContainer>
 
-            {/* Interactive Location Markers */}
-            <div className="absolute inset-0 pointer-events-none">
-              {GEO_POINTS.map((pt, idx) => {
-                const isSelected = selectedPoint?.id === pt.id;
-                let markerBg = 'bg-[#0891B2]';
-                let icon = 'cell_tower';
-
-                if (pt.domain === 'BANK') {
-                  markerBg = 'bg-[#F97316]';
-                  icon = pt.type === 'ATM_CASHOUT' ? 'local_atm' : 'account_balance';
-                } else if (pt.domain === 'IPDR') {
-                  markerBg = 'bg-[#7C3AED]';
-                  icon = 'router';
-                }
-
-                return (
-                  <div
-                    key={pt.id}
-                    onClick={() => setSelectedPoint(pt)}
-                    className={`absolute pointer-events-auto cursor-pointer -translate-x-1/2 -translate-y-1/2 transition-transform ${
-                      isSelected ? 'scale-125 z-30' : 'hover:scale-110 z-10'
-                    }`}
-                    style={{ left: `${pt.xPercent}%`, top: `${pt.yPercent}%` }}
-                  >
-                    {/* Marker Pin */}
-                    <div
-                      className={`w-9 h-9 rounded-full ${markerBg} text-white flex items-center justify-center shadow-lg border-2 border-white ${
-                        isSelected ? 'ring-4 ring-cyan-400/50 animate-bounce' : ''
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">{icon}</span>
-                    </div>
-
-                    {/* Marker Tooltip */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 bg-[#0F172A] border border-gray-700 text-white px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap shadow-md text-center">
-                      <div className="font-bold text-cyan-300">#{idx + 1} {pt.name}</div>
-                      <div className="text-gray-400">{pt.time.split(' ')[0]}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Bottom Status bar */}
-            <div className="absolute bottom-3 right-4 z-10 bg-[#1E293B]/90 border border-gray-700 px-3 py-1.5 rounded text-xs font-mono text-gray-300 flex items-center gap-3">
-              <span className="flex items-center gap-1 text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                GPS Triangulation Active
-              </span>
-              <span className="text-gray-500">|</span>
-              <span>4 Geo-Points Linked</span>
-            </div>
+          {/* Status overlay badge */}
+          <div className="absolute bottom-3 left-3 z-[1000] bg-white/90 backdrop-blur-xs border border-[#D9E1EA] px-3 py-1.5 rounded-md text-xs font-mono text-[#191C1E] flex items-center gap-3 shadow-sm pointer-events-none">
+            <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              GPS Active
+            </span>
+            <span className="text-[#C2C6D3]">|</span>
+            <span>4 Geo-Points</span>
+            <span className="text-[#C2C6D3]">|</span>
+            <span className="text-[#0B5CAB]">Chandigarh UT</span>
           </div>
         </div>
       </div>
     </div>
   );
 };
+

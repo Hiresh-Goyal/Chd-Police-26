@@ -77,28 +77,7 @@ export const UserManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">Total Users</span>
-          <span className="text-2xl font-bold text-[#0B2340]">142</span>
-        </div>
 
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">Active Sessions</span>
-          <span className="text-2xl font-bold text-[#0B5CAB]">18</span>
-        </div>
-
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">Pending Approvals</span>
-          <span className="text-2xl font-bold text-[#F97316]">4</span>
-        </div>
-
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">Revoked Access</span>
-          <span className="text-2xl font-bold text-[#DC2626]">2</span>
-        </div>
-      </div>
 
       {/* Search & Filter Bar */}
       <div className="bg-white border border-[#D9E1EA] rounded-md p-3.5 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">

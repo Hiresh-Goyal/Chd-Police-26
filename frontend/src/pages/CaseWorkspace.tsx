@@ -92,8 +92,8 @@ export const CaseWorkspace: React.FC = () => {
       {/* Analysis Sub-Navigation Tabs */}
       <AnalysisNav />
 
-      {/* Workspace Grid (3 Columns) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      {/* Workspace Grid (2 Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-9 gap-4 items-start">
         {/* Left Column: Summary & Suspect Entities (~3 cols / 25%) */}
         <div className="lg:col-span-3 flex flex-col gap-4">
           {/* Case Summary Card */}
@@ -387,70 +387,7 @@ export const CaseWorkspace: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: System Alerts & Investigator Notes (~3 cols / 25%) */}
-        <div className="lg:col-span-3 flex flex-col gap-4">
-          {/* Active Alerts Panel */}
-          <div className="bg-white border border-[#D9E1EA] rounded-md shadow-xs flex flex-col overflow-hidden">
-            <div className="p-3 border-b border-[#D9E1EA] bg-[#F8FAFC] flex justify-between items-center">
-              <h3 className="text-[11px] font-bold text-[#424751] uppercase tracking-widest flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px] text-[#DC2626]">notifications_active</span>
-                SYSTEM ALERTS
-              </h3>
-              <span className="bg-[#DC2626] text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                {CASE_2847.alerts.length}
-              </span>
-            </div>
 
-            <div className="p-2.5 flex flex-col gap-2">
-              {CASE_2847.alerts.map(a => (
-                <div
-                  key={a.id}
-                  className={`p-2.5 rounded border text-xs ${
-                    a.severity === 'CRITICAL'
-                      ? 'bg-[#DC2626]/5 border-[#DC2626]/20'
-                      : 'bg-[#F8FAFC] border-[#D9E1EA]'
-                  }`}
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${a.severity === 'CRITICAL' ? 'text-[#DC2626]' : 'text-orange-600'}`}>
-                      {a.title}
-                    </span>
-                    <span className="font-mono text-[9px] text-[#64748B]">{a.timeAgo}</span>
-                  </div>
-                  <div className="text-[#191C1E] leading-snug">{a.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Investigator Notes (Forensic Memo Style) */}
-          <div className="bg-[#FFFDE7] border border-[#E0D890] rounded-md shadow-xs flex flex-col overflow-hidden">
-            <div className="p-3 border-b border-[#E0D890] flex justify-between items-center bg-[#FFF9C4]/70">
-              <h3 className="text-[11px] font-bold text-[#7A6C18] uppercase tracking-widest flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px]">edit_note</span>
-                INVESTIGATOR NOTES
-              </h3>
-              <button
-                onClick={() => setIsAddNoteModalOpen(true)}
-                className="text-[#7A6C18] hover:bg-[#E0D890]/30 p-1 rounded transition-colors"
-                title="Add Note"
-              >
-                <span className="material-symbols-outlined text-[16px]">add</span>
-              </button>
-            </div>
-
-            <div className="p-3 flex flex-col gap-2.5 overflow-y-auto max-h-[260px] custom-scrollbar text-xs text-[#3E3816] leading-relaxed">
-              {notes.map(n => (
-                <div key={n.id} className="border-l-2 border-[#C7B538] pl-2.5 py-0.5">
-                  <span className="font-mono text-[10px] text-[#7A6C18] block font-bold">
-                    {n.timestamp}
-                  </span>
-                  <p className="mt-0.5">{n.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Add Note Modal */}

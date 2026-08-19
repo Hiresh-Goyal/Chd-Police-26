@@ -95,11 +95,9 @@ export const UploadEvidence: React.FC = () => {
       {/* Analysis Tabs */}
       <AnalysisNav />
 
-      {/* 60/40 Split Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left Column (60% ~ 7 cols) */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
-          {/* Drag & Drop Zone */}
+      {/* Single Column Layout */}
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           <div
             onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -211,72 +209,6 @@ export const UploadEvidence: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Ingestion Guidance & Evidence Integrity (40% ~ 5 cols) */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          {/* Ingestion Guidance Section */}
-          <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs">
-            <h3 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[#0B5CAB] text-[18px]">info</span>
-              Ingestion Guidance & Schema Specs
-            </h3>
-            <p className="text-xs text-[#64748B] mb-3 leading-relaxed">
-              Standardized schemas ensure automatic entity extraction and cross-domain correlation matching.
-            </p>
-
-            <div className="space-y-2.5 text-xs text-[#334155]">
-              <div className="p-2.5 rounded bg-[#F8FAFC] border border-[#EDF0F4]">
-                <div className="font-semibold text-[#0891B2] flex items-center gap-1 mb-0.5">
-                  <span className="material-symbols-outlined text-[14px]">call</span>
-                  CDR (Call Data Records)
-                </div>
-                <div className="text-[11px] text-[#64748B]">
-                  Required headers: Calling_No, Called_No, Call_Date, Call_Time, Duration_Sec, First_Cell_ID, Azimuth.
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded bg-[#F8FAFC] border border-[#EDF0F4]">
-                <div className="font-semibold text-[#F97316] flex items-center gap-1 mb-0.5">
-                  <span className="material-symbols-outlined text-[14px]">account_balance</span>
-                  Bank Statement Logs
-                </div>
-                <div className="text-[11px] text-[#64748B]">
-                  Required headers: Txn_Date, Value_Date, Description, Ref_No, Debit_Amt, Credit_Amt, Balance.
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded bg-[#F8FAFC] border border-[#EDF0F4]">
-                <div className="font-semibold text-[#7C3AED] flex items-center gap-1 mb-0.5">
-                  <span className="material-symbols-outlined text-[14px]">router</span>
-                  IPDR / Network Sessions
-                </div>
-                <div className="text-[11px] text-[#64748B]">
-                  Required headers: Source_IP, Source_Port, Dest_IP, Dest_Port, Session_Start, Bytes_Transferred.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Evidence Integrity & Section 65B */}
-          <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs">
-            <h3 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-emerald-600 text-[18px]">verified_user</span>
-              Evidence Integrity Guarantee
-            </h3>
-            <p className="text-xs text-[#424751] leading-relaxed mb-3">
-              All ingested files undergo immediate cryptographic SHA-256 hashing at upload. Hashes are logged to the tamper-evident audit ledger to maintain legal admissibility under Section 65B of the Indian Evidence Act.
-            </p>
-
-            <div className="bg-[#EFF6FF] border border-[#0B5CAB]/20 rounded p-2.5 text-xs text-[#0B2340]">
-              <div className="font-bold flex items-center gap-1 mb-0.5">
-                <span className="material-symbols-outlined text-[14px] text-[#0B5CAB]">lock</span>
-                Chain of Custody Active
-              </div>
-              <div className="text-[11px] text-[#424751]">
-                Custodian: Insp. Amrit Singh (ID: 1042) • UT Police Forensics
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

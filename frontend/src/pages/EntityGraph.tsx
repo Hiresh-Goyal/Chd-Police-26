@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CASE_2847 } from '../data/mockData';
-import { AnalysisNav } from '../components/shell/AnalysisNav';
+
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
@@ -226,9 +226,6 @@ export const EntityGraph: React.FC = () => {
           </Button>
         </div>
       </header>
-
-      {/* Analysis Tabs */}
-      <AnalysisNav />
 
       {/* Split Graph View: Canvas (70%) + Inspector (30%) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[650px] items-stretch">

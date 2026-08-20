@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { MONEY_TRAIL_NODES, FlowNode } from '../data/mockData';
-import { AnalysisNav } from '../components/shell/AnalysisNav';
+
 import { Button } from '../components/common/Button';
-import { Modal } from '../components/common/Modal';
 import { useToast } from '../components/common/Toast';
 
 export const CriminalFlow: React.FC = () => {
   const { showToast } = useToast();
 
   const [selectedNode, setSelectedNode] = useState<FlowNode>(MONEY_TRAIL_NODES[1]); // Default Layer 1 Mule
-  const [isWarrantModalOpen, setIsWarrantModalOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [warrantNotes, setWarrantNotes] = useState('');
 
   const handleExportGraph = () => {
     const json = JSON.stringify(MONEY_TRAIL_NODES, null, 2);
@@ -24,11 +21,7 @@ export const CriminalFlow: React.FC = () => {
     showToast('Exported CriminalFlow money trail graph data.', 'success');
   };
 
-  const handleRequestWarrants = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsWarrantModalOpen(false);
-    showToast('Freezing orders & Section 91 CrPC notice generated for magistrate endorsement.', 'success');
-  };
+
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,28 +38,14 @@ export const CriminalFlow: React.FC = () => {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button variant="secondary" size="sm" icon="download" onClick={handleExportGraph}>
-            Export Graph
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            icon="gavel"
-            onClick={() => setIsWarrantModalOpen(true)}
-          >
-            Request Warrants
-          </Button>
-        </div>
+        <Button variant="secondary" size="sm" icon="download" onClick={handleExportGraph}>
+          Export Graph
+        </Button>
       </header>
 
-      {/* Analysis Tabs */}
-      <AnalysisNav />
-
-      {/* Split View Container (70% Canvas + 30% Inspector) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[720px] items-stretch">
-        {/* Left: Interactive Financial Flow Canvas (8 cols / ~70%) */}
-        <section className="lg:col-span-8 bg-[#F8FAFC] grid-pattern border border-[#D9E1EA] rounded-md relative overflow-hidden flex flex-col shadow-xs select-none">
+      {/* Full-width Canvas */}
+      <div className="h-[720px]">
+        <section className="h-full bg-[#F8FAFC] grid-pattern border border-[#D9E1EA] rounded-md relative overflow-hidden flex flex-col shadow-xs select-none">
           {/* Zoom/Pan Controls Overlay */}
           <div className="absolute bottom-4 left-4 z-20 bg-white border border-[#D9E1EA] rounded shadow-sm flex flex-col">
             <button
@@ -242,184 +221,9 @@ export const CriminalFlow: React.FC = () => {
             </div>
           </div>
         </section>
-
-        {/* Right: Inspector & Freeze Priority (4 cols / ~30%) */}
-        <aside className="lg:col-span-4 bg-white border border-[#D9E1EA] rounded-md shadow-xs flex flex-col overflow-hidden">
-          {/* Freeze Priority Panel (Top Half) */}
-          <div className="border-b border-[#D9E1EA] flex flex-col h-[280px]">
-            <div className="px-4 py-2.5 border-b border-[#D9E1EA] bg-[#F8FAFC] flex items-center justify-between">
-              <h2 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[#DC2626] text-[16px]">ac_unit</span>
-                Freeze Priority Queue
-              </h2>
-              <span className="text-[10px] font-mono text-[#DC2626] bg-[#DC2626]/10 px-1.5 py-0.5 rounded font-bold">
-                EMERGENCY
-              </span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="bg-[#F5F7FA] border-b border-[#D9E1EA] text-[10px] font-bold text-[#64748B] uppercase tracking-wider sticky top-0">
-                  <tr>
-                    <th className="py-2 px-3">Pri</th>
-                    <th className="py-2 px-3">Account</th>
-                    <th className="py-2 px-3 text-right">Retained Balance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#EDF0F4] font-mono">
-                  <tr
-                    onClick={() => setSelectedNode(MONEY_TRAIL_NODES[2])}
-                    className="bg-[#DC2626]/5 hover:bg-[#DC2626]/10 cursor-pointer transition-colors"
-                  >
-                    <td className="py-2 px-3">
-                      <span className="bg-[#DC2626] text-white font-bold text-[10px] px-1.5 py-0.5 rounded">P1</span>
-                    </td>
-                    <td className="py-2 px-3 font-semibold text-[#191C1E]">HDFC 7832</td>
-                    <td className="py-2 px-3 text-right font-bold text-[#DC2626]">₹48,000</td>
-                  </tr>
-
-                  <tr
-                    onClick={() => setSelectedNode(MONEY_TRAIL_NODES[1])}
-                    className="hover:bg-slate-50 cursor-pointer transition-colors"
-                  >
-                    <td className="py-2 px-3">
-                      <span className="bg-[#DC2626] text-white font-bold text-[10px] px-1.5 py-0.5 rounded">P1</span>
-                    </td>
-                    <td className="py-2 px-3 font-semibold text-[#191C1E]">HDFC 4521</td>
-                    <td className="py-2 px-3 text-right font-bold text-[#DC2626]">₹48,000</td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50 cursor-pointer transition-colors">
-                    <td className="py-2 px-3">
-                      <span className="bg-[#F97316] text-white font-bold text-[10px] px-1.5 py-0.5 rounded">P2</span>
-                    </td>
-                    <td className="py-2 px-3 text-[#334155]">SBI 9921</td>
-                    <td className="py-2 px-3 text-right text-[#191C1E]">₹12,400</td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50 cursor-pointer transition-colors">
-                    <td className="py-2 px-3">
-                      <span className="bg-slate-200 text-[#475569] font-bold text-[10px] px-1.5 py-0.5 rounded">P3</span>
-                    </td>
-                    <td className="py-2 px-3 text-[#64748B]">ICICI 4410</td>
-                    <td className="py-2 px-3 text-right text-[#64748B]">₹0</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Account Detail Inspector (Bottom Half) */}
-          <div className="flex-1 flex flex-col p-4 overflow-y-auto custom-scrollbar gap-3 text-xs">
-            <div className="flex justify-between items-center border-b border-[#EDF0F4] pb-2">
-              <h3 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider flex items-center gap-1">
-                <span className="material-symbols-outlined text-[#0B5CAB] text-[16px]">manage_search</span>
-                Detail Inspector
-              </h3>
-              <span className="font-mono text-[10px] text-[#0B5CAB] bg-[#EFF6FF] px-2 py-0.5 rounded font-bold">
-                {selectedNode.accountNo}
-              </span>
-            </div>
-
-            {/* Metadata Box */}
-            <div className="bg-[#F8FAFC] border border-[#D9E1EA] rounded p-2.5 space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-[#64748B]">Owner Name:</span>
-                <span className="font-semibold text-[#191C1E]">{selectedNode.owner}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#64748B]">Traced Volume:</span>
-                <span className="font-mono font-bold text-[#DC2626]">{selectedNode.amount}</span>
-              </div>
-              {selectedNode.ipAddress && (
-                <div className="flex justify-between">
-                  <span className="text-[#64748B]">Associated IP:</span>
-                  <span className="font-mono text-[#0B5CAB]">{selectedNode.ipAddress}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Risk Factors */}
-            <div>
-              <h4 className="text-[10px] font-bold text-[#424751] uppercase tracking-wider mb-1.5">Risk Flags</h4>
-              <div className="space-y-1 text-[11px]">
-                <div className="p-1.5 rounded bg-red-50 text-[#DC2626] border border-red-200 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[14px]">warning</span>
-                  Rapid in-and-out transfers (High Velocity)
-                </div>
-                <div className="p-1.5 rounded bg-amber-50 text-[#B45309] border border-amber-200 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[14px]">error</span>
-                  Mismatched KYC documents flagged
-                </div>
-              </div>
-            </div>
-
-            {/* Forensic Provenance */}
-            <div>
-              <h4 className="text-[10px] font-bold text-[#424751] uppercase tracking-wider mb-1">Forensic Provenance</h4>
-              <div className="p-2 rounded bg-slate-100 border border-[#D9E1EA] font-mono text-[10px] text-[#424751] break-all">
-                {selectedNode.sourceProvenance}
-              </div>
-            </div>
-
-            <Button
-              variant="primary"
-              size="sm"
-              className="mt-auto"
-              onClick={() => showToast(`Opening ledger statements for ${selectedNode.accountNo}.`, 'info')}
-            >
-              View Full Account Ledger
-            </Button>
-          </div>
-        </aside>
       </div>
 
-      {/* Request Warrants Modal */}
-      <Modal
-        isOpen={isWarrantModalOpen}
-        onClose={() => setIsWarrantModalOpen(false)}
-        title="Request Judicial Freeze Orders & Section 91 Warrants"
-        subtitle="Expedited requisition for mule accounts HDFC 4521 and HDFC 7832."
-        icon="gavel"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setIsWarrantModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleRequestWarrants}>
-              Issue Emergency Freeze Warrant
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleRequestWarrants} className="space-y-3 text-xs">
-          <div className="p-3 bg-red-50 border border-red-200 rounded text-red-900">
-            <span className="font-bold block mb-1">Target Accounts for Immediate Lien:</span>
-            <ul className="list-disc pl-4 font-mono text-[11px] space-y-0.5">
-              <li>HDFC Bank: XXXXXXX4521 (Rajesh Verma) — Amount: ₹48,000</li>
-              <li>HDFC Bank: XXXXXXX7832 (Layer 2 Mule) — Amount: ₹48,000</li>
-            </ul>
-          </div>
 
-          <div>
-            <label className="block text-[11px] font-bold text-[#424751] uppercase mb-1">
-              Investigative Justification
-            </label>
-            <textarea
-              rows={3}
-              required
-              value={warrantNotes}
-              onChange={e => setWarrantNotes(e.target.value)}
-              placeholder="State reasonable suspicion of proceeds of crime under IPC Section 420 / IT Act..."
-              className="w-full p-2.5 border border-[#D9E1EA] rounded text-xs focus:outline-none focus:border-[#0B5CAB]"
-            />
-          </div>
-
-          <div className="text-[11px] text-[#64748B]">
-            Authorizing Officer: <strong>Insp. Amrit Singh (ID: 1042)</strong> • Sector 17 Police Station
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };

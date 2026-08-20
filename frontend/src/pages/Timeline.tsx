@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CASE_2847_TIMELINE, TimelineEvent } from '../data/mockData';
-import { AnalysisNav } from '../components/shell/AnalysisNav';
+
 import { DomainBadge } from '../components/common/Badge';
 import { Drawer } from '../components/common/Drawer';
 import { Button } from '../components/common/Button';
@@ -69,9 +69,6 @@ export const Timeline: React.FC = () => {
           </Button>
         </div>
       </header>
-
-      {/* Analysis Tabs */}
-      <AnalysisNav />
 
       {/* Controls Bar */}
       <div className="bg-white border border-[#D9E1EA] rounded-md px-4 py-2.5 flex flex-wrap items-center justify-between gap-4 shadow-xs">

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CASE_2847 } from '../data/mockData';
-import { AnalysisNav } from '../components/shell/AnalysisNav';
+
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { useToast } from '../components/common/Toast';
@@ -88,9 +88,6 @@ export const CaseWorkspace: React.FC = () => {
           </Button>
         </div>
       </div>
-
-      {/* Analysis Sub-Navigation Tabs */}
-      <AnalysisNav />
 
       {/* Workspace Grid (2 Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-9 gap-4 items-start">
@@ -241,55 +238,6 @@ export const CaseWorkspace: React.FC = () => {
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#0B5CAB]"></div>
               <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">EVIDENCE</span>
               <span className="font-mono text-base font-bold text-[#191C1E]">6</span>
-            </div>
-          </div>
-
-          {/* Critical Finding Nexus Panel */}
-          <div className="bg-white border border-[#DC2626]/30 rounded-md p-4 flex flex-col shadow-xs relative overflow-hidden">
-            <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#DC2626]"></div>
-            <div className="flex items-center gap-2 mb-1.5 pl-1">
-              <span className="material-symbols-outlined text-[#DC2626] text-[20px]">error</span>
-              <h3 className="text-sm font-bold text-[#191C1E]">Critical Modus Operandi Nexus Identified</h3>
-            </div>
-            <p className="text-xs text-[#424751] mb-3.5 pl-1 leading-relaxed">
-              System analysis indicates a high-confidence correlation pattern sequence originating from voice calls, transitioning to rapid data sessions, followed by immediate financial transfers and physical cash withdrawals.
-            </p>
-
-            {/* Visual Correlation Flow */}
-            <div className="bg-[#F8FAFC] border border-[#D9E1EA] rounded p-3 flex items-center justify-between gap-1 sm:gap-2">
-              <div className="flex flex-col items-center text-center">
-                <div className="w-9 h-9 rounded-full bg-cyan-100 border border-cyan-300 flex items-center justify-center text-[#0891B2]">
-                  <span className="material-symbols-outlined text-[18px]">call</span>
-                </div>
-                <span className="text-[9px] font-bold text-[#424751] mt-1 font-mono">VOIP CALL</span>
-              </div>
-
-              <span className="material-symbols-outlined text-[#94A3B8] text-[16px]">arrow_forward</span>
-
-              <div className="flex flex-col items-center text-center">
-                <div className="w-9 h-9 rounded-full bg-purple-100 border border-purple-300 flex items-center justify-center text-[#7C3AED]">
-                  <span className="material-symbols-outlined text-[18px]">router</span>
-                </div>
-                <span className="text-[9px] font-bold text-[#424751] mt-1 font-mono">IPDR DATA</span>
-              </div>
-
-              <span className="material-symbols-outlined text-[#94A3B8] text-[16px]">arrow_forward</span>
-
-              <div className="flex flex-col items-center text-center">
-                <div className="w-9 h-9 rounded-full bg-red-100 border-2 border-[#DC2626] flex items-center justify-center text-[#DC2626]">
-                  <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
-                </div>
-                <span className="text-[9px] font-bold text-[#DC2626] mt-1 font-mono">IMPS TXN</span>
-              </div>
-
-              <span className="material-symbols-outlined text-[#94A3B8] text-[16px]">arrow_forward</span>
-
-              <div className="flex flex-col items-center text-center">
-                <div className="w-9 h-9 rounded-full bg-orange-100 border border-orange-300 flex items-center justify-center text-[#F97316]">
-                  <span className="material-symbols-outlined text-[18px]">local_atm</span>
-                </div>
-                <span className="text-[9px] font-bold text-[#424751] mt-1 font-mono">ATM WD</span>
-              </div>
             </div>
           </div>
 

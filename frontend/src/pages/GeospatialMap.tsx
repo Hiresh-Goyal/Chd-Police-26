@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { AnalysisNav } from '../components/shell/AnalysisNav';
+
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
@@ -152,8 +152,6 @@ export const GeospatialMap: React.FC = () => {
           </Button>
         </div>
       </header>
-
-      <AnalysisNav />
 
       {/* Map Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch" style={{ height: '640px' }}>

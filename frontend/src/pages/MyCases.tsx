@@ -192,11 +192,7 @@ export const MyCases: React.FC = () => {
       {viewMode === 'list' ? (
         /* Case List Table */
         <div className="bg-white border border-[#D9E1EA] rounded shadow-xs overflow-hidden flex flex-col">
-          <div className="px-4 py-3 border-b border-[#D9E1EA] bg-[#F8FAFC] flex justify-between items-center">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#191C1E]">
-              Active Investigations <span className="text-[#64748B] font-normal font-mono">({filteredCases.length})</span>
-            </h2>
-          </div>
+
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">

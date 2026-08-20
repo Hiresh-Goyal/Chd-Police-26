@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { INITIAL_EVIDENCE_FILES, EvidenceFile } from '../data/mockData';
-import { AnalysisNav } from '../components/shell/AnalysisNav';
+
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
@@ -91,9 +91,6 @@ export const UploadEvidence: React.FC = () => {
           Securely ingest external data sets for forensic processing and analytical correlation with Case #2847.
         </p>
       </header>
-
-      {/* Analysis Tabs */}
-      <AnalysisNav />
 
       {/* Single Column Layout */}
       <div className="flex flex-col gap-5">

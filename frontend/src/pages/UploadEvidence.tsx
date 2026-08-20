@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { INITIAL_EVIDENCE_FILES, EvidenceFile } from '../data/mockData';
+import { useCaseStore } from '../context/CaseStore';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -7,10 +9,18 @@ import { useToast } from '../components/common/Toast';
 
 export const UploadEvidence: React.FC = () => {
   const { showToast } = useToast();
+  const { caseId } = useParams<{ caseId: string }>();
+  const navigate = useNavigate();
+  const { updateCaseEvidence } = useCaseStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [queue, setQueue] = useState<EvidenceFile[]>(INITIAL_EVIDENCE_FILES);
+  // For case 2847 pre-populate with demo files; new cases start empty
+  const [queue, setQueue] = useState<EvidenceFile[]>(
+    caseId === '2847' ? INITIAL_EVIDENCE_FILES : []
+  );
   const [isDragging, setIsDragging] = useState(false);
+
+  const completeCount = queue.filter(f => f.status === 'complete').length;
 
   const generateMockHash = () => {
     return Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -48,17 +58,20 @@ export const UploadEvidence: React.FC = () => {
       setTimeout(() => {
         setQueue(current =>
           current.map(item =>
-            item.id === nf.id ? { ...item, status: 'parsing', progress: 65 } : item
-          )
+            item.id === nf.id ? { ...item, status: 'parsing' as const, progress: 65 } : item
+          ) as EvidenceFile[]
         );
       }, 1200);
 
       setTimeout(() => {
-        setQueue(current =>
-          current.map(item =>
-            item.id === nf.id ? { ...item, status: 'complete', progress: 100 } : item
-          )
-        );
+        setQueue(current => {
+          const updated = current.map(item =>
+            item.id === nf.id ? { ...item, status: 'complete' as const, progress: 100 } : item
+          ) as EvidenceFile[];
+          // Persist to CaseStore whenever a file completes
+          if (caseId) updateCaseEvidence(caseId, updated);
+          return updated;
+        });
         showToast(`Ingestion complete for ${nf.name}`, 'success');
       }, 2500);
     });
@@ -85,11 +98,24 @@ export const UploadEvidence: React.FC = () => {
   return (
     <div className="flex flex-col gap-4">
       {/* Page Header */}
-      <header className="border-b border-[#D9E1EA] pb-3">
-        <h1 className="text-2xl font-bold text-[#0B2340] tracking-tight">Upload Evidence</h1>
-        <p className="text-sm text-[#424751] mt-0.5">
-          Securely ingest external data sets for forensic processing and analytical correlation with Case #2847.
-        </p>
+      <header className="border-b border-[#D9E1EA] pb-3 flex items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-[#0B2340] tracking-tight">Upload Evidence</h1>
+          <p className="text-sm text-[#424751] mt-0.5">
+            Securely ingest external data sets for forensic processing and analytical correlation with Case #{caseId}.
+          </p>
+        </div>
+        {/* Start Analysis CTA — appears once ≥1 file is complete */}
+        {completeCount > 0 && caseId !== '2847' && (
+          <Button
+            variant="primary"
+            size="sm"
+            icon="play_arrow"
+            onClick={() => navigate(`/cases/${caseId}/timeline`)}
+          >
+            Start Analysis
+          </Button>
+        )}
       </header>
 
       {/* Single Column Layout */}

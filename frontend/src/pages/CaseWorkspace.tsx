@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { CASE_2847 } from '../data/mockData';
+import { useCaseStore } from '../context/CaseStore';
 
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -9,12 +10,30 @@ import { useToast } from '../components/common/Toast';
 export const CaseWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { caseId } = useParams<{ caseId: string }>();
+  const { getCase, getCaseFiles } = useCaseStore();
 
-  const [notes, setNotes] = useState(CASE_2847.notes);
+  // For case 2847 use rich mock data; for any other case load from store
+  const caseData = caseId === '2847' ? CASE_2847 : getCase(caseId ?? '');
+  const uploadedFiles = getCaseFiles(caseId ?? '');
+  const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
+
+  const [notes, setNotes] = useState(caseData?.notes ?? []);
+
   const [newNoteText, setNewNoteText] = useState('');
   const [isAddNoteModalOpen, setIsAddNoteModalOpen] = useState(false);
-  const [caseStatus, setCaseStatus] = useState(CASE_2847.status);
+  const [caseStatus, setCaseStatus] = useState<string>(caseData?.status ?? 'Active');
   const [isCloseCaseModalOpen, setIsCloseCaseModalOpen] = useState(false);
+
+  // If case not found, show not found
+  if (!caseData) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
+        <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">search_off</span>
+        <p className="text-[#64748B] text-sm">Case not found. <Link to="/cases" className="text-[#0B5CAB] underline">Back to My Cases</Link></p>
+      </div>
+    );
+  }
 
   const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +53,7 @@ export const CaseWorkspace: React.FC = () => {
   const handleCloseCase = () => {
     setCaseStatus('Closed');
     setIsCloseCaseModalOpen(false);
-    showToast('Case #2847 status updated to CLOSED.', 'info');
+    showToast(`Case #${caseId} status updated to CLOSED.`, 'info');
   };
 
   return (
@@ -43,24 +62,26 @@ export const CaseWorkspace: React.FC = () => {
       <div className="bg-white border border-[#D9E1EA] rounded-md px-5 py-3.5 flex flex-wrap justify-between items-start md:items-center gap-3 shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="font-mono text-sm font-bold text-[#0B5CAB]">Case #2847</span>
+            <span className="font-mono text-sm font-bold text-[#0B5CAB]">Case #{caseId}</span>
             <span className="text-[#94A3B8]">—</span>
             <h1 className="text-lg font-bold text-[#191C1E]">
-              Investment Scam — Rajesh Verma
+              {caseData.title}
             </h1>
           </div>
           <div className="text-xs text-[#424751] flex items-center gap-2">
-            <span>Opened 14 Aug 2026</span>
+            <span>Opened {caseData.openedDate}</span>
             <span className="w-1 h-1 rounded-full bg-[#C2C6D3]"></span>
-            <span>Assigned to Insp. Amrit Singh</span>
+            <span>Assigned to Insp. {caseData.assignedIO}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="bg-[#DC2626]/10 text-[#DC2626] px-2.5 py-1 rounded border border-[#DC2626]/20 text-xs font-bold font-mono flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">warning</span>
-            CRITICAL
-          </div>
+          {caseData.priority === 'Critical' && (
+            <div className="bg-[#DC2626]/10 text-[#DC2626] px-2.5 py-1 rounded border border-[#DC2626]/20 text-xs font-bold font-mono flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">warning</span>
+              CRITICAL
+            </div>
+          )}
 
           <button
             onClick={() => showToast(`Case is currently ${caseStatus}.`, 'info')}
@@ -73,7 +94,7 @@ export const CaseWorkspace: React.FC = () => {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => navigate('/cases/2847/evidence-report')}
+            onClick={() => navigate(`/cases/${caseId}/evidence-report`)}
           >
             Generate Report
           </Button>
@@ -88,6 +109,20 @@ export const CaseWorkspace: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Upload prompt for new cases with no evidence yet */}
+      {!hasUploads && caseId !== '2847' && (
+        <div className="bg-[#EFF6FF] border border-[#0B5CAB]/20 rounded-md px-5 py-4 flex items-center gap-4">
+          <span className="material-symbols-outlined text-[#0B5CAB] text-3xl shrink-0">upload_file</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-[#0B2340]">No evidence uploaded yet</p>
+            <p className="text-xs text-[#64748B] mt-0.5">Upload CDR, bank statements, IPDR or NCRP files to enable analysis modules.</p>
+          </div>
+          <Button variant="primary" size="sm" icon="upload_file" onClick={() => navigate(`/cases/${caseId}/upload-evidence`)}>
+            Upload Evidence
+          </Button>
+        </div>
+      )}
 
       {/* Workspace Grid (2 Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-9 gap-4 items-start">

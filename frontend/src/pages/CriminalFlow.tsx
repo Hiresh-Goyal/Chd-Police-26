@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MONEY_TRAIL_NODES, FlowNode } from '../data/mockData';
+import { useCaseStore } from '../context/CaseStore';
 
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
 
 export const CriminalFlow: React.FC = () => {
   const { showToast } = useToast();
+  const { caseId } = useParams<{ caseId: string }>();
+  const navigate = useNavigate();
+  const { getCaseFiles } = useCaseStore();
+
+  const isDemo = caseId === '2847';
+  const uploadedFiles = getCaseFiles(caseId ?? '');
+  const hasUploads = uploadedFiles.filter(f => f.status === 'complete' && (f.domain === 'BANK' || f.domain === 'CDR')).length > 0;
 
   const [selectedNode, setSelectedNode] = useState<FlowNode>(MONEY_TRAIL_NODES[1]); // Default Layer 1 Mule
   const [zoom, setZoom] = useState(1);
@@ -16,10 +25,26 @@ export const CriminalFlow: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'criminalflow_case_2847_money_trail.json';
+    a.download = `criminalflow_case_${caseId}_money_trail.json`;
     a.click();
     showToast('Exported CriminalFlow money trail graph data.', 'success');
   };
+
+  // Empty state for new cases with no bank/CDR uploads
+  if (!isDemo && !hasUploads) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
+        <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">account_tree</span>
+        <div>
+          <p className="font-bold text-[#0B2340]">No financial data uploaded yet</p>
+          <p className="text-sm text-[#64748B] mt-1">Upload bank statements or CDR files to build the money trail for Case #{caseId}.</p>
+        </div>
+        <Button variant="primary" size="sm" icon="upload_file" onClick={() => navigate(`/cases/${caseId}/upload-evidence`)}>
+          Upload Evidence
+        </Button>
+      </div>
+    );
+  }
 
 
 

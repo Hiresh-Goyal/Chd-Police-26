@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { CASE_2847 } from '../data/mockData';
+import { useCaseStore } from '../context/CaseStore';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -180,6 +182,14 @@ const INITIAL_EDGES: GraphEdge[] = [
 
 export const EntityGraph: React.FC = () => {
   const { showToast } = useToast();
+  const { caseId } = useParams<{ caseId: string }>();
+  const navigate = useNavigate();
+  const { getCaseFiles, getCase } = useCaseStore();
+
+  const isDemo = caseId === '2847';
+  const uploadedFiles = getCaseFiles(caseId ?? '');
+  const caseData = getCase(caseId ?? '');
+  const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
 
   const [nodes, setNodes] = useState<GraphNode[]>(INITIAL_NODES);
   const [edges, setEdges] = useState<GraphEdge[]>(INITIAL_EDGES);
@@ -193,6 +203,22 @@ export const EntityGraph: React.FC = () => {
     if (!selectedNode) return;
     showToast(`Expanded 1-hop connections for ${selectedNode.name}. Found 2 new indirect link nodes.`, 'info');
   };
+
+  // Empty state for new cases with no uploads
+  if (!isDemo && !hasUploads) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
+        <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">hub</span>
+        <div>
+          <p className="font-bold text-[#0B2340]">No evidence uploaded yet</p>
+          <p className="text-sm text-[#64748B] mt-1">Upload evidence files to map entity connections for Case #{caseId}.</p>
+        </div>
+        <Button variant="primary" size="sm" icon="upload_file" onClick={() => navigate(`/cases/${caseId}/upload-evidence`)}>
+          Upload Evidence
+        </Button>
+      </div>
+    );
+ }
 
   return (
     <div className="flex flex-col gap-4">

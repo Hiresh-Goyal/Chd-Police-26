@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useToast } from '../components/common/Toast';
 
 interface ReportSectionItem {
@@ -143,6 +144,8 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string):
 
 export const EvidenceReport: React.FC = () => {
   const { showToast } = useToast();
+  const { caseId } = useParams<{ caseId: string }>();
+  const isDemo = caseId === '2847';
 
   const [certOfficer, setCertOfficer] = useState('Insp. Amrit Singh, Senior Inspector (ID: 1042)');
   const [sections, setSections] = useState<ReportSectionItem[]>([

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../common/Toast';
 
 export const Sidebar: React.FC = () => {
@@ -7,7 +7,10 @@ export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const isCaseRoute = location.pathname.startsWith('/cases/2847');
+  // Match any /cases/:caseId route
+  const caseRouteMatch = location.pathname.match(/^\/cases\/([^/]+)/);
+  const isCaseRoute = Boolean(caseRouteMatch);
+  const activeCaseId = caseRouteMatch ? caseRouteMatch[1] : null;
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2.5 mx-2 my-0.5 px-3 py-2 rounded text-sm transition-all select-none border-l-[3px] ${
@@ -76,47 +79,47 @@ export const Sidebar: React.FC = () => {
           <span>SentinelWatch</span>
         </NavLink>
 
-        {/* Contextual Analysis Section (Visible only for case routes) */}
-        {isCaseRoute && (
+        {/* Contextual Analysis Section — visible for any case route */}
+        {isCaseRoute && activeCaseId && (
           <div className="mt-3 pt-3 border-t border-[#EDF0F4] animate-in fade-in duration-200">
             <div className="px-3 pt-1 pb-1.5 flex items-center justify-between text-[10px] font-bold tracking-widest text-[#64748B] uppercase">
               <span>ANALYSIS</span>
               <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-[#EFF6FF] text-[#0B5CAB] border border-[#0B5CAB]/20">
-                #2847
+                #{activeCaseId}
               </span>
             </div>
 
-            <NavLink to="/cases/2847" end className={navItemClass}>
+            <NavLink to={`/cases/${activeCaseId}`} end className={navItemClass}>
               <span className="material-symbols-outlined text-[18px]">work</span>
               <span>Case Workspace</span>
             </NavLink>
 
-            <NavLink to="/cases/2847/upload-evidence" className={navItemClass}>
+            <NavLink to={`/cases/${activeCaseId}/upload-evidence`} className={navItemClass}>
               <span className="material-symbols-outlined text-[18px]">upload_file</span>
               <span>Upload Evidence</span>
             </NavLink>
 
-            <NavLink to="/cases/2847/timeline" className={navItemClass}>
+            <NavLink to={`/cases/${activeCaseId}/timeline`} className={navItemClass}>
               <span className="material-symbols-outlined text-[18px]">timeline</span>
               <span>Timeline</span>
             </NavLink>
 
-            <NavLink to="/cases/2847/entity-graph" className={navItemClass}>
+            <NavLink to={`/cases/${activeCaseId}/entity-graph`} className={navItemClass}>
               <span className="material-symbols-outlined text-[18px]">hub</span>
               <span>Entity Graph</span>
             </NavLink>
 
-            <NavLink to="/cases/2847/geospatial" className={navItemClass}>
+            <NavLink to={`/cases/${activeCaseId}/geospatial`} className={navItemClass}>
               <span className="material-symbols-outlined text-[18px]">map</span>
               <span>Geospatial Map</span>
             </NavLink>
 
-            <NavLink to="/cases/2847/criminal-flow" className={navItemClass}>
+            <NavLink to={`/cases/${activeCaseId}/criminal-flow`} className={navItemClass}>
               <span className="material-symbols-outlined text-[18px]">account_tree</span>
               <span>CriminalFlow</span>
             </NavLink>
 
-            <NavLink to="/cases/2847/evidence-report" className={navItemClass}>
+            <NavLink to={`/cases/${activeCaseId}/evidence-report`} className={navItemClass}>
               <span className="material-symbols-outlined text-[18px]">description</span>
               <span>Evidence Report</span>
             </NavLink>

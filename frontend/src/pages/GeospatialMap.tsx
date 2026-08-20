@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { useCaseStore } from '../context/CaseStore';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -104,6 +106,14 @@ const MapCenterControl: React.FC<{ center: [number, number]; trigger: number }> 
 
 export const GeospatialMap: React.FC = () => {
   const { showToast } = useToast();
+  const { caseId } = useParams<{ caseId: string }>();
+  const navigate = useNavigate();
+  const { getCaseFiles } = useCaseStore();
+
+  const isDemo = caseId === '2847';
+  const uploadedFiles = getCaseFiles(caseId ?? '');
+  const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
+
   const [selectedPoint, setSelectedPoint] = useState<GeoLocationNode | null>(GEO_POINTS[0]);
   const [radiusBuffer, setRadiusBuffer] = useState<number>(2.5);
   const [centerTrigger, setCenterTrigger] = useState(0);
@@ -111,6 +121,22 @@ export const GeospatialMap: React.FC = () => {
 
   const CENTER: [number, number] = [30.7350, 76.7760];
   const trajectoryPath: [number, number][] = GEO_POINTS.map(p => [p.lat, p.lng]);
+
+  // Empty state for new cases with no uploads
+  if (!isDemo && !hasUploads) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
+        <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">map</span>
+        <div>
+          <p className="font-bold text-[#0B2340]">No evidence uploaded yet</p>
+          <p className="text-sm text-[#64748B] mt-1">Upload CDR or IPDR files to plot geospatial data for Case #{caseId}.</p>
+        </div>
+        <Button variant="primary" size="sm" icon="upload_file" onClick={() => navigate(`/cases/${caseId}/upload-evidence`)}>
+          Upload Evidence
+        </Button>
+      </div>
+    );
+  }
 
   const handleExportGeoJSON = () => {
     const geojson = {

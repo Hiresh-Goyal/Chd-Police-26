@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { CASE_2847_TIMELINE, TimelineEvent } from '../data/mockData';
+import { useCaseStore } from '../context/CaseStore';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Drawer } from '../components/common/Drawer';
@@ -8,6 +10,44 @@ import { useToast } from '../components/common/Toast';
 
 export const Timeline: React.FC = () => {
   const { showToast } = useToast();
+  const { caseId } = useParams<{ caseId: string }>();
+  const navigate = useNavigate();
+  const { getCaseFiles, getCase } = useCaseStore();
+
+  const uploadedFiles = getCaseFiles(caseId ?? '');
+  const caseData = getCase(caseId ?? '');
+  const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
+  const isDemo = caseId === '2847';
+
+  // Generate simulated events for new cases based on uploaded file domains
+  const simulatedEvents: TimelineEvent[] = useMemo(() => {
+    if (isDemo || !hasUploads) return [];
+    const now = new Date();
+    const events: TimelineEvent[] = [];
+    uploadedFiles.filter(f => f.status === 'complete').forEach((f, i) => {
+      const domain = f.domain as TimelineEvent['domain'];
+      const hour = 9 + i;
+      events.push({
+        id: `sim_${f.id}`,
+        timestamp: now.toISOString(),
+        timeDisplay: `${String(hour).padStart(2,'0')}:${String((i*13)%60).padStart(2,'0')}`,
+        domain,
+        title: domain === 'CDR' ? 'Suspect call record extracted'
+          : domain === 'BANK' ? 'Financial transaction record ingested'
+          : domain === 'IPDR' ? 'IP session log correlated'
+          : domain === 'SOCIAL' ? 'Social media artefact captured'
+          : 'NCRP complaint record linked',
+        description: `Source file: ${f.name} — ${f.recordsCount} records parsed.`,
+        source: f.name,
+        provenance: f.hash.slice(0, 16) + '...',
+        isCritical: i === 0,
+        metadata: { Records: String(f.recordsCount), Domain: domain, Hash: f.hash.slice(0, 12) + '...' }
+      });
+    });
+    return events;
+  }, [uploadedFiles, isDemo, hasUploads]);
+
+  const timelineEvents = isDemo ? CASE_2847_TIMELINE : simulatedEvents;
 
   const [activeDomains, setActiveDomains] = useState<string[]>(['CDR', 'IPDR', 'BANK', 'SOCIAL', 'NCRP']);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
@@ -27,15 +67,31 @@ export const Timeline: React.FC = () => {
   };
 
   const handleExportTimeline = () => {
-    const json = JSON.stringify(CASE_2847_TIMELINE, null, 2);
+    const json = JSON.stringify(timelineEvents, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `timeline_case_2847_${selectedDate.replace(/\s+/g, '_')}.json`;
+    a.download = `timeline_case_${caseId}_${selectedDate.replace(/\s+/g, '_')}.json`;
     a.click();
     showToast('Timeline exported successfully.', 'success');
   };
+
+  // Empty state for new cases with no uploads
+  if (!isDemo && !hasUploads) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
+        <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">timeline</span>
+        <div>
+          <p className="font-bold text-[#0B2340]">No evidence uploaded yet</p>
+          <p className="text-sm text-[#64748B] mt-1">Upload CDR, bank or IPDR files to generate the timeline.</p>
+        </div>
+        <Button variant="primary" size="sm" icon="upload_file" onClick={() => navigate(`/cases/${caseId}/upload-evidence`)}>
+          Upload Evidence
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -43,11 +99,11 @@ export const Timeline: React.FC = () => {
       <header className="border-b border-[#D9E1EA] pb-3 flex flex-col md:flex-row md:items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs text-[#64748B] mb-1">
-            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#2847</span>
+            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId}</span>
             <span>•</span>
-            <span className="font-medium text-[#191C1E]">Rajesh Verma</span>
+            <span className="font-medium text-[#191C1E]">{isDemo ? 'Rajesh Verma' : (caseData?.subject ?? 'Subject')}</span>
             <span>•</span>
-            <span>Investment Scam</span>
+            <span>{isDemo ? 'Investment Scam' : (caseData?.type ?? 'Case')}</span>
           </div>
           <h1 className="text-2xl font-bold text-[#0B2340] tracking-tight">Cross-Domain Timeline</h1>
           <p className="text-sm text-[#424751] mt-0.5">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ALL_CASES, CaseSummary } from '../data/mockData';
+import { useCaseStore } from '../context/CaseStore';
 import { PriorityBadge, StatusBadge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
@@ -9,8 +10,7 @@ import { useToast } from '../components/common/Toast';
 export const MyCases: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-
-  const [cases, setCases] = useState<CaseSummary[]>(ALL_CASES);
+  const { cases, addCase } = useCaseStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
@@ -54,7 +54,7 @@ export const MyCases: React.FC = () => {
       showToast('Please enter subject/entity name.', 'warning');
       return;
     }
-    const newId = (2848 + Math.floor(Math.random() * 100)).toString();
+    const newId = (2848 + cases.filter(c => c.id !== '2847').length + Math.floor(Math.random() * 10)).toString();
     const createdCase: CaseSummary = {
       id: newId,
       title: `${newCaseType} — ${newCaseSubject}`,
@@ -76,10 +76,12 @@ export const MyCases: React.FC = () => {
       alerts: []
     };
 
-    setCases([createdCase, ...cases]);
+    addCase(createdCase);
     setIsNewCaseModalOpen(false);
     setNewCaseSubject('');
-    showToast(`Case #${newId} created successfully.`, 'success');
+    showToast(`Case #${newId} created — upload evidence to begin analysis.`, 'success');
+    // Navigate directly to upload page so user can start ingesting files
+    navigate(`/cases/${newId}/upload-evidence`);
   };
 
   return (
@@ -211,16 +213,11 @@ export const MyCases: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[#D9E1EA]/60">
                 {filteredCases.map(c => {
-                  const isPrimary2847 = c.id === '2847';
                   return (
                     <tr
                       key={c.id}
                       onClick={() => navigate(`/cases/${c.id}`)}
-                      className={`transition-colors cursor-pointer ${
-                        isPrimary2847
-                          ? 'hover:bg-[#EFF6FF]/60 bg-[#F0F7FF]/40 border-l-4 border-l-[#0B5CAB]'
-                          : 'hover:bg-[#F8FAFC] border-l-4 border-l-transparent'
-                      }`}
+                      className="transition-colors cursor-pointer hover:bg-[#EFF6FF]/60 border-l-4 border-l-[#0B5CAB]/40 hover:border-l-[#0B5CAB]"
                     >
                       <td className="py-3 px-4 font-mono font-bold text-[#0B5CAB]">
                         #{c.id}
@@ -241,22 +238,13 @@ export const MyCases: React.FC = () => {
                         <StatusBadge status={c.status} />
                       </td>
                       <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
-                        {isPrimary2847 ? (
-                          <Link
-                            to={`/cases/${c.id}`}
-                            className="font-mono text-xs text-[#0B5CAB] hover:underline font-bold uppercase tracking-wider inline-flex items-center gap-1"
-                          >
-                            Analyze
-                            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                          </Link>
-                        ) : (
-                          <button
-                            onClick={() => navigate(`/cases/${c.id}`)}
-                            className="font-mono text-xs text-[#64748B] hover:text-[#0B5CAB] font-semibold uppercase tracking-wider"
-                          >
-                            View
-                          </button>
-                        )}
+                        <Link
+                          to={`/cases/${c.id}`}
+                          className="font-mono text-xs text-[#0B5CAB] hover:underline font-bold uppercase tracking-wider inline-flex items-center gap-1"
+                        >
+                          Analyze
+                          <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                        </Link>
                       </td>
                     </tr>
                   );

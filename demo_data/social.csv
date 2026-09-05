@@ -1,0 +1,12 @@
+platform,user_id,phone,content,ts,interaction_type
+TELEGRAM,TG_C001,9800000001,Urgent: Your bank account has been flagged for suspicious activity. Call this number immediately for verification.,2025-01-07T18:00:00,SOCIAL_POST
+TELEGRAM,TG_C001,9800000001,Contacted V-003 regarding urgent account verification,2025-01-07T18:30:00,SOCIAL_INTERACTION
+TELEGRAM,TG_V003,9700000003,Received account verification message from unknown contact,2025-01-07T18:35:00,SOCIAL_INTERACTION
+TELEGRAM,TG_C001,9800000001,Contacted V-004 regarding compliance check,2025-01-08T17:00:00,SOCIAL_INTERACTION
+TELEGRAM,TG_V004,9700000004,Received compliance check notification,2025-01-08T17:10:00,SOCIAL_INTERACTION
+TELEGRAM,TG_C001,9800000001,Contacted V-005 regarding compliance check,2025-01-08T17:15:00,SOCIAL_INTERACTION
+TELEGRAM,TG_V005,9700000005,Received compliance check notification,2025-01-08T17:20:00,SOCIAL_INTERACTION
+TELEGRAM,TG_C001,9800000001,Contacted V-001 regarding account review,2025-01-09T16:00:00,SOCIAL_INTERACTION
+TELEGRAM,TG_V001,9700000001,Received account review message,2025-01-09T16:10:00,SOCIAL_INTERACTION
+TELEGRAM,TG_C001,9800000001,Contacted V-002 regarding account review,2025-01-09T16:15:00,SOCIAL_INTERACTION
+TELEGRAM,TG_V002,9700000002,Received account review message,2025-01-09T16:20:00,SOCIAL_INTERACTION

@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ds_postgres
+    environment:
+      POSTGRES_USER: ds_user
+      POSTGRES_PASSWORD: ds_pass
+      POSTGRES_DB: digitalsentinel
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ds_user -d digitalsentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ds_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://ds_user:ds_pass@postgres:5432/digitalsentinel
+      JWT_SECRET: digitalsentinel_hackathon_secret_2026
+      EVIDENCE_DIR: /app/data/evidence
+      ENVIRONMENT: production
+    volumes:
+      - evidence_store:/app/data/evidence
+      - ./demo_data:/app/demo_data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command: >
+      sh -c "python db/init_db.py && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ds_frontend
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_URL: http://localhost:8000/api
+      VITE_USE_MOCK_DATA: "false"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  evidence_store:

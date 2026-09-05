@@ -1,0 +1,8 @@
+{
+  "case_id": "8f8b89e7-456d-4952-b883-75b1116b80ab",
+  "entities": 24,
+  "events": 450,
+  "findings": 5,
+  "fraud_score": 85,
+  "risk_level": "CRITICAL"
+}

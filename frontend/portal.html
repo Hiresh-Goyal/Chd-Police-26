@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <style>
+            input[type="date"] {
+                -webkit-appearance: auto !important;
+                -moz-appearance: auto !important;
+                appearance: auto !important;
+                min-height: 38px;
+                background-color: #fff !important;
+                position: relative;
+                cursor: pointer;
+            }
+
+                input[type="date"]::-webkit-calendar-picker-indicator {
+                    display: inline-block !important;
+                    opacity: 1 !important;
+                    cursor: pointer;
+                    filter: none !important;
+                }
+
+                input[type="date"]::-webkit-inner-spin-button,
+                input[type="date"]::-webkit-clear-button {
+                    display: block;
+                }
+    </style>
+
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chandigarh-Police - Chandigarh Police: We Care for You</title>
+    <link rel="shortcut icon" href="/public/cp.ico" />
+    <!-- Fonts -->
+    <link href="/public/HPContents/css2.css?family=Nunito+Sans&display=swap" rel="stylesheet" />
+    <link href="/public/HPContents/css2-1.css?family=Cabin&display=swap" rel="stylesheet" />
+    <!-- GLOBAL CSS -->
+    <link rel="stylesheet" href="/public/HPContents/css/bootstrap.css" />
+    <link rel="stylesheet" href="/public/hpcontents/fonts/fontawesome-free-7.1.0-web/css/all.css" />
+    <link rel="stylesheet" href="/public/hpcontents/fonts/font-awesome/css/font-awesome.css" />
+
+    
+    <link rel="stylesheet" href="/public/HPContents/style.css" />
+    <link rel="stylesheet" href="/public/HPContents/css/colors.css" />
+    <link rel="stylesheet" href="/public/HPContents/css/responsive.css" />
+    <link rel="stylesheet" href="/public/HPContents/dataTables.css" />
+    <link rel="stylesheet" href="/public/HPContents/roboto-slab.css" />
+    <link href="/public/mascot.css" rel="stylesheet" />
+    <link href="/public/esaathi-chat.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://translate.google.com">
+    <link rel="preconnect" href="https://www.google.com">
+    <link rel="dns-prefetch" href="https://ebeat.chandigarhpolice.gov.in">
+    <!-- PAGE LEVEL CSS -->
+    
+    <style>
+            .sosFloatBtn {
+                position: fixed !important;
+                left: 20px;
+                bottom: 24px;
+                z-index: 99999;
+                width: 70px;
+                height: 70px;
+                background-color: #e60000;
+                color: #ffffff;
+                border-radius: 50%;
+                border: none;
+                padding: 18px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-decoration: none;
+                overflow: hidden;
+                text-align: left;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+                animation: sosPulse 1.5s infinite;
+                transition: all 400ms;
+            }
+
+                .sosFloatBtn:hover,
+                .sosFloatBtn:focus {
+                    color: #ffffff;
+                    text-decoration: none;
+                    transform: scale(1.08);
+                }
+
+                .sosFloatBtn i {
+                    font-size: 20px;
+                    line-height: 1;
+                    margin-bottom: 2px;
+                }
+
+                .sosFloatBtn span {
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                }
+
+            @keyframes sosPulse {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(230, 0, 0, 0.6);
+                }
+
+                70% {
+                    box-shadow: 0 0 0 14px rgba(230, 0, 0, 0);
+                }
+
+                100% {
+                    box-shadow: 0 0 0 0 rgba(230, 0, 0, 0);
+                }
+            }
+
+            @media (max-width: 576px) {
+                .sosFloatBtn {
+                    width: 70px;
+                    height: 65px;
+                    left: 9px;
+                    bottom: 24px;
+                    padding: 10px;
+                }
+
+                    .sosFloatBtn i {
+                        font-size: 16px;
+                    }
+
+                    .sosFloatBtn span {
+                        font-size: 8px;
+                    }
+            }
+    </style>
+    <style>
+
+            .blink_me {
+                animation: blinker 3s linear infinite;
+                color: #f7b430;
+                font-size: 15px;
+                font-weight: 900;
+                font-style: italic;
+            }
+
+            @keyframes blinker {
+                50% {
+                    opacity: 0;
+                }
+            }
+
+            .goog-logo-link,
+            .goog-te-banner-frame,
+            .VIpgJd-ZVi9od-l4eHX-hSRGPd {
+                display: none !important;
+            }
+
+            
+            body {
+                top: 0px !important;
+                position: static !important;
+            }
+
+            .goog-te-gadget {
+                font-size: 0 !important;
+            }
+
+                .goog-te-gadget .goog-te-combo {
+                    font-size: 12px !important;
+                    margin: 0 !important;
+                }
+
+            /* select.goog-te-combo {
+                        height: 25px;
+                        position: absolute;
+                        top: -10px;
+                    } */
+
+            div#tabCardContent {
+                min-height: 240px;
+            }
+
+            .scrollable-dropdown {
+                max-height: 500px;
+                overflow-y: auto;
+            }
+
+                .scrollable-dropdown::-webkit-scrollbar {
+                    width: 3px;
+                }
+
+            .odometer {
+                display: flex;
+                padding: 20px;
+                border-radius: 15px;
+                justify-content: end;
+            }
+
+            .digit {
+                width: 40px;
+                height: 60px;
+                background: #000;
+                color: #fff;
+                font-size: 40px;
+                text-align: center;
+                line-height: 60px;
+                border-radius: 5px;
+            }
+    </style>
+    <style>
+            #pageLoader {
+                position: fixed;
+                inset: 0;
+                background: #ffffff;
+                z-index: 99999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .loader-box {
+                text-align: center;
+            }
+
+                .loader-box img {
+                    width: 120px;
+                    margin-bottom: 15px;
+                    animation: pulse 1.5s infinite;
+                }
+
+            .address-listing li strong, .address-listing li a {
+                display: block;
+                padding-left: 25px;
+            }
+
+            .address-listing li i {
+                float: left;
+                position: relative;
+                top: 2px;
+            }
+
+                .address-listing li i.fa.fa-map-marker, .address-listing li i.fa.fa-phone {
+                    font-size: 20px;
+                }
+
+            @keyframes pulse {
+                0% {
+                    transform: scale(1);
+                    opacity: 0.7;
+                }
+
+                50% {
+                    transform: scale(1.05);
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: scale(1);
+                    opacity: 0.7;
+                }
+            }
+    </style>
+</head>
+<body>
+    <div b-jexbjdpmxx id="pageLoader">
+        <div b-jexbjdpmxx class="loader-box">
+            <img src="/public/images/cp_logo.png" alt="Loading" />
+            <p b-jexbjdpmxx>Chandigarh Police - We care for you</p>
+            <p b-jexbjdpmxx>Loading, please wait...</p>
+        </div>
+    </div>
+
+    <div b-jexbjdpmxx id="pageWrapper" class="ltr">
+        <div b-jexbjdpmxx class="phStickyWrap">
+            <header b-jexbjdpmxx id="pageHeader" class="blue-clr">
+                <div b-jexbjdpmxx class="hdTopBar hdTopBarii py-2 ">
+                    <div b-jexbjdpmxx class="container-xl">
+                        <div b-jexbjdpmxx class="row top-ul">
+                            <div b-jexbjdpmxx class="col-xl-12 mx-auto">
+                                <div b-jexbjdpmxx class="row">
+                                    <div b-jexbjdpmxx class="col-7 ">
+                                        <ul b-jexbjdpmxx class="list-unstyled hdScheduleList mb-0 d-flex ">
+                                            <li b-jexbjdpmxx>
+                                                <a b-jexbjdpmxx href="mailto:dgp-chd@nic.in">
+                                                    <i b-jexbjdpmxx class="icomoon-chat align-middle icn"><span b-jexbjdpmxx class="sr-only">icon</span></i>
+                                                    police-chd[at]nic[dot]in
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div b-jexbjdpmxx class="col-5 ">
+                                        <ul b-jexbjdpmxx class="list-unstyled hdAlterLinksList d-flex mb-0 justify-content-end">
+                                            <li b-jexbjdpmxx class="emgy-cnt some-pad-top"><a b-jexbjdpmxx href="https://ch.erss.in/" target="_blank" tooltip="Emergency Response Support System">112 ERSS</a></li>
+                                            <li b-jexbjdpmxx class="d-none d-sm-block"><div b-jexbjdpmxx id="google_translate_element"></div></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div b-jexbjdpmxx class="logo-box bg-white py-2">
+                    <div b-jexbjdpmxx class="container-xl">
+                        <div b-jexbjdpmxx class="row">
+                            <div b-jexbjdpmxx class="col-xl-12 mx-auto">
+                                <div b-jexbjdpmxx class="row align-items-center flex-nowrap">
+                                    <div b-jexbjdpmxx class="col-12 d-flex justify-content-center justify-content-md-between">
+                                        <a b-jexbjdpmxx href="/public/" class="main-log">
+                                            <img src="/public/images/chd-police-logo-new.png" class="img-fluid" alt="CHANDIGARH POLICE">
+                                        </a>
+
+                                        <div b-jexbjdpmxx class="project-name">
+                                            <h1 b-jexbjdpmxx><strong b-jexbjdpmxx>Chandigarh Police</strong><br b-jexbjdpmxx /><span b-jexbjdpmxx>we care for you</span></h1>
+                                        </div>
+                                        <div b-jexbjdpmxx class="logo2 pt-5 d-none d-md-block">
+                                            <ul b-jexbjdpmxx id="homeLogoList" class="d-flex flex-row justify-content-end list-unstyled">
+                                                <!-- AJAX will append li here -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div b-jexbjdpmxx class="hdFixerWrap">
+                    <div b-jexbjdpmxx class="container-xl">
+                        <nav b-jexbjdpmxx class="navbar navbar-expand-lg navbar-light px-0 py-lg-3 ">
+                            <div b-jexbjdpmxx class="hdNavWrap flex-grow-1 d-flex align-items-center justify-content-center w-100">
+                                <div b-jexbjdpmxx class="collapse navbar-collapse pageMainNavCollapse mt-lg-0 p-lg-0 p-3 w-100" id="pageMainNavCollapse">
+                                    <ul b-jexbjdpmxx class="navbar-nav mainNavigation d-flex justify-content-lg-between w-100">
+
+                                        <li b-jexbjdpmxx class="nav-item"> <a b-jexbjdpmxx class="nav-link" href="#" onclick="window.location.href = appRoot; return false;">Home</a></li>
+                                        <li b-jexbjdpmxx class="nav-item dropdown ddohOpener">
+                                            <a b-jexbjdpmxx class="nav-link dropdown-toggle dropIcn" href="javascript:void(0)" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">About Us</a>
+                                            <div b-jexbjdpmxx class="dropdown-menu hdMainDropdown desktopDropOnHover">
+                                                <ul b-jexbjdpmxx class="list-unstyled mb-0 hdDropdownList scrollable-dropdown" id="divMenuAboutUs">
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/AboutUs">About Us</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/AboutUs/History">Our History</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/attachments/uploads/pdf/martyrs-ebook.pdf" target="_blank">Martyrs' E-Book</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" target="_blank" href="/public/Home/OurMartyrs">Our Martyrs</a></li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        <li b-jexbjdpmxx class="nav-item dropdown ddohOpener">
+                                            <a b-jexbjdpmxx class="nav-link dropdown-toggle dropIcn" href="javascript:void(0)" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Contact Us</a>
+                                            <div b-jexbjdpmxx class="dropdown-menu hdMainDropdown desktopDropOnHover">
+                                                <ul b-jexbjdpmxx class="list-unstyled mb-0 hdDropdownList scrollable-dropdown" id="divMenuAboutUs2">
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/attachments/uploads/pdf/contact-details.pdf" target="_blank">Contact Details</a></li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        <li b-jexbjdpmxx class="nav-item dropdown ddohOpener">
+                                            <a b-jexbjdpmxx class="nav-link dropdown-toggle dropIcn" href="/public/Pages/Employee-Portal" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Employee Portal</a>
+                                            <div b-jexbjdpmxx class="dropdown-menu hdMainDropdown desktopDropOnHover">
+                                                <ul b-jexbjdpmxx class="list-unstyled mb-0 hdDropdownList scrollable-dropdown" id="divMenuEmployeePortal">
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Sampark-Sabha">Sampark Sabha</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Promotions">Promotions</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Seniority-Lists">Seniority Lists</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Transfers-Postings">Transfers &amp; Postings</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Deputation">Deputation</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Police-Pool-House-Allotment">Police Pool House Allotment</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Welfare-Fund-Bank-Deposit-Society">Welfare Fund &amp; Bank Deposit Society</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Forms-Relating-Employees">Forms Relating to Employees</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Important-Latest-Orders">Important Latest Orders/Circulars</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Timeline-Misc-Work">Timeline of Misc. Work</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="http://admser.chd.nic.in/sevaempb/app/Login/" target="_blank">E-salary Link</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Police-Training">Police Training</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Police-Hospital">Police Hospital</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Medal-Awardees">Medal Awardees</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/attachments/uploads/pdf/cc-I-awardees.pdf">CC-I Recipients</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/attachments/uploads/pdf/achivements-of-police-personals.pdf" target="_blank">ORP Promotion of Police Personnel</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Photo-Gallery-Various-Retirees-Function">Photo Gallery of Various Retirees Functions</a></li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        <li b-jexbjdpmxx class="nav-item dropdown ddohOpener">
+                                            <a b-jexbjdpmxx class="nav-link dropdown-toggle dropIcn" href="/public/Pages/Law-Rules-Regulations" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Law, Rules &amp; Regulations</a>
+                                            <div b-jexbjdpmxx class="dropdown-menu hdMainDropdown desktopDropOnHover">
+                                                <ul b-jexbjdpmxx class="list-unstyled mb-0 hdDropdownList scrollable-dropdown" id="divMenuLawRegulations">
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/LawRulesRegulation/CrimeRelatedFAQ">Crime Related FAQs</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/LawRulesRegulation/CyberCrime">Cyber Crime</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/LawRulesRegulation/ESaathiPrivacyPolicy">eSaathi Privacy Policy</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/Services_Rendered/ForeignersRegistrationRelatedRules">Foreigners Registration &amp; Related Rules</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/attachments/uploads/pdf/emigration.pdf" target="_blank">Liabilities of Immigration/Emigrations Companies/Agencies<br b-jexbjdpmxx>in Chandigarh with Performa</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Right-to-Information-Act">Right to Information Act</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Right-to-Service-Act">Right to Service Act</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/LawRulesRegulation/Right_Of_Arrestee">Rights of Arrestee</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/LawRulesRegulation/Rights_Of_Juvenile">Rights of the Juvenile</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Standing-Orders-Notifications-and-Circulars">Standing Orders, Notifications &amp; Circulars</a></li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        <li b-jexbjdpmxx class="nav-item dropdown ddohOpener">
+                                            <a b-jexbjdpmxx class="nav-link dropdown-toggle dropIcn" href="/public/Pages/Recruitment" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Recruitment</a>
+                                            <div b-jexbjdpmxx class="dropdown-menu hdMainDropdown desktopDropOnHover">
+                                                <ul b-jexbjdpmxx class="list-unstyled mb-0 hdDropdownList scrollable-dropdown" id="divMenuRecruitment">
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/P-ASI">P/ASI</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Constables">Constables</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Clerk">Clerk</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Class-IV">Class - IV</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Compassionate-Appointments">Compassionate Appointments</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Confirmation-Orders">Confirmation Orders</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Home-Guards">Home Guards</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/attachments/uploads/pdf/central-state-obc-castes.pdf" target="_blank">State and Central list (for Chandigarh) of OBCs Castes</a></li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        <li b-jexbjdpmxx class="nav-item dropdown ddohOpener">
+                                            <a b-jexbjdpmxx class="nav-link dropdown-toggle dropIcn" href="javascript:void(0);" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Citizen Services</a>
+                                            <div b-jexbjdpmxx class="dropdown-menu hdMainDropdown desktopDropOnHover">
+                                                <ul b-jexbjdpmxx class="list-unstyled mb-0 hdDropdownList">
+                                                    <li b-jexbjdpmxx><a href="/public/Home/OnlineServices">e-Saathi Online Services</a></li>
+                                                    <li b-jexbjdpmxx><a href="/public/CitizenPortal/AccidentalReport">Accidental Report</a></li>
+                                                    <li b-jexbjdpmxx><a href="/public/CitizenPortal/ArrestReport/ArrestReport">Arrested Person Report</a></li>
+                                                    <li b-jexbjdpmxx><a href="/public/CitizenPortal/MissingPersonReport/MissingPersonReport">Missing/Kidnapped Person Report</a></li>
+                                                    <li b-jexbjdpmxx><a href="/public/CitizenPortal/EmployeeVerificationPrint/EmployeeVerificationPrint">Employee Certificate Download</a></li>
+                                                    <li b-jexbjdpmxx><a href="/public/CitizenPortal/CharcaterVerificationPrintReport/CharcaterVerificationPrintReport">Character Certificate Download</a></li>
+                                                    <li b-jexbjdpmxx><a href="/public/CitizenPortal/ViewPublishFIR/ViewPublishFIR">Fir Download</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx href="https://www.ceir.gov.in/Request/CeirUserBlockRequestDirect.jsp" target="_blank">Lost/Stolen Mobile Blocking Request</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="https://ebeat.chandigarhpolice.gov.in/mvt/" target="_blank">MV Theft E-FIR Registration</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/Home/pcccertificate">PCC for Abroad</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="/public/Pages/Complaint-Registration">Complaint Registration (ICMS)</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="https://www.digitalpolicecitizenservices.gov.in/centercitizen/login.htm" target="_blank">Vechicle NOC (NCRB Report)</a></li>
+                                                    <li b-jexbjdpmxx><a b-jexbjdpmxx class="dropdown-item" href="https://ebeat.chandigarhpolice.gov.in/icms/UI/anonymous?PROJECTID=240&amp" target="_blank">ICMS Complaint Status</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/Services_Rendered/LateNightTowingFacility">Late Night Towing Facility</a></li>
+                                                    <li b-jexbjdpmxx><a class="dropdown-item" href="/public/Services_Rendered/LateNightDroppingofLadies">Late Night Dropping of Ladies</a></li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        <li b-jexbjdpmxx class="nav-item">
+                                            <a b-jexbjdpmxx class="nav-link" href="javascript:vodi();" onclick="openUrl(this)" data-openurl="https://etenders.chd.nic.in/nicgep/app" target="_blank">Procurement</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div b-jexbjdpmxx class="hdRighterWrap d-flex align-items-center justify-content-end ml-auto">
+                                <button b-jexbjdpmxx class="navbar-toggler pgNavOpener ml-2 bdrWidthAlter position-relative" type="button" data-toggle="collapse" data-target="#pageMainNavCollapse" aria-controls="pageMainNavCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                                    <span b-jexbjdpmxx class="navbar-toggler-icon"></span>
+                                </button>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </header>
+        </div>
+        <main b-jexbjdpmxx>
+            
+<style>
+    .serResCol .serTxtNbr {
+        color: red !important;
+    }
+
+        .serResCol .serTxtNbr:before {
+            font-size: 26px;
+            content: none !important;
+        }
+
+    .serResRow .slick-slide {
+        display: flex !important;
+        height: auto;
+    }
+
+    .btnGetDir {
+        min-width: 80px !important;
+    }
+
+    .carousel-item:after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        /* background: rgba(0,0,0,0.5); */
+    }
+
+    .carousel-control-prev, .carousel-control-next {
+        opacity: 1;
+    }
+
+    .carousel-caption {
+        bottom: 0;
+    }
+</style>
+        <div id="carouselExampleCaptions" class="carousel slide" data-ride="carousel">
+            <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <img src="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-003-01-hf-7ebcfce2da4147e589811c33203f7894.jpg" class="d-block w-100">
+                        <div class="carousel-caption ">
+                            <h1 class="text-white"> </h1>
+                            <p></p>
+                        </div>
+                    </div>
+                    <div class="carousel-item ">
+                        <img src="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-003-01-hf-646b10d871f240d7b3a49be52f5cb166.jpg" class="d-block w-100">
+                        <div class="carousel-caption ">
+                            <h1 class="text-white"> </h1>
+                            <p></p>
+                        </div>
+                    </div>
+                    <div class="carousel-item ">
+                        <img src="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-003-01-hf-6f14a95d625c4b3a8bb264b59487de3d.jpg" class="d-block w-100">
+                        <div class="carousel-caption ">
+                            <h1 class="text-white"> </h1>
+                            <p></p>
+                        </div>
+                    </div>
+                    <div class="carousel-item ">
+                        <img src="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-003-01-hf-adaa47442cb243d7a8915a2f8b6beae4.jpg" class="d-block w-100">
+                        <div class="carousel-caption ">
+                            <h1 class="text-white"> </h1>
+                            <p></p>
+                        </div>
+                    </div>
+                    <div class="carousel-item ">
+                        <img src="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-003-01-hf-94a228b3b0ca4399a5923ea38ee3746a.jpg" class="d-block w-100">
+                        <div class="carousel-caption ">
+                            <h1 class="text-white"> </h1>
+                            <p></p>
+                        </div>
+                    </div>
+                    <div class="carousel-item ">
+                        <img src="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-003-01-hf-4653c8083d7640949bf09f73afe6cb0f.jpg" class="d-block w-100">
+                        <div class="carousel-caption ">
+                            <h1 class="text-white"> </h1>
+                            <p></p>
+                        </div>
+                    </div>
+                    <div class="carousel-item ">
+                        <img src="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-003-01-hf-6aef207782d64574bccdd9146e9c41ce.jpg" class="d-block w-100">
+                        <div class="carousel-caption ">
+                            <h1 class="text-white"> </h1>
+                            <p></p>
+                        </div>
+                    </div>
+            </div>
+            <a class="carousel-control-prev" href="#carouselExampleCaptions" role="button" data-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="sr-only">Previous</span>
+            </a>
+            <a class="carousel-control-next" href="#carouselExampleCaptions" role="button" data-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="sr-only">Next</span>
+            </a>
+        </div>
+<div class="fontAlter causesListWrap">
+    <article class="bg-white shadow mb-6 d-lg-flex">
+        <!-- removed class 'ourCauseColumn' -->
+        <div class="container-xl">
+            <div class="row mt-4 mb-4">
+                <div class="col-xl-12 mx-auto">
+                    <div class="row">
+                        <div class="col-lg-7">
+                            <figure class="dgp-sect mt-1">
+                                <span>
+                                    <img src="/public/Attachments/2026-07-28/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-001-01-hf-f1d8e254ebfd4bdcbd29d1edc4b48464.jpg" class="img-fluid" />
+                                </span>
+                                <strong class="tagTitle d-block fwSemiBold">
+                                    DGP Chandigarh
+                                </strong>
+                                <h3 class="fwSemiBold mb-5">
+                                    Dr. Sagar Preet Hooda, IPS
+                                </h3>
+                            </figure>
+                            <div class="ocuDescripWrap px-5 pl-md-4">
+                                <h3 class="fwSemiBold mb-2">Message from DGP desk</h3>
+                                <div class="remove-extra-html text-justify">
+<p>Warm greetings to all the residents of Chandigarh.&nbsp;</p><p>As the Director General of Police, Chandigarh, I reaffirm our unwavering commitment to maintaining law and order, ensuring public safety, and upholding the rule of law across the city. Chandigarh is widely recognized for its discipline, civic responsibility, and peaceful environment. Your continued cooperation and active participation are essential in preserving these values.</p><p>I urge every citizen to remain vigilant, promptly report any unlawful or suspicious activities, and adhere to all traffic regulations and public safety guidelines. Collective responsibility and public awareness                                            <span>...</span>
+                                </div>
+                                <a href="/public/home/dgpmessage" class="btn btn-danger px-4 rounded py-1 float-right mt-4">Read More</a>
+                            </div>
+                        </div>
+                        <div class="col-lg-5 pt-2 pt-lg-0">
+                            <div class="card">
+                                <div class="card-header">
+                                    <ul class="nav nav-tabs card-header-tabs" id="tabCard" role="tablist">
+                                        <li class="nav-item">
+                                            <a class="nav-link active" id="tab0-tab" data-toggle="tab" href="#tab0" role="tab" aria-controls="tab0" aria-selected="true"><b>WHATS NEW</b></a>
+                                        </li>
+                                        <li class="nav-item" style="display: none">
+                                            <a class="nav-link" id="tab1-tab" data-toggle="tab" href="#tab1" role="tab" aria-controls="tab1" aria-selected="true"><b>WHATS NEW</b></a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" id="tab2-tab" data-toggle="tab" href="#tab2" role="tab" aria-controls="tab2" aria-selected="false"><b>PRESS RELEASE</b></a>
+                                        </li>
+                                        <!--<li class="nav-item">
+                                            <a class="nav-link" id="tab3-tab" data-toggle="tab" href="#tab3" role="tab" aria-controls="tab3" aria-selected="false"><b>NOTICE</b></a>
+                                        </li>-->
+                                    </ul>
+                                </div>
+                                <div class="card-body tab-content" id="tabCardContent">
+                                    <div class="tab-pane fade show active" id="tab0">
+                                            <marquee direction="up" scrollamount="2" onmouseover="this.stop();" onmouseout="this.start();" style="height:155px;">
+                                                <ul class="notice-list">
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-18/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-034-01-hf-b9b99952fdbf4c31b056a4ecff284cc6.pdf" target="_blank">
+                                                                Timely Completion OF APAR Reviewing Stage for APAR Session 2025-26 on the e-HRMS Portal(NO. 45032-60)
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-18/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-034-01-hf-9b467ee18e954b6786e654af40c218aa.pdf" target="_blank">
+                                                                Circular Regarding Scholarship, Award &amp; Incentive for wards of Chandigarh Police personnel under the Grant-in-Aid Welfare Scheme for Academic Session 2025-26.
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-034-01-hf-7c6c18dbf9274dc985161998f83ff080.pdf" target="_blank">
+                                                                Order Regarding allotment of Police Pool House (28353-79).
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-034-01-hf-c130ddd30ee343308f059055fd1d82ca.pdf" target="_blank">
+                                                                Order Regarding allotment of Police Pool House (28380-417).
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-17/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-034-01-hf-ada6743776d149aa84089583f74f2d22.pdf" target="_blank">
+                                                                Order Regarding allotment of Police Pool House (28418-37).
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-05/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-064-01-hf-53e841c2a2cc46289a27526cc7d0f6bf.pdf" target="_blank">
+                                                                Circular : Notice regarding Unauthorized Encroachment in police Pool Houses(14763-863).
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-05/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-034-01-hf-55dc5eb08df84540bf93d99c997af710.pdf" target="_blank">
+                                                                Order Regarding allotment of Police Pool House (27179-94).
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-05/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-021-01-hf-935eee7cc8e04e0a9e010e8d0e713113.pdf" target="_blank">
+                                                                ASI/LR  Mahinder Singh hereby granted List &quot;D&quot; and promoted to Assistant Sub Inspector (43554-70).
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-05/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-021-01-hf-56123bff6a4048df9439a6259cff5d0b.pdf" target="_blank">
+                                                                ASI/LR Surinder Pal Singh hereby granted List &quot;D&quot; and promoted to Assistant Sub Inspector (43571-90).
+                                                            </a>
+                                                        </li>
+                                                        <!--var finalUrl = item?.DocFilePath?.NormalizePath();-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-08-05/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-064-01-hf-d03c39a10a454d4fb60f3a77edd214f6.pdf" target="_blank">
+                                                                Subject: Circulation of Standard Operating Procedure (SOP) on Trial in Absentia under BNSS, 2023.
+                                                            </a>
+                                                        </li>
+                                                </ul>
+                                            </marquee>
+                                            <div class="text-right mt-2">
+                                                <a href="/public/Pages/whats-new" class="btn btn-link p-0 btn-primary text-white px-4 py-1 rounded">View All</a>
+                                            </div>
+                                    </div>
+
+                                    <div class="tab-pane fade show" id="tab1" role="tabpanel" aria-labelledby="tab1-tab" style="display: none;">
+                                    </div>
+
+                                    <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
+                                            <marquee behavior="scroll"
+                                                     direction="up"
+                                                     scrollamount="2"
+                                                     onmouseover="this.stop();"
+                                                     onmouseout="this.start();"
+                                                     style="height: 155px;">
+
+                                                <ul class="notice-list">
+                                                    <!--                                                        <li>
+                                                            <a href="/Attachments/2026-07-10/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-a166bb07f34f48fba4602c27afabe274.pdf" target="_blank">
+                                                                Chandigarh Police busts Pakistan-linked narco-terror and FICN network in punjab border raids; four more accused arrested in chemist shop murder case, July 2026
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="/Attachments/2026-07-07/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-0552bfa037c04a64bbaebf724df6ba7c.pdf" target="_blank">
+                                                                Visit Of Sh. Gulab Chand Kataria, Hon&#x27;ble Governor of Punjab, January 2025
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="/Attachments/2026-07-07/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-8fe43d4ddffe4e32a7bd87b7188a289d.pdf" target="_blank">
+                                                                The award of President Police Medal (PPM) for Distinguished / Meritorious Services, August 2024
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="/Attachments/2026-07-07/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-78e682c36a8d4130adc348cfce231fc0.pdf" target="_blank">
+                                                                Launch a book of new criminal laws, February 2024
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="/Attachments/2026-07-07/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-013d10f144ad49129eee81792b687fc2.pdf" target="_blank">
+                                                                Police Station Cyber Crime, Chandigarh organized an opening ceremony/Orientation Programme of 3rd batch of cyber interns at SD college sector 32 Chandigarh, August 2023
+                                                            </a>
+                                                        </li>
+-->
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-07-10/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-a166bb07f34f48fba4602c27afabe274.pdf" target="_blank">
+                                                                Chandigarh Police busts Pakistan-linked narco-terror and FICN network in punjab border raids; four more accused arrested in chemist shop murder case, July 2026
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-07-07/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-0552bfa037c04a64bbaebf724df6ba7c.pdf" target="_blank">
+                                                                Visit Of Sh. Gulab Chand Kataria, Hon&#x27;ble Governor of Punjab, January 2025
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-07-07/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-8fe43d4ddffe4e32a7bd87b7188a289d.pdf" target="_blank">
+                                                                The award of President Police Medal (PPM) for Distinguished / Meritorious Services, August 2024
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-07-07/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-78e682c36a8d4130adc348cfce231fc0.pdf" target="_blank">
+                                                                Launch a book of new criminal laws, February 2024
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="/public/Attachments/2026-07-07/PhotoVideoGallery/PhotoVideoGallery-GalleryItems-251-01-hf-013d10f144ad49129eee81792b687fc2.pdf" target="_blank">
+                                                                Police Station Cyber Crime, Chandigarh organized an opening ceremony/Orientation Programme of 3rd batch of cyber interns at SD college sector 32 Chandigarh, August 2023
+                                                            </a>
+                                                        </li>
+                                                </ul>
+
+                                            </marquee>
+                                            <!-- More Button -->
+                                            <div class="text-right mt-2 no-bod">
+                                                <a href="/public/Pages/press-release" class="btn btn-link p-0 btn-primary text-white px-4 py-1 rounded">View All</a>
+                                            </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="tab3" role="tabpanel" aria-labelledby="tab3-tab">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!--<div class="col-md-5">
+                            <ul class="dif-sites d-flex flex-column list-unstyled">
+                                <li><a target="_blank" href="https://ebeat.chandigarhpolice.gov.in/icms/UI/Form?FormId=8562"><span><img src="~/Index/clipboard.png" /></span><strong>Complaint Registration</strong></a></li>
+                                <li><a target="_blank" href="https://ebeat.chandigarhpolice.gov.in/mvt"><span><img src="~/Index/FIR.png" /></span><strong>Register FIR for Motor Vehicle Theft</strong></a></li>
+                                <li><a target="_blank" href="https://portal.chandigarhpolice.gov.in/Pages/IPC-and-CrPC"><span><img src="~/Index/book.png" /></span><strong>IO Handbooks on New Criminal Laws</strong></a> </li>
+                                <li><a target="_blank" href="https://chdpol.swagatam.gov.in/public/Index.aspx"><span><img src="~/Index/swagatam1.png" /></span><strong>Swagatam</strong></a></li>
+                                <li><a target="_blank" href="https://portal.chandigarhpolice.gov.in/Home/EmergencyContacts"><span><img src="~/Index/phone-icon.png" /></span><strong>Emergency Helpline</strong></a> </li>
+                            </ul>
+                        </div>-->
+
+            </div>
+        </div>
+    </article>
+</div>
+<section class="servicesBlock pt-1  pt-md-3  pb-10">
+    <div class="col-lg-12 text-center">
+        <header class="headingHead text-center mb-2 mb-lg-3">
+            <h2 class="fwSemiBold">Find Government  Services and Information</h2>
+            <p>We are offering the following information about us that what we actually.</p>
+        </header>
+    </div>
+    <div class="container-xl">
+        <div class="row">
+            <div class="col-xl-12 mx-auto">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="row justify-content-center">
+
+
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="/public/Index/citizenportal.png" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">e-Saathi Online Services</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Online Services (Login, Register & Track)</p>
+                                                <a class="readMoreLink fontAlter" href="/public/Home/OnlineServices">Click here <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true"><span class="sr-only">icon</span></i></a>
+                                                <img src="/public/HPContents/images/esaathiServices.jpg" alt="icon" class=" icnWatermark position-absolute ml-1" loading="lazy" width="74" height="74" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+
+
+
+
+                           
+                          
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="/public/Index/list.png" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">E-FIR Registration</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Available on E-Saathi & Chandigarh Police Web Portal  </p>
+                                                <a href="https://ebeat.chandigarhpolice.gov.in/mvt/" target="_blank" class="readMoreLink fontAlter">Click here <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true"><span class="sr-only">icon</span></i></a>
+                                                <img src="/public/Index/list.png" alt="icon" loading="lazy" width="74" height="74" class=" icnWatermark position-absolute ml-1" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="/public/Index/Swagatamicon.png" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">Swagatam</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Make an appointment with govt</p>
+                                                <a href="https://chdpol.swagatam.gov.in/public/Index.aspx" target="_blank" class="readMoreLink fontAlter">Click here <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true"><span class="sr-only">icon</span></i></a>
+                                                <img src="/public/Index/Swagatamicon.png" alt="icon" loading="lazy" width="74" height="74" class=" icnWatermark position-absolute ml-1" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="/public/Index/e-awas.png" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">e-Awaas</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Chandigarh Police House Allotment System</p>
+                                                <a href="https://eawas.chandigarhpolice.gov.in/home/CH" target="_blank" class="readMoreLink fontAlter">Click here <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true"><span class="sr-only">icon</span></i></a>
+                                                <img src="/public/Index/e-awas.png" alt="icon" class=" icnWatermark position-absolute ml-1" loading="lazy" width="74" height="74" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+
+                         
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="/public/Index/complaintregistration.png" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">Complaint Registration</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Complaint Registration</p>
+                                                <a href="https://ebeat.chandigarhpolice.gov.in/icms/UI/anonymous?projectid=240&FormId=8562" target="_blank" class="readMoreLink fontAlter">Click here <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true"><span class="sr-only">icon</span></i></a>
+                                                <img src="/public/Index/complaintregistration.png" alt="icon" class=" icnWatermark position-absolute ml-1" loading="lazy" width="74" height="74" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="/public/Index/citizenreviewservice.png" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">Citizen Review Service</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Please provide your valuable feedback</p>
+                                                <a class="readMoreLink fontAlter" href="/public/Home/cfs">Click here <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true"><span class="sr-only">icon</span></i></a>
+                                                <img src="/public/Index/citizenreviewservice.png" alt="icon" class=" icnWatermark position-absolute ml-1" loading="lazy" width="74" height="74" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">                         
+                                            <img src="/public/Index/payyourchallanicon.jpeg" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">Pay Your Traffic Challan</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>e-Challan Digital Traffic/Transport Enforcement Solution</p>
+                                                <a href="https://echallan.parivahan.nic.in/challan/challan-services" class="readMoreLink fontAlter" target="_blank" rel="noopener noreferrer">
+                                                    Click here
+                                                    <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true">
+                                                        <span class="sr-only">icon</span>
+                                                    </i>
+                                                </a>
+                                                <img src="/public/Index/payyourchallanicon.jpeg" alt="icon" class=" icnWatermark position-absolute ml-1" loading="lazy" width="74" height="74" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+
+                           <!-- <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="~/Index/SeniorCitizen.jpeg" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">Senior Citizen Registraion</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Senior Citizen Registraion</p>
+                                                <img src="~/HPContents/images/SeniorCitizen.jpeg" alt="icon" class=" icnWatermark position-absolute ml-1" loading="lazy" width="74" height="74" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>-->
+
+
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="/public/Index/webtraffic.jpg" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">Chandigarh Traffic Police</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Chandigarh Traffic Police</p>
+                                                <a href="https://www.chandigarhtrafficpolice.gov.in/" target="_blank" class="readMoreLink fontAlter">Click here <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true"><span class="sr-only">icon</span></i></a>
+                                                <img src="/public/Index/webtraffic.jpg" alt="icon" class=" icnWatermark position-absolute ml-1" loading="lazy" width="74" height="74" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+
+
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <article class="dcsColumn d-flex position-relative bg-white overflow-hidden mb-6">
+                                    <div class="alignHolder w-100 d-flex align-items-center">
+                                        <div class="align w-100 py-2 px-3 px-xl-6">
+                                            <img src="/public/Index/track-application.png" alt="icon" class=" d-flex align-items-center icnWrap mb-4" />
+                                            <h3 class="fwMedium">Track Application</h3>
+                                            <div class="dcsccCaptionWrap">
+                                                <p>Know Your Application Status</p>
+                                                <a class="readMoreLink fontAlter" href="/public/TrackApplication">Click here <i class="fa fa-arrow-right btnRmlIcn ml-2" aria-hidden="true"><span class="sr-only">icon</span></i></a>
+                                                <img src="/public/Index/track-application.png" alt="icon" loading="lazy" width="74" height="74" class=" icnWatermark position-absolute ml-1" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<div class="chd-police-station-list">
+    <iframe src="https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d32619.916652890737!2d76.79218342992594!3d30.7536250273773!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1schandigarh%20police%20station%20list!5e0!3m2!1sen!2sin!4v1783658569811!5m2!1sen!2sin" 
+    width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+</div>
+
+
+
+        </main>
+
+        <!-- ftAreaWrap -->
+
+        <div b-jexbjdpmxx class="logo-slider pt-2 pb-2">
+            <div b-jexbjdpmxx class="px-5  py-5">
+                <div b-jexbjdpmxx class="container-xl ">
+                    <div b-jexbjdpmxx class="col-rt-12">
+                        <div b-jexbjdpmxx class="customer-logos slider">
+                            <!-- <div class="slide"><a href="/public/Pages/bns-bnss-bsa" target="_blank"> <img src="~/Index/Databank.jpg" /></a></div>-->
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="/public/Pages/safety-steps" target="_blank"> <img src="/public/Index/letsusbesafe.png" /></a></div>
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="/public/Pages/bns-bnss-bsa" target="_blank"> <img src="/public/Index/IO_handbook.jpg" /></a></div>
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="https://stopchildmarriage.wcd.gov.in" target="_blank"><img src="/public/Index/child_marriage_free_poster.jpg" /></a></div>
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="https://india.gov.in" target="_blank"><img src="/public/Index/india-gov-logo.jpg" /></a></div>
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="https://pmmementos.gov.in" target="_blank"><img src="/public/Index/pm_mementoes.jpg" /></a></div>
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="/public/Pages/immigration" target="_blank"> <img src="/public/Index/immigrationrelated.jpg" /></a></div>
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="https://bprd.nic.in/page/sajag_bharat" target="_blank"> <img src="/public/Index/sajag_bharat.jpg" /></a></div>
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="https://www.chdsw.gov.in/index.php/scheme/index" target="_blank"> <img src="/public/Index/women_and_child.jpg" /></a></div>
+                            <div b-jexbjdpmxx class="slide"><a b-jexbjdpmxx href="https://rru.ac.in/" target="_blank"> <img src="/public/Index/R-R-U.jpg" /></a></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div b-jexbjdpmxx class="ftAreaWrap position-relative bg-gDark fontAlter">
+            <!-- footerAside -->
+            <aside b-jexbjdpmxx class="footerAside pt-4 pb-sm-2 pt-xl-7 pb-xl-0">
+                <div b-jexbjdpmxx class="container-xl">
+                    <div b-jexbjdpmxx class="row">
+                        <div b-jexbjdpmxx class="col-xl-12 mx-auto">
+                            <div b-jexbjdpmxx class="row">
+                                <div b-jexbjdpmxx class="col-12 col-sm-6 col-lg-3 col-xl-4 mb-sm-6 mb-4">
+                                    <h3 b-jexbjdpmxx class="ftHeading text-white mb-2 mb-sm-4">
+                                        Address
+                                    </h3>
+                                    <address b-jexbjdpmxx class="mb-0 ftPlace">
+
+                                        <ul b-jexbjdpmxx class="list-unstyled ftpScheduleList mb-0 address-listing">
+                                            <li b-jexbjdpmxx class="pl-0">
+                                                <i b-jexbjdpmxx class="fa fa-map-marker mr-1 mr-sm-0"><span b-jexbjdpmxx class="sr-only">icon</span></i>
+                                                <strong b-jexbjdpmxx>Police HQ, Sector 9D, Chandigarh, Pincode 160009</strong>
+                                            </li>
+                                            <li b-jexbjdpmxx class="pl-0 mt-sm-5 mt-2">
+                                                <i b-jexbjdpmxx class="fa fa-phone mr-1 mr-sm-0"><span b-jexbjdpmxx class="sr-only">icon</span></i>
+                                                <a b-jexbjdpmxx href="tel:01722749194">0172 274 9194</a>
+                                            </li>
+                                            <li b-jexbjdpmxx class="pl-0 mt-sm-5 mt-2">
+                                                <i b-jexbjdpmxx class="fa fa-envelope mr-1 mr-sm-0"><span b-jexbjdpmxx class="sr-only">icon</span></i>
+                                                <a b-jexbjdpmxx href="mailto:dgp-chd@nic.in">dgp-chd[at]nic[dot]in</a>
+                                            </li>
+                                        </ul>
+                                    </address>
+                                </div>
+                                <div b-jexbjdpmxx class="col-12 col-sm-6 col-lg-3 mb-sm-6 mb-4">
+                                    <h3 b-jexbjdpmxx class="ftHeading text-white mb-2 mb-sm-4">
+                                        Quick Links
+                                    </h3>
+                                    <ul b-jexbjdpmxx class="list-unstyled ftsrLinksList mb-0">
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="https://ch.erss.in/" target="_blank">112 Emergency</a>
+                                        </li>
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="https://ebeat.chandigarhpolice.gov.in/icms/UI/Form?FormId=8562" target="_blank">Complaint Registration (ICMS)</a>
+                                        </li>
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="https://citizenportal.chandigarhpolice.gov.in/Login.aspx" target="_blank">Citizen Portal</a>
+                                        </li>
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="/public/Pages/immigration">Immigration</a>
+                                        </li>
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="/public/Pages/Press-Release">Press Release</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div b-jexbjdpmxx class="col-12 col-sm-6 col-lg-3 mb-sm-6 mb-4">
+                                    <h3 b-jexbjdpmxx class="ftHeading text-white mb-2 mb-sm-4">
+                                        Important Links
+                                    </h3>
+                                    <ul b-jexbjdpmxx class="list-unstyled ftsrLinksList mb-0">
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="https://eawas.chandigarhpolice.gov.in/home/CH" target="_blank">e-Awas</a>
+                                        </li>
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="https://swagatam.gov.in/Public/Index.aspx" target="_blank">Swagatam</a>
+                                        </li>
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="https://etenders.chd.nic.in/nicgep/app" target="_blank">Procurement</a>
+                                        </li>
+                                        <li b-jexbjdpmxx>
+                                            <a b-jexbjdpmxx href="https://play.google.com/store/apps/details?id=com.mobi.eSaathiCH&hl=en-US&pli=1" target="_blank">eSaathi - Download Link</a>
+                                        </li>
+                                        <li b-jexbjdpmxx>
+                                            <a href="/public/Home/cfs">Citizen Review Services</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div b-jexbjdpmxx class="col-12 col-sm-6 col-lg-3 col-xl-2 mb-sm-6 mb-4 count-bx">
+                                    <h3 b-jexbjdpmxx class="ftHeading text-white mb-2 mb-sm-4 last-h3-head">
+                                        Visitor Counter
+                                    </h3>
+                                    <div b-jexbjdpmxx class="odometer " id="visitor-meter" style="ali">
+                                        <div b-jexbjdpmxx class="digit" id="d1">0</div>
+                                        <div b-jexbjdpmxx class="digit" id="d2">0</div>
+                                        <div b-jexbjdpmxx class="digit" id="d3">0</div>
+                                        <div b-jexbjdpmxx class="digit" id="d4">0</div>
+                                        <div b-jexbjdpmxx class="digit" id="d5">0</div>
+                                        <div b-jexbjdpmxx class="digit" id="d6">0</div>
+                                        <div b-jexbjdpmxx class="digit" id="d7">0</div>
+                                    </div>
+
+                                    <ul b-jexbjdpmxx class="social-media-links list-unstyled d-flex justify-content-lg-end pt-5">
+                                        <li b-jexbjdpmxx class="blue">
+                                            <a b-jexbjdpmxx href="https://www.facebook.com/share/18kgeeFgTr/?mibextid=wwXIfr" target="_blank"><i b-jexbjdpmxx class="fa fa-facebook mr-1 mr-sm-0"></i></a>
+                                        </li>
+                                        <li b-jexbjdpmxx class="ml-xl-6 ml-3 orange"><a b-jexbjdpmxx href="https://x.com/ChdPol" target="_blank"><i b-jexbjdpmxx class="fa-brands fa-x-twitter"></i></a></li>
+                                        <li b-jexbjdpmxx class="ml-xl-6 ml-3 red">
+                                            <a b-jexbjdpmxx href="https://www.instagram.com/chandigarhpolice.official?igsh=bDJtZW9wbGVpaHhn" target="_blank">
+                                                <i b-jexbjdpmxx class="fa fa-instagram mr-1 mr-sm-0"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            <footer b-jexbjdpmxx id="pageFooter" class="text-center blue-clr pt-3 pb-3 pt-md-2 pb-md-2">
+                <div b-jexbjdpmxx class="container-xl">
+                    <p b-jexbjdpmxx class="mb-0">
+                        <a b-jexbjdpmxx href="javascript:void(0);">Chandigarh Police</a> -
+                        <a b-jexbjdpmxx href="javascript:void(0);">NIC Chandigarh</a> &copy; 2026 <br b-jexbjdpmxx class="d-md-none">All Rights Reserved.
+                        <a b-jexbjdpmxx href="/Home/Disclaimer">Disclaimer</a>
+                    </p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- SOS Floating Button — placed as the LAST element in <body>, sibling to nothing else,
+         so no parent transform/filter/perspective can break its position:fixed behaviour -->
+    <a b-jexbjdpmxx href="/public/Home/EmergencyContacts" class="sosFloatBtn" title="Emergency SOS">
+        <i b-jexbjdpmxx class="fa fa-exclamation-triangle"></i>
+        <span b-jexbjdpmxx>SOS</span>
+    </a>
+
+    <!-- eSaathi Chatbot Widget: mascot + toggle button (single instance, no duplicate IDs) -->
+    <div b-jexbjdpmxx class="esaathi-mascot-wrap">
+        <div b-jexbjdpmxx id="eSaathiMascot" class="esaathi-mascot">
+            <svg b-jexbjdpmxx viewBox="0 0 100 110" width="52" height="57" xmlns="http://www.w3.org/2000/svg">
+                <g b-jexbjdpmxx class="esaathi-hand">
+                    <circle b-jexbjdpmxx cx="0" cy="0" r="9" fill="#fcd9b8" />
+                </g>
+                <g b-jexbjdpmxx class="esaathi-head">
+                    <circle b-jexbjdpmxx cx="50" cy="58" r="30" fill="#fcd9b8" />
+                    <circle b-jexbjdpmxx cx="21" cy="58" r="5" fill="#fcd9b8" />
+                    <circle b-jexbjdpmxx cx="79" cy="58" r="5" fill="#fcd9b8" />
+                    <path b-jexbjdpmxx d="M18 46 Q50 8 82 46 L82 41 Q50 18 18 41 Z" fill="#052963" />
+                    <rect b-jexbjdpmxx x="16" y="39" width="68" height="11" rx="5" fill="#052963" />
+                    <circle b-jexbjdpmxx cx="50" cy="34" r="4.5" fill="#cbac6f" />
+                    <path b-jexbjdpmxx d="M34 52 Q38 49 43 51" stroke="#5a3d28" stroke-width="2" fill="none" stroke-linecap="round" />
+                    <path b-jexbjdpmxx d="M57 51 Q62 49 66 52" stroke="#5a3d28" stroke-width="2" fill="none" stroke-linecap="round" />
+                    <g b-jexbjdpmxx class="esaathi-eye-left">
+                        <circle b-jexbjdpmxx class="esaathi-eye-open" cx="38" cy="59" r="4" fill="#202b5d" />
+                        <line b-jexbjdpmxx class="esaathi-eye-closed" x1="34" y1="59" x2="42" y2="59" stroke="#202b5d" stroke-width="2.4" stroke-linecap="round" />
+                    </g>
+                    <g b-jexbjdpmxx class="esaathi-eye-right">
+                        <circle b-jexbjdpmxx class="esaathi-eye-open" cx="62" cy="59" r="4" fill="#202b5d" />
+                        <line b-jexbjdpmxx class="esaathi-eye-closed" x1="58" y1="59" x2="66" y2="59" stroke="#202b5d" stroke-width="2.4" stroke-linecap="round" />
+                    </g>
+                    <circle b-jexbjdpmxx cx="30" cy="68" r="4" fill="#f7a98a" opacity="0.5" />
+                    <circle b-jexbjdpmxx cx="70" cy="68" r="4" fill="#f7a98a" opacity="0.5" />
+                    <path b-jexbjdpmxx d="M38 74 Q50 84 62 74" stroke="#202b5d" stroke-width="3" fill="none" stroke-linecap="round" />
+                </g>
+            </svg>
+        </div>
+        <div b-jexbjdpmxx id="eSaathiChatToggle" class="esaathi-toggle-btn" title="Chat with e-Saathi">
+            <i b-jexbjdpmxx class="fa fa-comments"></i>
+            <span b-jexbjdpmxx class="esaathi-toggle-label">e-Saathi</span>
+        </div>
+    </div>
+
+    <!-- eSaathi Chat Window -->
+    <div b-jexbjdpmxx id="eSaathiChatWindow" class="esaathi-chat-window">
+        <div b-jexbjdpmxx class="esaathi-header">
+            <div b-jexbjdpmxx class="esaathi-header-info">
+                <img src="/public/images/chd-police-logo-new.png" alt="Chandigarh Police" class="esaathi-header-logo" />
+                <div b-jexbjdpmxx>
+                    <div b-jexbjdpmxx class="esaathi-header-title">e-Saathi Assistant</div>
+                    <div b-jexbjdpmxx class="esaathi-header-status"><span b-jexbjdpmxx class="esaathi-dot"></span> Online</div>
+                </div>
+            </div>
+            <button b-jexbjdpmxx id="eSaathiCloseBtn" class="esaathi-close-btn" aria-label="Close chat">&times;</button>
+        </div>
+
+        <div b-jexbjdpmxx id="eSaathiMessages" class="esaathi-messages"></div>
+          <div b-jexbjdpmxx class="esaathi-quick-actions" id="eSaathiQuickActions"></div>
+        <!--<div class="esaathi-quick-actions" id="eSaathiQuickActions">
+            <button class="esaathi-chip" data-msg="Track my application">Track Application</button>
+            <button class="esaathi-chip" data-msg="How to file a complaint">File Complaint</button>
+            <button class="esaathi-chip" data-msg="Police Clearance Certificate">PCC Info</button>
+            <button class="esaathi-chip" data-msg="Emergency contacts">Emergency</button>
+        </div> b-jexbjdpmxx-->
+
+        <div b-jexbjdpmxx class="esaathi-input-row">
+            <input b-jexbjdpmxx type="text" id="eSaathiInput" class="esaathi-input" placeholder="Type your message..." autocomplete="off" />
+            <button b-jexbjdpmxx id="eSaathiSendBtn" class="esaathi-send-btn" aria-label="Send">
+                <i b-jexbjdpmxx class="fa fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= GLOBAL JS ================= -->
+    <script src="/public/HPContents/js/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
+    <script src="/public/HPContents/js/jqueryCustom.js"></script>
+    <script src="/public/js/inputvalidation.js"></script>
+    <!-- include plugins JavaScript -->
+    <script src="/public/HPContents/js/plugins.js"></script>
+    <script src="/public/HPContents/dataTables.js"></script>
+    <script src="/public/hpcontents/js/slick.js"></script>
+
+    <!-- appRoot must be defined BEFORE esaathi-chat.js loads, since that script uses it -->
+    <script>const appRoot = '/public/';</script>
+    <script src="/public/js/esaathi-chat.js"></script>
+
+    <script>
+        window.addEventListener("load", function () {
+            if (typeof $.fn.modal !== "undefined") {
+                console.log("Bootstrap loaded successfully.");
+            } else {
+                console.log("Bootstrap failed to load.");
+            }
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#GreetingsModal').modal('show');
+        });
+
+        window.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".text-proper").forEach(function (el) {
+                var plain = el.textContent.trim();
+                el.textContent = toProperCase(plain);
+            });
+        });
+
+        function toProperCase(str) {
+            if (!str) return "";
+            return str.toLowerCase().replace(/\b\w/g, function (char) {
+                return char.toUpperCase();
+            });
+        }
+    </script>
+    <script>
+        window.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".remove-extra-html").forEach(function (el) {
+                var plain = el.textContent.trim();
+                el.innerHTML = plain;
+            });
+        });
+    </script>
+    <script>
+        $(function () {
+            $('.customer-logos').slick({
+                slidesToShow: 6,
+                autoplay: true,
+                arrows: false,
+                responsive: [{
+                    breakpoint: 768,
+                    settings: {
+                        slidesToShow: 4
+                    }
+                }, {
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 3
+                    }
+                }]
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var targetMenuGallery = $('#divMenuGallery');
+            var targetMenuAboutUs = $('#divMenuAboutUs');
+            var targetMenuRecruitment = $('#divMenuRecruitment');
+            var targetMenuEmployeePortal = $('#divMenuEmployeePortal');
+            var targetMenuLawRegulations = $('#divMenuLawRegulations');
+            var targetMenuServicesRendered = $('#divMenuServicesRendered');
+
+            $.getJSON('/public/PhotoVideoGallery/GetUrls', function (data) {
+                $.each(data, function (i, item) {
+                    var li = $('<li>');
+                    var a = $('<a>')
+                        .addClass('dropdown-item')
+                        .text(item.urlName)
+                        .attr('href', '/public/' + item.destinationUrl);
+                    li.append(a);
+
+                    switch (item.categoryCode) {
+                        case "About-Us": targetMenuAboutUs.append(li); break;
+                        case "Recruitment": targetMenuRecruitment.append(li); break;
+                        case "Employee-Portal": targetMenuEmployeePortal.append(li); break;
+                        case "Services-Rendered": targetMenuServicesRendered.append(li); break;
+                        case "Law-Rules-Regulations": targetMenuLawRegulations.append(li); break;
+                        case "PhotoVideoGallery-Menu": targetMenuGallery.append(li); break;
+                        default: break;
+                    }
+                });
+            });
+        });
+
+        function openHomePage() {
+            window.location.href = '/public';
+        }
+
+        function openLoginPage() {
+            window.location.href = '/public/Account/Login';
+        }
+
+        $(function () {
+            $.get(appRoot + 'Visitor/TotalCount', function (count) {
+                count = count.toString().padStart(7, '0');
+                for (let i = 0; i < 7; i++) {
+                    $('#d' + (i + 1)).text(count[i]);
+                }
+            });
+        });
+    </script>
+    <script>
+        window.onload = function () {
+            const loader = document.getElementById("pageLoader");
+            if (loader) {
+                loader.style.opacity = "0";
+                loader.style.transition = "opacity 0.4s ease";
+                setTimeout(() => { loader.remove(); }, 400);
+            }
+        };
+    </script>
+    <script>
+        $(document).ready(function () {
+            $.ajax({
+                url: appRoot + 'Home/HomeLogo',
+                type: 'GET',
+                success: function (data) {
+                    if (data && data.length > 0) {
+                        let html = '';
+
+                        $.each(data, function (index, item) {
+                            if (item.docFilePath) {
+                                html += `
+                                <li>
+                                    <a href="${item.itemDescription || 'javascript:void(0)'}" target="_blank">
+                                        <img src="/public${item.docFilePath}" class="img-fluid" alt="">
+                                    </a>
+                                </li>`;
+                            }
+                        });
+
+                        $("#homeLogoList").html(html);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.log("Status:", status);
+                    console.log("Error:", error);
+                    console.log("Response:", xhr.responseText);
+                }
+            });
+        });
+
+        function openUrl(element) {
+            var url = element.getAttribute("data-openurl");
+            if (url) { window.open(url, "_blank"); }
+        }
+
+        document.querySelector('.nav-link').addEventListener('click', function (e) {
+            e.preventDefault();
+            window.location.href = appRoot;
+        });
+
+        $('a[href^="/attachments"]').each(function () {
+            var oldHref = $(this).attr('href');
+            $(this).attr('href', '/Public' + oldHref);
+        });
+    </script>
+    <script type="text/javascript">
+
+
+
+
+
+
+
+
+
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement(
+                {
+                    pageLanguage: 'en',
+                    includedLanguages: 'en,hi,pa',
+                    layout: google.translate.TranslateElement.InlineLayout.HORIZONTAL,
+                    autoDisplay: false
+                },
+                'google_translate_element'
+            );
+        }
+        function loadScript(src, label) {
+            const script = document.createElement("script");
+            script.src = src;
+            script.onload = () => console.log(`${label} loaded`);
+            script.onerror = () => console.error(`Failed to load ${label}`);
+            document.head.appendChild(script);
+        }
+
+
+
+        loadScript("https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.2/js/bootstrap.min.js", "Bootstrap");
+        loadScript("https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js", "QRCode");
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+        const fromDate = document.querySelector(".FROM_DT");
+        const toDate = document.querySelector(".TO_DT");
+
+        if (!fromDate || !toDate) {
+        console.error("FROM_DT or TO_DT not found.");
+        return;
+        }
+
+        // Format Date as yyyy-MM-dd
+        function formatDate(date) {
+        return date.getFullYear() + "-" +
+        String(date.getMonth() + 1).padStart(2, "0") + "-" +
+        String(date.getDate()).padStart(2, "0");
+        }
+
+        // Today
+        const today = new Date();
+        const todayString = formatDate(today);
+
+        // To Date cannot be greater than today
+        toDate.max = todayString;
+
+        // When From Date is selected
+        fromDate.addEventListener("change", function () {
+
+        if (!fromDate.value) {
+        return;
+        }
+
+        // Selected From Date
+        const selectedFromDate = new Date(fromDate.value + "T00:00:00");
+
+        // Add 3 months
+        const threeMonthsLater = new Date(selectedFromDate);
+        threeMonthsLater.setMonth(
+        threeMonthsLater.getMonth() + 3
+        );
+
+        // If 3 months later is greater than today,
+        // use today instead
+        const finalToDate =
+        threeMonthsLater > today
+        ? today
+        : threeMonthsLater;
+
+        // Set To Date
+        toDate.value = formatDate(finalToDate);
+
+        // To Date cannot be before From Date
+        toDate.min = fromDate.value;
+        });
+
+        // If To Date is changed manually
+        toDate.addEventListener("change", function () {
+
+        if (toDate.value < fromDate.value) {
+        toDate.value = fromDate.value;
+        }
+        });
+        });
+    </script>
+    <script async type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <script src="/public/hpcontents/accessibility-widget.js" defer></script>
+    <!-- ================= PAGE LEVEL JS ================= -->
+    
+</body>
+</html>

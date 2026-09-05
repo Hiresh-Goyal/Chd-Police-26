@@ -1,10 +1,15 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../components/common/Toast';
+import { useAlerts } from '../hooks/useAlerts';
+import { EvidenceChain } from '../components/EvidenceChain';
 
 export const Alerts: React.FC = () => {
   const navigate = useNavigate();
+  const { caseId = '2847' } = useParams<{ caseId?: string }>();
   const { showToast } = useToast();
+  const { data: alerts, loading } = useAlerts(caseId);
+  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -30,72 +35,49 @@ export const Alerts: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-3">
-          {/* Alert Row 1 (Critical) */}
-          <div
-            onClick={() => navigate('/cases/2847')}
-            className="flex flex-col gap-2 p-4 rounded bg-[#DC2626]/5 border border-[#DC2626]/25 hover:bg-[#DC2626]/10 cursor-pointer transition-colors"
-          >
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626] animate-ping"></span>
-                <span className="text-[11px] text-[#DC2626] font-bold tracking-wider uppercase">CRITICAL</span>
+          {loading ? (
+            <div className="text-gray-400">Loading alerts...</div>
+          ) : alerts && alerts.length > 0 ? (
+            alerts.map((alert: any) => (
+              <div key={alert.id} className="flex flex-col gap-2">
+                <div
+                  onClick={() => setSelectedAlertId(selectedAlertId === alert.id ? null : alert.id)}
+                  className={`flex flex-col gap-2 p-4 rounded border transition-colors cursor-pointer ${
+                    alert.severity === 'CRITICAL' 
+                      ? 'bg-[#DC2626]/5 border-[#DC2626]/25 hover:bg-[#DC2626]/10' 
+                      : alert.severity === 'HIGH'
+                        ? 'bg-orange-500/5 border-orange-500/25 hover:bg-orange-500/10'
+                        : 'bg-white hover:bg-[#F8FAFC] border-[#D9E1EA]'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${alert.severity === 'CRITICAL' ? 'bg-[#DC2626] animate-ping' : alert.severity === 'HIGH' ? 'bg-orange-500' : 'bg-yellow-500'}`}></span>
+                      <span className={`text-[11px] font-bold tracking-wider uppercase ${alert.severity === 'CRITICAL' ? 'text-[#DC2626]' : alert.severity === 'HIGH' ? 'text-orange-600' : 'text-yellow-600'}`}>{alert.severity}</span>
+                    </div>
+                    <span className="text-[11px] font-mono text-[#64748B]">{alert.timeAgo}</span>
+                  </div>
+                  <div className="text-base font-semibold text-[#191C1E]">{alert.title}</div>
+                  <div className="flex gap-2 items-center">
+                    <div className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-[#424751]">{alert.rule_id || 'RULE_X'}</div>
+                    {alert.fraudScoreContribution && (
+                      <div className="font-mono text-xs bg-red-100 px-2 py-0.5 rounded text-red-600">+{alert.fraudScoreContribution} Risk Score</div>
+                    )}
+                  </div>
+                  <div className="text-sm text-[#424751] mt-1">
+                    {alert.description}
+                  </div>
+                </div>
+                {selectedAlertId === alert.id && (
+                  <div className="mt-2 ml-4">
+                    <EvidenceChain alertId={alert.id} />
+                  </div>
+                )}
               </div>
-              <span className="text-[11px] font-mono text-[#64748B]">JUST NOW</span>
-            </div>
-            <div className="text-base font-semibold text-[#191C1E]">Call→Transfer nexus detected</div>
-            <div className="font-mono text-sm text-[#0B5CAB] font-semibold">Case #2847 (Rajesh Verma)</div>
-            <div className="text-sm text-[#424751] mt-1">
-              Immediate investigation required. Suspect identified initiating cross-domain transactions matching known mule networks.
-            </div>
-          </div>
-
-          {/* Alert Row 2 (High) */}
-          <div
-            onClick={() => showToast('Opening incident #2842 telemetry.', 'info')}
-            className="flex flex-col gap-2 p-4 rounded bg-white hover:bg-[#F8FAFC] border border-[#D9E1EA] transition-colors cursor-pointer"
-          >
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
-                <span className="text-[11px] text-orange-600 font-bold tracking-wider uppercase">HIGH</span>
-              </div>
-              <span className="text-[11px] font-mono text-[#64748B]">2 MIN AGO</span>
-            </div>
-            <div className="text-base font-medium text-[#191C1E]">Multiple SIM activations on same IMEI</div>
-            <div className="font-mono text-sm text-[#64748B]">Case #2842</div>
-          </div>
-
-          {/* Alert Row 3 (High) */}
-          <div
-            onClick={() => navigate('/sentinelwatch')}
-            className="flex flex-col gap-2 p-4 rounded bg-white hover:bg-[#F8FAFC] border border-[#D9E1EA] transition-colors cursor-pointer"
-          >
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
-                <span className="text-[11px] text-orange-600 font-bold tracking-wider uppercase">HIGH</span>
-              </div>
-              <span className="text-[11px] font-mono text-[#64748B]">15 MIN AGO</span>
-            </div>
-            <div className="text-base font-medium text-[#191C1E]">Suspicious geo-velocity alert (Chandigarh → Delhi)</div>
-            <div className="font-mono text-sm text-[#64748B]">Target_Alpha_99</div>
-          </div>
-
-          {/* Alert Row 4 (Medium) */}
-          <div
-            onClick={() => showToast('Viewing network profile logs.', 'info')}
-            className="flex flex-col gap-2 p-4 rounded bg-white hover:bg-[#F8FAFC] border border-[#D9E1EA] transition-colors cursor-pointer"
-          >
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
-                <span className="text-[11px] text-yellow-600 font-bold tracking-wider uppercase">MEDIUM</span>
-              </div>
-              <span className="text-[11px] font-mono text-[#64748B]">1 HR AGO</span>
-            </div>
-            <div className="text-base font-medium text-[#191C1E]">Bulk IPDR session start matching profile</div>
-            <div className="font-mono text-sm text-[#64748B]">Network_Scan_Z</div>
-          </div>
+            ))
+          ) : (
+            <div className="text-gray-400">No alerts found.</div>
+          )}
         </div>
       </div>
     </div>

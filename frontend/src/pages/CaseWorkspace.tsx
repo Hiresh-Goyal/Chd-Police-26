@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { CASE_2847 } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
+import { useCase } from '../hooks/useCase';
+import { useFraudScore } from '../hooks/useFraudScore';
 
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -11,10 +12,10 @@ export const CaseWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
-  const { getCase, getCaseFiles } = useCaseStore();
+  const { getCaseFiles } = useCaseStore();
 
-  // For case 2847 use rich mock data; for any other case load from store
-  const caseData = caseId === '2847' ? CASE_2847 : getCase(caseId ?? '');
+  const { data: caseData, loading: caseLoading } = useCase(caseId ?? '');
+  const { data: fraudScoreData } = useFraudScore(caseId ?? '');
   const uploadedFiles = getCaseFiles(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
 
@@ -26,6 +27,9 @@ export const CaseWorkspace: React.FC = () => {
   const [isCloseCaseModalOpen, setIsCloseCaseModalOpen] = useState(false);
 
   // If case not found, show not found
+  if (caseLoading) {
+    return <div className="p-8 text-center text-gray-500">Loading Case...</div>;
+  }
   if (!caseData) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
@@ -135,37 +139,56 @@ export const CaseWorkspace: React.FC = () => {
             </h3>
 
             {/* Fraud Score Gauge */}
-            <div className="flex flex-col items-center justify-center my-2">
-              <div className="relative w-20 h-20 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#E2E8F0"
-                    strokeWidth="8"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#DC2626"
-                    strokeWidth="8"
-                    strokeDasharray="251.2"
-                    strokeDashoffset="27.6"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold font-mono text-[#DC2626]">89</span>
+            {fraudScoreData && (
+              <div className="flex flex-col items-center justify-center my-2">
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#E2E8F0"
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke={fraudScoreData.riskLevel === 'CRITICAL' ? '#DC2626' : fraudScoreData.riskLevel === 'HIGH' ? '#EA580C' : fraudScoreData.riskLevel === 'MEDIUM' ? '#EAB308' : '#22C55E'}
+                      strokeWidth="8"
+                      strokeDasharray="251.2"
+                      strokeDashoffset={251.2 - (251.2 * fraudScoreData.score) / 100}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={`text-2xl font-bold font-mono ${fraudScoreData.riskLevel === 'CRITICAL' ? 'text-[#DC2626]' : fraudScoreData.riskLevel === 'HIGH' ? 'text-orange-600' : fraudScoreData.riskLevel === 'MEDIUM' ? 'text-yellow-600' : 'text-green-600'}`}>
+                      {fraudScoreData.score}
+                    </span>
+                  </div>
+                </div>
+                <span className={`mt-2 text-[10px] font-bold font-mono px-2 py-0.5 rounded border uppercase ${fraudScoreData.riskLevel === 'CRITICAL' ? 'text-[#DC2626] bg-[#DC2626]/10 border-[#DC2626]/20' : fraudScoreData.riskLevel === 'HIGH' ? 'text-orange-600 bg-orange-500/10 border-orange-500/20' : fraudScoreData.riskLevel === 'MEDIUM' ? 'text-yellow-600 bg-yellow-500/10 border-yellow-500/20' : 'text-green-600 bg-green-500/10 border-green-500/20'}`}>
+                  FRAUD SCORE: {fraudScoreData.riskLevel}
+                </span>
+
+                {/* Top Contributing Findings */}
+                <div className="mt-4 w-full flex flex-col gap-2 px-2">
+                  <h4 className="text-[10px] font-bold text-[#64748B] uppercase">Top Contributors</h4>
+                  {fraudScoreData.topFindings?.map((finding: any, idx: number) => (
+                    <div key={idx} className="bg-[#F8FAFC] border border-[#D9E1EA] rounded p-2 text-xs">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-semibold text-[#191C1E]">{finding.ruleName}</span>
+                        <span className="font-mono text-[#DC2626] bg-red-50 px-1 rounded">+{finding.weight}</span>
+                      </div>
+                      <div className="text-[10px] text-[#64748B] mb-1">Confidence: {finding.confidence}</div>
+                      <div className="text-[#424751] truncate" title={finding.evidenceSummary}>{finding.evidenceSummary}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <span className="mt-2 text-[10px] font-bold font-mono text-[#DC2626] bg-[#DC2626]/10 px-2 py-0.5 rounded border border-[#DC2626]/20 uppercase">
-                FRAUD SCORE: CRITICAL
-              </span>
-            </div>
+            )}
 
             {/* Metadata Rows */}
             <div className="flex flex-col gap-2 text-xs divide-y divide-[#EDF0F4] pt-2">
@@ -211,10 +234,10 @@ export const CaseWorkspace: React.FC = () => {
             </div>
 
             <div className="p-2 flex flex-col gap-1.5 overflow-y-auto max-h-[380px] custom-scrollbar">
-              {CASE_2847.entities.map(ent => (
+              {caseData.entities?.map((ent: any) => (
                 <div
                   key={ent.id}
-                  onClick={() => navigate('/cases/2847/entity-graph')}
+                  onClick={() => navigate(`/cases/${caseId}/entity-graph`)}
                   className="flex items-center gap-2.5 p-2 hover:bg-[#EFF6FF]/50 rounded cursor-pointer transition-colors border border-transparent hover:border-[#D9E1EA]"
                 >
                   <div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-[#424751] shrink-0">

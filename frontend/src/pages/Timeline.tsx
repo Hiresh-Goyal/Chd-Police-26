@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CASE_2847_TIMELINE, TimelineEvent } from '../data/mockData';
+import { TimelineEvent } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
+import { useTimeline } from '../hooks/useTimeline';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Drawer } from '../components/common/Drawer';
@@ -19,37 +20,10 @@ export const Timeline: React.FC = () => {
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
   const isDemo = caseId === '2847';
 
-  // Generate simulated events for new cases based on uploaded file domains
-  const simulatedEvents: TimelineEvent[] = useMemo(() => {
-    if (isDemo || !hasUploads) return [];
-    const now = new Date();
-    const events: TimelineEvent[] = [];
-    uploadedFiles.filter(f => f.status === 'complete').forEach((f, i) => {
-      const domain = f.domain as TimelineEvent['domain'];
-      const hour = 9 + i;
-      events.push({
-        id: `sim_${f.id}`,
-        timestamp: now.toISOString(),
-        timeDisplay: `${String(hour).padStart(2,'0')}:${String((i*13)%60).padStart(2,'0')}`,
-        domain,
-        title: domain === 'CDR' ? 'Suspect call record extracted'
-          : domain === 'BANK' ? 'Financial transaction record ingested'
-          : domain === 'IPDR' ? 'IP session log correlated'
-          : domain === 'SOCIAL' ? 'Social media artefact captured'
-          : 'NCRP complaint record linked',
-        description: `Source file: ${f.name} — ${f.recordsCount} records parsed.`,
-        source: f.name,
-        provenance: f.hash.slice(0, 16) + '...',
-        isCritical: i === 0,
-        metadata: { Records: String(f.recordsCount), Domain: domain, Hash: f.hash.slice(0, 12) + '...' }
-      });
-    });
-    return events;
-  }, [uploadedFiles, isDemo, hasUploads]);
-
-  const timelineEvents = isDemo ? CASE_2847_TIMELINE : simulatedEvents;
-
   const [activeDomains, setActiveDomains] = useState<string[]>(['CDR', 'IPDR', 'BANK', 'SOCIAL', 'NCRP']);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: timelineEvents, loading } = useTimeline(caseId ?? '', { search: searchQuery });
+
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [zoomScale, setZoomScale] = useState<'1hr' | '30m' | '15m'>('1hr');
   const [selectedDate, setSelectedDate] = useState('15 Aug 2026');
@@ -143,6 +117,14 @@ export const Timeline: React.FC = () => {
           </div>
 
           <div className="h-4 w-px bg-[#D9E1EA] hidden sm:block"></div>
+          
+          <input 
+            type="text" 
+            placeholder="Search Entity / Event..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="text-xs border border-[#D9E1EA] rounded px-2 py-1 outline-none focus:border-[#0B5CAB]"
+          />
 
           {/* Domain Filter Pills */}
           <div className="flex items-center gap-1.5 flex-wrap">

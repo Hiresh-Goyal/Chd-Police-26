@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CASE_2847 } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
+import { useGraph } from '../hooks/useGraph';
+import { tierColor } from '../utils/confidence';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -27,158 +29,10 @@ interface GraphEdge {
   to: string;
   label: string;
   color: string;
+  color: string;
   animated?: boolean;
+  confidence_tier?: string;
 }
-
-const INITIAL_NODES: GraphNode[] = [
-  {
-    id: 'node_rajesh',
-    name: 'Rajesh Verma',
-    sub: 'TARGET: P1',
-    type: 'PERSON',
-    domain: 'NCRP',
-    x: 460,
-    y: 280,
-    riskScore: 92,
-    riskLevel: 'CRITICAL',
-    role: 'Primary Subject / Syndicate Coordinator',
-    details: {
-      'Full Name': 'Rajesh Verma',
-      'National ID': 'XXXX-XXXX-4819',
-      'Flagged Count': '3 Related NCRP complaints',
-      'Status': 'ACTIVE SURVEILLANCE'
-    }
-  },
-  {
-    id: 'node_phone1',
-    name: '+91 9812345678',
-    sub: 'PRIMARY CONTACT',
-    type: 'PHONE',
-    domain: 'CDR',
-    x: 230,
-    y: 170,
-    riskScore: 88,
-    riskLevel: 'CRITICAL',
-    role: 'Primary SIM (Airtel UT)',
-    details: {
-      'Carrier': 'Bharti Airtel UT',
-      'IMSI': '404450981234567',
-      'Tower Registration': 'Sector 17 Tower A (Cell ID 45892)'
-    }
-  },
-  {
-    id: 'node_phone2',
-    name: '+91 9988776655',
-    sub: 'VICTIM CONTACT',
-    type: 'PHONE',
-    domain: 'CDR',
-    x: 130,
-    y: 330,
-    riskScore: 10,
-    riskLevel: 'LOW',
-    role: 'Complainant Phone',
-    details: {
-      'Carrier': 'Jio Telecom',
-      'Call Duration Received': '14m 23s at 14:00 IST'
-    }
-  },
-  {
-    id: 'node_bank1',
-    name: 'HDFC XXXXXXX4521',
-    sub: 'MULE ACC (L1)',
-    type: 'BANK',
-    domain: 'BANK',
-    x: 310,
-    y: 450,
-    riskScore: 95,
-    riskLevel: 'CRITICAL',
-    role: 'Layer 1 Mule Account (HDFC Bank)',
-    details: {
-      'Account Owner': 'Rajesh Verma',
-      'IFSC': 'HDFC0001245',
-      'Received Amount': '₹48,000 IMPS',
-      'Freeze Status': 'PRIORITY P1 FREEZE ISSUED'
-    }
-  },
-  {
-    id: 'node_imei',
-    name: 'IMEI 864359012345219',
-    sub: 'HANDSET',
-    type: 'IMEI',
-    domain: 'CDR',
-    x: 690,
-    y: 410,
-    riskScore: 64,
-    riskLevel: 'MEDIUM',
-    role: 'Handset Hardware ID',
-    details: {
-      'Model': 'OnePlus Nord CE 3',
-      'Multiple SIMs Detected': '3 SIM activations detected in last 30 days',
-      'Prior Association': 'Case #1892'
-    }
-  },
-  {
-    id: 'node_ip',
-    name: '103.76.234.12',
-    sub: 'LAST KNOWN IP',
-    type: 'IP',
-    domain: 'IPDR',
-    x: 680,
-    y: 190,
-    riskScore: 78,
-    riskLevel: 'HIGH',
-    role: 'Cyber Cafe Proxy IP (Port 443)',
-    details: {
-      'ISP': 'FastNet Broadband UT',
-      'Physical Address': 'Sector 17 Market, Cyber Cafe Node Alpha',
-      'Session Duration': '2.4 MB at 14:28 IST'
-    }
-  },
-  {
-    id: 'node_social',
-    name: '@rajesh_invest_profit',
-    sub: 'TELEGRAM CHANNEL',
-    type: 'SOCIAL',
-    domain: 'SOCIAL',
-    x: 460,
-    y: 100,
-    riskScore: 82,
-    riskLevel: 'HIGH',
-    role: 'Recruitment Funnel Channel',
-    details: {
-      'Platform': 'Telegram & WhatsApp Group',
-      'Subscribers': '1,420 members',
-      'Initial WhatsApp Link': '+44 7700 900077'
-    }
-  },
-  {
-    id: 'node_atm',
-    name: 'Sector 22 ATM',
-    sub: 'CASH-OUT NODE',
-    type: 'ATM',
-    domain: 'BANK',
-    x: 180,
-    y: 530,
-    riskScore: 90,
-    riskLevel: 'CRITICAL',
-    role: 'Physical Withdrawal Terminal',
-    details: {
-      'ATM ID': 'SIB8922',
-      'Amount Withdrawn': '₹47,500 at 15:10 IST',
-      'CCTV Footage': 'Ref: CCTV-SEC22-0815'
-    }
-  }
-];
-
-const INITIAL_EDGES: GraphEdge[] = [
-  { id: 'e1', from: 'node_rajesh', to: 'node_phone1', label: 'OWNS', color: '#0891B2' },
-  { id: 'e2', from: 'node_phone1', to: 'node_phone2', label: 'CALLED (14m)', color: '#0891B2', animated: true },
-  { id: 'e3', from: 'node_rajesh', to: 'node_bank1', label: 'BENEFICIARY', color: '#F97316' },
-  { id: 'e4', from: 'node_bank1', to: 'node_atm', label: 'CASH_OUT (₹47.5k)', color: '#DC2626', animated: true },
-  { id: 'e5', from: 'node_rajesh', to: 'node_imei', label: 'USES_DEVICE', color: '#64748B' },
-  { id: 'e6', from: 'node_rajesh', to: 'node_ip', label: 'ACCESSED_FROM', color: '#7C3AED', animated: true },
-  { id: 'e7', from: 'node_rajesh', to: 'node_social', label: 'ADMINS', color: '#16A34A' }
-];
 
 export const EntityGraph: React.FC = () => {
   const { showToast } = useToast();
@@ -191,9 +45,11 @@ export const EntityGraph: React.FC = () => {
   const caseData = getCase(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
 
-  const [nodes, setNodes] = useState<GraphNode[]>(INITIAL_NODES);
-  const [edges, setEdges] = useState<GraphEdge[]>(INITIAL_EDGES);
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(INITIAL_NODES[0]);
+  const { data: graphData, loading } = useGraph(caseId ?? '');
+  const nodes = graphData?.nodes || [];
+  const edges = graphData?.edges || [];
+
+  const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
@@ -295,12 +151,20 @@ export const EntityGraph: React.FC = () => {
           </div>
 
           {/* Graph Legend Overlay */}
-          <div className="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-xs border border-[#D9E1EA] rounded px-3 py-2 shadow-xs flex items-center gap-3 text-[11px] font-mono">
-            <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]"></span> Person (P1)</div>
-            <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#0891B2]"></span> CDR Phone</div>
-            <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#F97316]"></span> Bank Acc</div>
-            <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]"></span> IP Proxy</div>
-            <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#16A34A]"></span> Social</div>
+          <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+            <div className="bg-white/90 backdrop-blur-xs border border-[#D9E1EA] rounded px-3 py-2 shadow-xs flex items-center gap-3 text-[11px] font-mono">
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]"></span> Person (P1)</div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#0891B2]"></span> CDR Phone</div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#F97316]"></span> Bank Acc</div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]"></span> IP Proxy</div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#16A34A]"></span> Social</div>
+            </div>
+            <div className="bg-white/90 backdrop-blur-xs border border-[#D9E1EA] rounded px-3 py-2 shadow-xs flex items-center gap-3 text-[11px] font-mono">
+              <div className="font-bold mr-2 text-[#64748B]">CONFIDENCE TIER:</div>
+              <div className="flex items-center gap-1"><span className="w-6 h-0.5 bg-black"></span> CONFIRMED</div>
+              <div className="flex items-center gap-1"><span className="w-6 h-0.5 border-t-2 border-dashed border-black"></span> PROBABLE</div>
+              <div className="flex items-center gap-1"><span className="w-6 h-0.5 border-t border-dotted border-black"></span> CANDIDATE</div>
+            </div>
           </div>
 
           {/* Transform Layer */}
@@ -340,12 +204,20 @@ export const EntityGraph: React.FC = () => {
                 const midX = (src.x + tgt.x) / 2;
                 const midY = (src.y + tgt.y) / 2;
 
+                let edgeProps = { strokeWidth: 2, strokeDasharray: 'none', opacity: 1.0 };
+                if (e.confidence_tier === 'PROBABLE') {
+                  edgeProps = { strokeWidth: 1.5, strokeDasharray: '4, 4', opacity: 0.8 };
+                } else if (e.confidence_tier === 'CANDIDATE') {
+                  edgeProps = { strokeWidth: 1, strokeDasharray: '2, 2', opacity: 0.5 };
+                }
+
                 return (
-                  <g key={e.id}>
+                  <g key={e.id} style={{ opacity: edgeProps.opacity }}>
                     <path
                       d={`M ${src.x} ${src.y} L ${tgt.x} ${tgt.y}`}
                       stroke={e.color}
-                      strokeWidth="2"
+                      strokeWidth={edgeProps.strokeWidth}
+                      strokeDasharray={edgeProps.strokeDasharray}
                       className={e.animated ? 'anim-dash' : ''}
                       markerEnd={`url(#arrow-${e.color === '#0891B2' ? 'cyan' : e.color === '#F97316' ? 'orange' : e.color === '#DC2626' ? 'red' : e.color === '#7C3AED' ? 'purple' : 'grey'})`}
                     />
@@ -467,7 +339,14 @@ export const EntityGraph: React.FC = () => {
               {/* Header Profile */}
               <div className="flex items-start justify-between border-b border-[#EDF0F4] pb-3">
                 <div>
-                  <h4 className="text-base font-bold text-[#191C1E]">{selectedNode.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-base font-bold text-[#191C1E]">{selectedNode.name}</h4>
+                    {selectedNode.confidence_tier && (
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${tierColor(selectedNode.confidence_tier)}`}>
+                        {selectedNode.confidence_tier}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-[#64748B] font-medium mt-0.5">{selectedNode.role}</div>
                 </div>
                 <div className="text-right">

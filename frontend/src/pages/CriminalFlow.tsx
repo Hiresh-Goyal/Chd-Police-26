@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MONEY_TRAIL_NODES, FlowNode } from '../data/mockData';
+import { FlowNode } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
+import { useCriminalFlow } from '../hooks/useCriminalFlow';
 
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
@@ -16,11 +17,19 @@ export const CriminalFlow: React.FC = () => {
   const uploadedFiles = getCaseFiles(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete' && (f.domain === 'BANK' || f.domain === 'CDR')).length > 0;
 
-  const [selectedNode, setSelectedNode] = useState<FlowNode>(MONEY_TRAIL_NODES[1]); // Default Layer 1 Mule
+  const { data: flowNodes, loading } = useCriminalFlow(caseId ?? '');
+  const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null);
   const [zoom, setZoom] = useState(1);
 
+  // Set default selection when data loads
+  React.useEffect(() => {
+    if (flowNodes && flowNodes.length > 1 && !selectedNode) {
+      setSelectedNode(flowNodes[1]);
+    }
+  }, [flowNodes]);
+
   const handleExportGraph = () => {
-    const json = JSON.stringify(MONEY_TRAIL_NODES, null, 2);
+    const json = JSON.stringify(flowNodes, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -113,136 +122,146 @@ export const CriminalFlow: React.FC = () => {
                   </marker>
                 </defs>
 
-                {/* Victim to Mule 1 (₹4,82,000) */}
+                {/* Victim to Mule 1 */}
                 <path d="M 390 100 L 390 190" fill="none" stroke="#DC2626" strokeWidth="5" markerEnd="url(#flow-arrow-red)" />
                 <rect x="350" y="130" width="80" height="22" rx="4" fill="#FFFFFF" stroke="#D9E1EA" strokeWidth="1" />
-                <text x="390" y="145" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">₹4,82,000</text>
+                <text x="390" y="145" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">{flowNodes?.[0]?.amount || '₹0'}</text>
 
-                {/* Mule 1 to Mule 2 (₹48,000) */}
+                {/* Mule 1 to Mule 2 */}
                 <path d="M 350 310 C 350 360, 220 360, 220 410" fill="none" stroke="#DC2626" strokeWidth="4" markerEnd="url(#flow-arrow-red)" />
                 <rect x="235" y="345" width="75" height="22" rx="4" fill="#FFFFFF" stroke="#D9E1EA" strokeWidth="1" />
-                <text x="272" y="360" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">₹48,000</text>
+                <text x="272" y="360" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">{flowNodes?.[2]?.amount || '₹0'}</text>
 
-                {/* Mule 1 to UPI Dispersal (₹4,34,000) */}
+                {/* Mule 1 to UPI Dispersal */}
                 <path d="M 430 310 C 430 360, 560 360, 560 410" fill="none" stroke="#64748B" strokeWidth="2" strokeDasharray="4,4" markerEnd="url(#flow-arrow-slate)" />
                 <rect x="475" y="345" width="80" height="22" rx="4" fill="#FFFFFF" stroke="#D9E1EA" strokeWidth="1" />
-                <text x="515" y="360" textAnchor="middle" fill="#424751" fontFamily="JetBrains Mono" fontSize="11">₹4,34,000</text>
+                <text x="515" y="360" textAnchor="middle" fill="#424751" fontFamily="JetBrains Mono" fontSize="11">{flowNodes?.[3]?.amount || '₹0'}</text>
 
-                {/* Mule 2 to ATM Cash-out (₹47,500) */}
+                {/* Mule 2 to ATM Cash-out */}
                 <path d="M 220 530 L 220 610" fill="none" stroke="#DC2626" strokeWidth="4" markerEnd="url(#flow-arrow-red)" />
                 <rect x="180" y="555" width="80" height="22" rx="4" fill="#FFFFFF" stroke="#D9E1EA" strokeWidth="1" />
-                <text x="220" y="570" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">₹47,500</text>
+                <text x="220" y="570" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">{flowNodes?.[4]?.amount || '₹0'}</text>
               </svg>
 
               {/* Node 1: Victim Source */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[0])}
-                className="absolute top-[10px] left-[250px] w-[280px] bg-white border border-[#D9E1EA] rounded-md shadow-xs overflow-hidden cursor-pointer hover:border-[#0B5CAB] transition-colors"
-              >
-                <div className="bg-[#F8FAFC] px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#64748B] uppercase text-[10px]">Victim Source</span>
-                  <span className="material-symbols-outlined text-[16px] text-[#64748B]">person</span>
-                </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">VICTIM-001 (SBI XXXXXXX1190)</div>
-                  <div className="font-mono text-xs text-[#0B5CAB] font-semibold mt-1">
-                    Entering: ₹4,82,000 Outflow
+              {flowNodes?.[0] && (
+                <div
+                  onClick={() => setSelectedNode(flowNodes[0])}
+                  className="absolute top-[10px] left-[250px] w-[280px] bg-white border border-[#D9E1EA] rounded-md shadow-xs overflow-hidden cursor-pointer hover:border-[#0B5CAB] transition-colors"
+                >
+                  <div className="bg-[#F8FAFC] px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
+                    <span className="font-bold text-[#64748B] uppercase text-[10px]">{flowNodes[0].name}</span>
+                    <span className="material-symbols-outlined text-[16px] text-[#64748B]">person</span>
+                  </div>
+                  <div className="p-3">
+                    <div className="font-bold text-sm text-[#191C1E]">{flowNodes[0].accountNo}</div>
+                    <div className="font-mono text-xs text-[#0B5CAB] font-semibold mt-1">
+                      Entering: {flowNodes[0].amount}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Node 2: Layer 1 Mule (Rajesh Verma) */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[1])}
-                className={`absolute top-[190px] left-[250px] w-[280px] bg-white border-2 rounded-md shadow-md overflow-hidden cursor-pointer transition-all ${
-                  selectedNode.id === 'node_mule1'
-                    ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20'
-                    : 'border-[#DC2626]'
-                }`}
-              >
-                <div className="bg-[#DC2626]/10 px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#DC2626] uppercase text-[10px] flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">warning</span>
-                    Layer 1 Mule
-                  </span>
-                  <span className="px-1.5 py-0.2 bg-[#DC2626] text-white text-[9px] font-bold rounded font-mono">
-                    RISK: 91
-                  </span>
-                </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">HDFC XXXXXXX4521</div>
-                  <div className="text-xs text-[#64748B] mt-0.5">Owner: Rajesh Verma</div>
-                  <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
-                    <span className="text-[#64748B]">Received</span>
-                    <span className="font-bold text-[#191C1E]">₹4,82,000</span>
+              {/* Node 2: Layer 1 Mule */}
+              {flowNodes?.[1] && (
+                <div
+                  onClick={() => setSelectedNode(flowNodes[1])}
+                  className={`absolute top-[190px] left-[250px] w-[280px] bg-white border-2 rounded-md shadow-md overflow-hidden cursor-pointer transition-all ${
+                    selectedNode?.id === flowNodes[1].id
+                      ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20'
+                      : 'border-[#DC2626]'
+                  }`}
+                >
+                  <div className="bg-[#DC2626]/10 px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
+                    <span className="font-bold text-[#DC2626] uppercase text-[10px] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">warning</span>
+                      {flowNodes[1].name}
+                    </span>
+                    <span className="px-1.5 py-0.2 bg-[#DC2626] text-white text-[9px] font-bold rounded font-mono">
+                      RISK: {flowNodes[1].riskScore}
+                    </span>
+                  </div>
+                  <div className="p-3">
+                    <div className="font-bold text-sm text-[#191C1E]">{flowNodes[1].accountNo}</div>
+                    <div className="text-xs text-[#64748B] mt-0.5">Owner: {flowNodes[1].owner}</div>
+                    <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
+                      <span className="text-[#64748B]">Received</span>
+                      <span className="font-bold text-[#191C1E]">{flowNodes[1].amount}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Node 3: Layer 2 Mule */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[2])}
-                className={`absolute top-[410px] left-[80px] w-[280px] bg-white border-2 rounded-md shadow-xs overflow-hidden cursor-pointer transition-all ${
-                  selectedNode.id === 'node_mule2' ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#DC2626]/60'
-                }`}
-              >
-                <div className="bg-[#DC2626]/5 px-3 py-1.5 border-b border-[#DC2626]/20 flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#DC2626] uppercase text-[10px]">Layer 2 Mule</span>
-                  <span className="px-1.5 py-0.2 bg-[#7C3AED] text-white text-[9px] font-bold rounded font-mono">
-                    RISK: 86
-                  </span>
-                </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">HDFC XXXXXXX7832</div>
-                  <div className="text-xs text-[#DC2626] font-semibold mt-0.5">Status: Active Splitting</div>
-                  <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
-                    <span className="text-[#64748B]">Received</span>
-                    <span className="font-bold text-[#DC2626]">₹48,000</span>
+              {flowNodes?.[2] && (
+                <div
+                  onClick={() => setSelectedNode(flowNodes[2])}
+                  className={`absolute top-[410px] left-[80px] w-[280px] bg-white border-2 rounded-md shadow-xs overflow-hidden cursor-pointer transition-all ${
+                    selectedNode?.id === flowNodes[2].id ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#DC2626]/60'
+                  }`}
+                >
+                  <div className="bg-[#DC2626]/5 px-3 py-1.5 border-b border-[#DC2626]/20 flex justify-between items-center text-xs">
+                    <span className="font-bold text-[#DC2626] uppercase text-[10px]">{flowNodes[2].name}</span>
+                    <span className="px-1.5 py-0.2 bg-[#7C3AED] text-white text-[9px] font-bold rounded font-mono">
+                      RISK: {flowNodes[2].riskScore}
+                    </span>
+                  </div>
+                  <div className="p-3">
+                    <div className="font-bold text-sm text-[#191C1E]">{flowNodes[2].accountNo}</div>
+                    <div className="text-xs text-[#DC2626] font-semibold mt-0.5">Status: {flowNodes[2].status}</div>
+                    <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
+                      <span className="text-[#64748B]">Received</span>
+                      <span className="font-bold text-[#DC2626]">{flowNodes[2].amount}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Node 4: Secondary UPI Distribution */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[3])}
-                className={`absolute top-[410px] left-[420px] w-[280px] bg-white border rounded-md shadow-xs overflow-hidden cursor-pointer opacity-85 hover:opacity-100 transition-all ${
-                  selectedNode.id === 'node_upi' ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#D9E1EA]'
-                }`}
-              >
-                <div className="bg-[#F8FAFC] px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#64748B] uppercase text-[10px]">Secondary Distribution</span>
-                  <span className="material-symbols-outlined text-[16px] text-[#64748B]">call_split</span>
-                </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">Multiple UPI Handlers</div>
-                  <div className="text-xs text-[#64748B] font-mono mt-0.5">14 Distinct Accounts</div>
-                  <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
-                    <span className="text-[#64748B]">Dispersed</span>
-                    <span className="font-bold text-[#191C1E]">₹4,34,000</span>
+              {flowNodes?.[3] && (
+                <div
+                  onClick={() => setSelectedNode(flowNodes[3])}
+                  className={`absolute top-[410px] left-[420px] w-[280px] bg-white border rounded-md shadow-xs overflow-hidden cursor-pointer opacity-85 hover:opacity-100 transition-all ${
+                    selectedNode?.id === flowNodes[3].id ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#D9E1EA]'
+                  }`}
+                >
+                  <div className="bg-[#F8FAFC] px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
+                    <span className="font-bold text-[#64748B] uppercase text-[10px]">{flowNodes[3].name}</span>
+                    <span className="material-symbols-outlined text-[16px] text-[#64748B]">call_split</span>
+                  </div>
+                  <div className="p-3">
+                    <div className="font-bold text-sm text-[#191C1E]">{flowNodes[3].accountNo}</div>
+                    <div className="text-xs text-[#64748B] font-mono mt-0.5">14 Distinct Accounts</div>
+                    <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
+                      <span className="text-[#64748B]">Dispersed</span>
+                      <span className="font-bold text-[#191C1E]">{flowNodes[3].amount}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Node 5: Terminal Node (ATM) */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[4])}
-                className={`absolute top-[610px] left-[80px] w-[280px] bg-white border-2 rounded-md shadow-md overflow-hidden cursor-pointer transition-all ${
-                  selectedNode.id === 'node_atm' ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#F97316]'
-                }`}
-              >
-                <div className="bg-[#F97316]/10 px-3 py-1.5 border-b border-[#F97316]/30 flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#F97316] uppercase text-[10px]">Terminal Node</span>
-                  <span className="material-symbols-outlined text-[16px] text-[#F97316]">local_atm</span>
-                </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">Sector 22 ATM (SIB8922)</div>
-                  <div className="text-xs text-[#64748B] mt-0.5 font-mono">15:10 IST • Cash-out</div>
-                  <div className="font-mono text-sm font-bold text-[#DC2626] mt-1.5 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">logout</span>
-                    ₹47,500 Cash
+              {flowNodes?.[4] && (
+                <div
+                  onClick={() => setSelectedNode(flowNodes[4])}
+                  className={`absolute top-[610px] left-[80px] w-[280px] bg-white border-2 rounded-md shadow-md overflow-hidden cursor-pointer transition-all ${
+                    selectedNode?.id === flowNodes[4].id ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#F97316]'
+                  }`}
+                >
+                  <div className="bg-[#F97316]/10 px-3 py-1.5 border-b border-[#F97316]/30 flex justify-between items-center text-xs">
+                    <span className="font-bold text-[#F97316] uppercase text-[10px]">{flowNodes[4].name}</span>
+                    <span className="material-symbols-outlined text-[16px] text-[#F97316]">local_atm</span>
+                  </div>
+                  <div className="p-3">
+                    <div className="font-bold text-sm text-[#191C1E]">{flowNodes[4].accountNo}</div>
+                    <div className="text-xs text-[#64748B] mt-0.5 font-mono">{flowNodes[4].status}</div>
+                    <div className="font-mono text-sm font-bold text-[#DC2626] mt-1.5 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">logout</span>
+                      {flowNodes[4].amount}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </section>

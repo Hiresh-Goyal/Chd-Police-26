@@ -1,0 +1,1573 @@
+{
+  "case_id": "72f7f607-698f-412a-9e14-ee7a593ad34a",
+  "report": {
+    "case": {
+      "id": "72f7f607-698f-412a-9e14-ee7a593ad34a",
+      "name": "Operation Phantom Ledger",
+      "title": "Operation Phantom Ledger",
+      "description": "Demo case",
+      "status": "OPEN",
+      "created_at": "2026-09-05T18:51:25.537193+00:00"
+    },
+    "fraud_score": {
+      "score": 85,
+      "risk_level": "CRITICAL",
+      "top_findings": [
+        {
+          "rule_id": "CTN-001",
+          "severity": "HIGH",
+          "fraud_weight": 25,
+          "weight": 25,
+          "confidence": 0.95,
+          "explanation": "Call from coordinator entity immediately preceded high-value bank transfer within 30 min window."
+        },
+        {
+          "rule_id": "SIM-002",
+          "severity": "HIGH",
+          "fraud_weight": 20,
+          "weight": 20,
+          "confidence": 0.92,
+          "explanation": "Device IMEI associated with 3 distinct MSISDNs in a 7-day rolling window indicating SIM swap activity."
+        },
+        {
+          "rule_id": "MUL-003",
+          "severity": "CRITICAL",
+          "fraud_weight": 30,
+          "weight": 30,
+          "confidence": 0.95,
+          "explanation": "Account received funds from >=3 distinct sources and rapidly dispersed 85% within 24 hours."
+        }
+      ],
+      "total_findings": 5,
+      "findings_breakdown": {
+        "CTN-001": 25,
+        "SIM-002": 20,
+        "MUL-003": 30,
+        "COO-004": 25,
+        "FSM-005": 18
+      }
+    },
+    "alerts": [
+      {
+        "id": "find-00464545",
+        "case_id": "72f7f607-698f-412a-9e14-ee7a593ad34a",
+        "rule_id": "MUL-003",
+        "severity": "CRITICAL",
+        "fraud_weight": 30,
+        "weight": 30,
+        "confidence": 0.95,
+        "entity_ids": [
+          "ent-mule-1",
+          "ent-agg-1"
+        ],
+        "event_ids": [
+          "fdba952d-8294-4006-b31a-32cfe243a452",
+          "bc9af32b-74ce-480b-a081-668392db1926",
+          "e6cd0624-3d2a-4827-84cb-fdb361a1866f"
+        ],
+        "source_file_ids": [
+          "071ffce3-b217-4510-9c39-3af61725e2f2"
+        ],
+        "source_rows": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "Account received funds from >=3 distinct sources and rapidly dispersed 85% within 24 hours.",
+        "episode_id": null,
+        "created_at": "2026-09-05T18:51:35.843308+00:00"
+      },
+      {
+        "id": "find-313c22dc",
+        "case_id": "72f7f607-698f-412a-9e14-ee7a593ad34a",
+        "rule_id": "CTN-001",
+        "severity": "HIGH",
+        "fraud_weight": 25,
+        "weight": 25,
+        "confidence": 0.95,
+        "entity_ids": [
+          "ent-coord",
+          "ent-mule-1"
+        ],
+        "event_ids": [
+          "32c8be95-f897-4218-b5dd-b665fd839478",
+          "fdba952d-8294-4006-b31a-32cfe243a452"
+        ],
+        "source_file_ids": [
+          "ec943525-9569-499e-a99d-60cd8f174775",
+          "071ffce3-b217-4510-9c39-3af61725e2f2"
+        ],
+        "source_rows": [
+          0,
+          0
+        ],
+        "explanation": "Call from coordinator entity immediately preceded high-value bank transfer within 30 min window.",
+        "episode_id": null,
+        "created_at": "2026-09-05T18:51:35.843308+00:00"
+      },
+      {
+        "id": "find-24cba127",
+        "case_id": "72f7f607-698f-412a-9e14-ee7a593ad34a",
+        "rule_id": "COO-004",
+        "severity": "HIGH",
+        "fraud_weight": 25,
+        "weight": 25,
+        "confidence": 0.88,
+        "entity_ids": [
+          "ent-coord"
+        ],
+        "event_ids": [
+          "f1b34d7d-7fbc-425d-9f45-5268b0911e14",
+          "c4aec891-3b89-40a3-8e59-ed9dc22121fa",
+          "c1ad60ab-af72-4403-9948-e7ae3e7cd930"
+        ],
+        "source_file_ids": [
+          "ec943525-9569-499e-a99d-60cd8f174775"
+        ],
+        "source_rows": [
+          3,
+          4,
+          5
+        ],
+        "explanation": "Entity identified in CDR call logs of 3 unconnected victim complaints.",
+        "episode_id": null,
+        "created_at": "2026-09-05T18:51:35.843308+00:00"
+      },
+      {
+        "id": "find-e079d5ff",
+        "case_id": "72f7f607-698f-412a-9e14-ee7a593ad34a",
+        "rule_id": "SIM-002",
+        "severity": "HIGH",
+        "fraud_weight": 20,
+        "weight": 20,
+        "confidence": 0.92,
+        "entity_ids": [
+          "ent-coord"
+        ],
+        "event_ids": [
+          "32c8be95-f897-4218-b5dd-b665fd839478",
+          "0382dc0e-1ea2-479d-8aea-e8721eb49627",
+          "74c97cf1-8640-46c3-9d40-40f56ba3ef35"
+        ],
+        "source_file_ids": [
+          "ec943525-9569-499e-a99d-60cd8f174775"
+        ],
+        "source_rows": [
+          0,
+          1,
+          2
+        ],
+        "explanation": "Device IMEI associated with 3 distinct MSISDNs in a 7-day rolling window indicating SIM swap activity.",
+        "episode_id": null,
+        "created_at": "2026-09-05T18:51:35.843308+00:00"
+      },
+      {
+        "id": "find-6e7e23e9",
+        "case_id": "72f7f607-698f-412a-9e14-ee7a593ad34a",
+        "rule_id": "FSM-005",
+        "severity": "MEDIUM",
+        "fraud_weight": 18,
+        "weight": 18,
+        "confidence": 0.85,
+        "entity_ids": [
+          "ent-mule-2"
+        ],
+        "event_ids": [
+          "cdaec9af-344b-4470-93bd-3130c0009197"
+        ],
+        "source_file_ids": [
+          "071ffce3-b217-4510-9c39-3af61725e2f2"
+        ],
+        "source_rows": [
+          3
+        ],
+        "explanation": "SIM card activated less than 7 days prior to initiation of fraudulent funds transfer.",
+        "episode_id": null,
+        "created_at": "2026-09-05T18:51:35.843308+00:00"
+      }
+    ],
+    "graph": {
+      "nodes": [
+        {
+          "id": "ent-coord-01",
+          "type": "PHONE",
+          "canonical_value": "9876543210",
+          "confidence_tier": "CONFIRMED",
+          "fraud_score_contribution": 45.0
+        },
+        {
+          "id": "ent-dev-01",
+          "type": "DEVICE",
+          "canonical_value": "IMEI-354987019283746",
+          "confidence_tier": "CONFIRMED",
+          "fraud_score_contribution": 20.0
+        },
+        {
+          "id": "ent-vic-01",
+          "type": "ACCOUNT",
+          "canonical_value": "ACC-992011234",
+          "confidence_tier": "CONFIRMED",
+          "fraud_score_contribution": 0.0
+        },
+        {
+          "id": "ent-mule-01",
+          "type": "ACCOUNT",
+          "canonical_value": "ACC-554109876",
+          "confidence_tier": "CONFIRMED",
+          "fraud_score_contribution": 30.0
+        },
+        {
+          "id": "ent-mule-02",
+          "type": "PHONE",
+          "canonical_value": "9812345678",
+          "confidence_tier": "PROBABLE",
+          "fraud_score_contribution": 18.0
+        },
+        {
+          "id": "ent-agg-01",
+          "type": "ACCOUNT",
+          "canonical_value": "ACC-778899001",
+          "confidence_tier": "PROBABLE",
+          "fraud_score_contribution": 25.0
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-01",
+          "source": "ent-coord-01",
+          "target": "ent-dev-01",
+          "link_type": "DEVICE_USAGE",
+          "confidence": 0.95,
+          "confidence_tier": "CONFIRMED",
+          "evidence_event_ids": [
+            "evt-001",
+            "evt-002"
+          ]
+        },
+        {
+          "id": "edge-02",
+          "source": "ent-vic-01",
+          "target": "ent-mule-01",
+          "link_type": "BANK_TRANSFER",
+          "confidence": 0.95,
+          "confidence_tier": "CONFIRMED",
+          "evidence_event_ids": [
+            "evt-003"
+          ]
+        },
+        {
+          "id": "edge-03",
+          "source": "ent-coord-01",
+          "target": "ent-mule-02",
+          "link_type": "CALL_INTERACTION",
+          "confidence": 0.7,
+          "confidence_tier": "PROBABLE",
+          "evidence_event_ids": [
+            "evt-001"
+          ]
+        },
+        {
+          "id": "edge-04",
+          "source": "ent-mule-01",
+          "target": "ent-agg-01",
+          "link_type": "FUND_AGGREGATION",
+          "confidence": 0.75,
+          "confidence_tier": "PROBABLE",
+          "evidence_event_ids": [
+            "evt-005"
+          ]
+        }
+      ]
+    },
+    "timeline": [
+      {
+        "id": "32c8be95-f897-4218-b5dd-b665fd839478",
+        "event_type": "CALL",
+        "ts_start": "2025-01-07T10:00:00",
+        "ts_end": "2025-01-07T10:00:45",
+        "actor_entity_id": "",
+        "actor_raw": "9900000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9800000001",
+        "amount": null,
+        "location_raw": "TWR-DEL-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 0
+      },
+      {
+        "id": "432a9ce5-df90-4c04-b239-794eca02d0df",
+        "event_type": "SOCIAL_POST",
+        "ts_start": "2025-01-07T18:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9800000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 0
+      },
+      {
+        "id": "573f010a-1172-4e94-97d8-fa430ead8ab5",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-07T18:30:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9800000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 1
+      },
+      {
+        "id": "376454d8-a9d3-48c5-8d0d-dd80a420f318",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-07T18:35:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9700000003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 2
+      },
+      {
+        "id": "249beec1-3631-493b-a680-9cd0f4ecb6f6",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-08T09:00:00",
+        "ts_end": "2025-01-08T09:30:00",
+        "actor_entity_id": "",
+        "actor_raw": "9700000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "142.250.190.46",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 5
+      },
+      {
+        "id": "c695523a-a5ab-4b68-b761-17a77393f1be",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-08T10:50:00",
+        "ts_end": "2025-01-08T11:10:00",
+        "actor_entity_id": "",
+        "actor_raw": "9800000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "45.133.200.88",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 0
+      },
+      {
+        "id": "0382dc0e-1ea2-479d-8aea-e8721eb49627",
+        "event_type": "CALL",
+        "ts_start": "2025-01-08T11:00:00",
+        "ts_end": "2025-01-08T11:03:00",
+        "actor_entity_id": "",
+        "actor_raw": "9800000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000003",
+        "amount": null,
+        "location_raw": "TWR-CHD-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 1
+      },
+      {
+        "id": "fdba952d-8294-4006-b31a-32cfe243a452",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-08T11:27:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-V003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-M002",
+        "amount": 9750.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 0
+      },
+      {
+        "id": "b552393e-3246-49e5-8511-cac47dcd8624",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-08T11:27:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-M002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-V003",
+        "amount": 9750.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 5
+      },
+      {
+        "id": "4b85df54-aa81-4b85-be88-7b353ce1412c",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-08T17:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9800000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 3
+      },
+      {
+        "id": "9bfe6d63-8072-4ae3-b763-eaead3dd0cc5",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-08T17:10:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9700000004",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 4
+      },
+      {
+        "id": "bd7ce409-df0c-4f1d-b323-e3dbb9741525",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-08T17:15:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9800000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 5
+      },
+      {
+        "id": "ca822a18-7e91-46fe-aeae-bcd5cf83c587",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-08T17:20:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9700000005",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 6
+      },
+      {
+        "id": "c8b18684-6935-4abd-a351-7338e04e51ff",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-09T12:00:00",
+        "ts_end": "2025-01-09T12:30:00",
+        "actor_entity_id": "",
+        "actor_raw": "9700000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "142.250.190.46",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 6
+      },
+      {
+        "id": "98810350-def2-4da9-9923-7290a85cce89",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-09T13:50:00",
+        "ts_end": "2025-01-09T14:05:00",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "45.133.200.88",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 1
+      },
+      {
+        "id": "74c97cf1-8640-46c3-9d40-40f56ba3ef35",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:00:00",
+        "ts_end": "2025-01-09T14:02:00",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000004",
+        "amount": null,
+        "location_raw": "TWR-CHD-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 2
+      },
+      {
+        "id": "f1b34d7d-7fbc-425d-9f45-5268b0911e14",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:03:00",
+        "ts_end": "2025-01-09T14:03:30",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000006",
+        "amount": null,
+        "location_raw": "TWR-CHD-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 3
+      },
+      {
+        "id": "c4aec891-3b89-40a3-8e59-ed9dc22121fa",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:06:00",
+        "ts_end": "2025-01-09T14:06:25",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000007",
+        "amount": null,
+        "location_raw": "TWR-CHD-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 4
+      },
+      {
+        "id": "c1ad60ab-af72-4403-9948-e7ae3e7cd930",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:09:00",
+        "ts_end": "2025-01-09T14:09:35",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000008",
+        "amount": null,
+        "location_raw": "TWR-CHD-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 5
+      },
+      {
+        "id": "e9efbf98-30cf-4e5f-9d6b-d38ba34b7e35",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:12:00",
+        "ts_end": "2025-01-09T14:12:40",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000009",
+        "amount": null,
+        "location_raw": "TWR-CHD-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 6
+      },
+      {
+        "id": "fcf2d338-2a6a-40ae-8985-e34462c00aa9",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:15:00",
+        "ts_end": "2025-01-09T14:15:20",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000010",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 7
+      },
+      {
+        "id": "3605c1a4-a4a1-43e2-b5c2-ea57e6635a09",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:18:00",
+        "ts_end": "2025-01-09T14:18:45",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000011",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 8
+      },
+      {
+        "id": "8c720637-fe7c-4313-a913-0625c91c6f7e",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-09T14:20:00",
+        "ts_end": "2025-01-09T14:45:00",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "45.133.200.88",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 2
+      },
+      {
+        "id": "54480f49-a52d-4cdb-a410-e45885f0ce29",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:21:00",
+        "ts_end": "2025-01-09T14:21:30",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000012",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 9
+      },
+      {
+        "id": "cbc3bbc7-f2c8-4029-a2c4-2a97741808af",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:24:00",
+        "ts_end": "2025-01-09T14:24:55",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000013",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 10
+      },
+      {
+        "id": "9c185e7e-8477-4a55-a705-0995fcdc3b44",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:27:00",
+        "ts_end": "2025-01-09T14:27:25",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000014",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 11
+      },
+      {
+        "id": "bc9af32b-74ce-480b-a081-668392db1926",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-09T14:28:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-V004",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-M002",
+        "amount": 9500.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 1
+      },
+      {
+        "id": "26ed4eaa-b56e-4ede-8056-d5aaf177aa4e",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-09T14:28:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-M002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-V004",
+        "amount": 9500.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 6
+      },
+      {
+        "id": "0ee72e84-c026-4826-b87d-8c84f87555b0",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:30:00",
+        "ts_end": "2025-01-09T14:31:30",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000005",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 12
+      },
+      {
+        "id": "49d5cb5d-103b-4567-b53d-7ad925c41057",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:33:00",
+        "ts_end": "2025-01-09T14:33:40",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000015",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 13
+      },
+      {
+        "id": "c76ae1ac-316b-4aab-811a-60941f122895",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:36:00",
+        "ts_end": "2025-01-09T14:36:35",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000016",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 14
+      },
+      {
+        "id": "38355554-3487-4f62-ab0c-2e81faffad5f",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:39:00",
+        "ts_end": "2025-01-09T14:39:30",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000017",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 15
+      },
+      {
+        "id": "4c66545f-f601-4640-ae13-43e07684dfb2",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:42:00",
+        "ts_end": "2025-01-09T14:42:45",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000018",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 16
+      },
+      {
+        "id": "2499b9de-f5c7-4227-b826-f914c372849e",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:45:00",
+        "ts_end": "2025-01-09T14:45:20",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000019",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 17
+      },
+      {
+        "id": "32ee0483-d29c-448c-ad8b-86843cd28442",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:48:00",
+        "ts_end": "2025-01-09T14:48:30",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000020",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 18
+      },
+      {
+        "id": "a74c72f2-db98-40f8-a8e7-f1d3f725c249",
+        "event_type": "CALL",
+        "ts_start": "2025-01-09T14:51:00",
+        "ts_end": "2025-01-09T14:51:25",
+        "actor_entity_id": "",
+        "actor_raw": "9800000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000021",
+        "amount": null,
+        "location_raw": "TWR-CHD-002",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 19
+      },
+      {
+        "id": "e6cd0624-3d2a-4827-84cb-fdb361a1866f",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-09T14:56:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-V005",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-M003",
+        "amount": 9999.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 2
+      },
+      {
+        "id": "53ca09e9-e56e-4d08-bfb4-9e1ade498d71",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-09T14:56:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-M003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-V005",
+        "amount": 9999.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 7
+      },
+      {
+        "id": "4d82a611-d9c0-44a4-9834-c530ae6c2ffe",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-09T16:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9800000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 7
+      },
+      {
+        "id": "9407c225-a107-4b94-b76f-c8ab24abf346",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-09T16:10:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9700000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 8
+      },
+      {
+        "id": "4a048cb3-a5c5-4420-a71e-65051484091b",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-09T16:15:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9800000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 9
+      },
+      {
+        "id": "fc88c615-ca58-40db-a5e3-baf7b1ddffed",
+        "event_type": "SOCIAL_INTERACTION",
+        "ts_start": "2025-01-09T16:20:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "9700000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": null,
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "6c7211ea-9363-4842-bc7c-69e03212c3ec",
+        "source_row": 10
+      },
+      {
+        "id": "b1b686bb-e161-4487-b3c3-b496871daab9",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T04:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-A001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-M002",
+        "amount": 17325.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 13
+      },
+      {
+        "id": "5b48d6b7-7a10-4b36-9d04-4f87a9df4aca",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T04:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-M002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-A001",
+        "amount": 17325.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 10
+      },
+      {
+        "id": "c28243ab-000c-4b9f-b8c9-c9847acb14a5",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T05:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-A001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-M003",
+        "amount": 9099.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 14
+      },
+      {
+        "id": "a0b5943d-687a-4946-b343-0c4a2d69f2e5",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T05:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-M003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-A001",
+        "amount": 9099.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 11
+      },
+      {
+        "id": "b488efde-42f1-412b-9b92-09cf0a66f318",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-10T09:00:00",
+        "ts_end": "2025-01-10T09:30:00",
+        "actor_entity_id": "",
+        "actor_raw": "9900000001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "203.0.113.50",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 7
+      },
+      {
+        "id": "53244883-54bc-46e7-93cc-52f559afb83f",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-10T09:15:00",
+        "ts_end": "2025-01-10T09:45:00",
+        "actor_entity_id": "",
+        "actor_raw": "9900000002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "203.0.113.51",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 8
+      },
+      {
+        "id": "41204804-14f8-4606-98a6-2a5db0c768ac",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-10T09:20:00",
+        "ts_end": "2025-01-10T09:50:00",
+        "actor_entity_id": "",
+        "actor_raw": "9900000003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "203.0.113.52",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 9
+      },
+      {
+        "id": "be74602c-e282-4b5a-af4c-cb60a9d313e9",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-10T09:50:00",
+        "ts_end": "2025-01-10T10:15:00",
+        "actor_entity_id": "",
+        "actor_raw": "9800000003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "45.133.200.88",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 3
+      },
+      {
+        "id": "f79f87d7-12b2-4b5d-9dd9-6b28a75a1df4",
+        "event_type": "CALL",
+        "ts_start": "2025-01-10T10:00:00",
+        "ts_end": "2025-01-10T10:03:20",
+        "actor_entity_id": "",
+        "actor_raw": "9800000003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000001",
+        "amount": null,
+        "location_raw": "TWR-MUM-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 20
+      },
+      {
+        "id": "cdaec9af-344b-4470-93bd-3130c0009197",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T10:26:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-V001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-M001",
+        "amount": 9999.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 3
+      },
+      {
+        "id": "c622d494-1e85-48d2-9a4e-26f8d019a20f",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T10:26:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-M001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-V001",
+        "amount": 9999.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 8
+      },
+      {
+        "id": "9d6f81b9-f979-4585-ba25-263ff2cb744b",
+        "event_type": "IPDR_SESSION",
+        "ts_start": "2025-01-10T10:50:00",
+        "ts_end": "2025-01-10T11:15:00",
+        "actor_entity_id": "",
+        "actor_raw": "9800000003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "45.133.200.88",
+        "amount": null,
+        "location_raw": null,
+        "source_file_id": "9e398b78-47bc-4f3a-b35d-48e43d1867aa",
+        "source_row": 4
+      },
+      {
+        "id": "f567b4b3-3c24-4121-8afe-f3315f6b135b",
+        "event_type": "CALL",
+        "ts_start": "2025-01-10T11:00:00",
+        "ts_end": "2025-01-10T11:03:00",
+        "actor_entity_id": "",
+        "actor_raw": "9800000003",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "9700000002",
+        "amount": null,
+        "location_raw": "TWR-MUM-001",
+        "source_file_id": "ec943525-9569-499e-a99d-60cd8f174775",
+        "source_row": 21
+      },
+      {
+        "id": "9afea14f-89ea-426f-bcc9-4a187a53619e",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T11:29:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-V002",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-M001",
+        "amount": 9998.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 4
+      },
+      {
+        "id": "7fc20012-e8c1-42ed-85dd-e34016b95636",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T11:29:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-M001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-V002",
+        "amount": 9998.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 9
+      },
+      {
+        "id": "64ca08af-f734-43f4-95b6-29bc99940533",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T23:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-M001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-A001",
+        "amount": 18000.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 12
+      },
+      {
+        "id": "65d9c9e8-16d7-4cbf-8e55-9b538b93d3b8",
+        "event_type": "BANK_TRANSFER",
+        "ts_start": "2025-01-10T23:00:00",
+        "ts_end": null,
+        "actor_entity_id": "",
+        "actor_raw": "ACC-A001",
+        "actor_confidence_tier": "CONFIRMED",
+        "peer_raw": "ACC-M001",
+        "amount": 18000.0,
+        "location_raw": null,
+        "source_file_id": "071ffce3-b217-4510-9c39-3af61725e2f2",
+        "source_row": 15
+      }
+    ],
+    "criminal_flow": {
+      "nodes": [
+        {
+          "id": "ACC-M003",
+          "label": "MULE: ACC-M003",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-M003",
+          "total_inflow": 19098.0,
+          "total_outflow": 19098.0
+        },
+        {
+          "id": "ACC-V005",
+          "label": "MULE: ACC-V005",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-V005",
+          "total_inflow": 9999.0,
+          "total_outflow": 9999.0
+        },
+        {
+          "id": "ACC-M001",
+          "label": "MULE: ACC-M001",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-M001",
+          "total_inflow": 37997.0,
+          "total_outflow": 37997.0
+        },
+        {
+          "id": "ACC-V004",
+          "label": "MULE: ACC-V004",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-V004",
+          "total_inflow": 9500.0,
+          "total_outflow": 9500.0
+        },
+        {
+          "id": "ACC-M002",
+          "label": "MULE: ACC-M002",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-M002",
+          "total_inflow": 36575.0,
+          "total_outflow": 36575.0
+        },
+        {
+          "id": "ACC-A001",
+          "label": "MULE: ACC-A001",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-A001",
+          "total_inflow": 44424.0,
+          "total_outflow": 44424.0
+        },
+        {
+          "id": "ACC-V002",
+          "label": "MULE: ACC-V002",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-V002",
+          "total_inflow": 9998.0,
+          "total_outflow": 9998.0
+        },
+        {
+          "id": "ACC-V001",
+          "label": "MULE: ACC-V001",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-V001",
+          "total_inflow": 9999.0,
+          "total_outflow": 9999.0
+        },
+        {
+          "id": "ACC-V003",
+          "label": "MULE: ACC-V003",
+          "type": "ACCOUNT",
+          "role": "MULE",
+          "account_number": "ACC-V003",
+          "total_inflow": 9750.0,
+          "total_outflow": 9750.0
+        }
+      ],
+      "edges": [
+        {
+          "id": "flow-fdba952d-8294-4006-b31a-32cfe243a452",
+          "source": "ACC-V003",
+          "target": "ACC-M002",
+          "amount": 9750.0,
+          "timestamp": "2025-01-08T11:27:00",
+          "event_id": "fdba952d-8294-4006-b31a-32cfe243a452"
+        },
+        {
+          "id": "flow-b552393e-3246-49e5-8511-cac47dcd8624",
+          "source": "ACC-M002",
+          "target": "ACC-V003",
+          "amount": 9750.0,
+          "timestamp": "2025-01-08T11:27:00",
+          "event_id": "b552393e-3246-49e5-8511-cac47dcd8624"
+        },
+        {
+          "id": "flow-26ed4eaa-b56e-4ede-8056-d5aaf177aa4e",
+          "source": "ACC-M002",
+          "target": "ACC-V004",
+          "amount": 9500.0,
+          "timestamp": "2025-01-09T14:28:00",
+          "event_id": "26ed4eaa-b56e-4ede-8056-d5aaf177aa4e"
+        },
+        {
+          "id": "flow-bc9af32b-74ce-480b-a081-668392db1926",
+          "source": "ACC-V004",
+          "target": "ACC-M002",
+          "amount": 9500.0,
+          "timestamp": "2025-01-09T14:28:00",
+          "event_id": "bc9af32b-74ce-480b-a081-668392db1926"
+        },
+        {
+          "id": "flow-e6cd0624-3d2a-4827-84cb-fdb361a1866f",
+          "source": "ACC-V005",
+          "target": "ACC-M003",
+          "amount": 9999.0,
+          "timestamp": "2025-01-09T14:56:00",
+          "event_id": "e6cd0624-3d2a-4827-84cb-fdb361a1866f"
+        },
+        {
+          "id": "flow-53ca09e9-e56e-4d08-bfb4-9e1ade498d71",
+          "source": "ACC-M003",
+          "target": "ACC-V005",
+          "amount": 9999.0,
+          "timestamp": "2025-01-09T14:56:00",
+          "event_id": "53ca09e9-e56e-4d08-bfb4-9e1ade498d71"
+        },
+        {
+          "id": "flow-b1b686bb-e161-4487-b3c3-b496871daab9",
+          "source": "ACC-A001",
+          "target": "ACC-M002",
+          "amount": 17325.0,
+          "timestamp": "2025-01-10T04:00:00",
+          "event_id": "b1b686bb-e161-4487-b3c3-b496871daab9"
+        },
+        {
+          "id": "flow-5b48d6b7-7a10-4b36-9d04-4f87a9df4aca",
+          "source": "ACC-M002",
+          "target": "ACC-A001",
+          "amount": 17325.0,
+          "timestamp": "2025-01-10T04:00:00",
+          "event_id": "5b48d6b7-7a10-4b36-9d04-4f87a9df4aca"
+        },
+        {
+          "id": "flow-a0b5943d-687a-4946-b343-0c4a2d69f2e5",
+          "source": "ACC-M003",
+          "target": "ACC-A001",
+          "amount": 9099.0,
+          "timestamp": "2025-01-10T05:00:00",
+          "event_id": "a0b5943d-687a-4946-b343-0c4a2d69f2e5"
+        },
+        {
+          "id": "flow-c28243ab-000c-4b9f-b8c9-c9847acb14a5",
+          "source": "ACC-A001",
+          "target": "ACC-M003",
+          "amount": 9099.0,
+          "timestamp": "2025-01-10T05:00:00",
+          "event_id": "c28243ab-000c-4b9f-b8c9-c9847acb14a5"
+        },
+        {
+          "id": "flow-c622d494-1e85-48d2-9a4e-26f8d019a20f",
+          "source": "ACC-M001",
+          "target": "ACC-V001",
+          "amount": 9999.0,
+          "timestamp": "2025-01-10T10:26:00",
+          "event_id": "c622d494-1e85-48d2-9a4e-26f8d019a20f"
+        },
+        {
+          "id": "flow-cdaec9af-344b-4470-93bd-3130c0009197",
+          "source": "ACC-V001",
+          "target": "ACC-M001",
+          "amount": 9999.0,
+          "timestamp": "2025-01-10T10:26:00",
+          "event_id": "cdaec9af-344b-4470-93bd-3130c0009197"
+        },
+        {
+          "id": "flow-7fc20012-e8c1-42ed-85dd-e34016b95636",
+          "source": "ACC-M001",
+          "target": "ACC-V002",
+          "amount": 9998.0,
+          "timestamp": "2025-01-10T11:29:00",
+          "event_id": "7fc20012-e8c1-42ed-85dd-e34016b95636"
+        },
+        {
+          "id": "flow-9afea14f-89ea-426f-bcc9-4a187a53619e",
+          "source": "ACC-V002",
+          "target": "ACC-M001",
+          "amount": 9998.0,
+          "timestamp": "2025-01-10T11:29:00",
+          "event_id": "9afea14f-89ea-426f-bcc9-4a187a53619e"
+        },
+        {
+          "id": "flow-64ca08af-f734-43f4-95b6-29bc99940533",
+          "source": "ACC-M001",
+          "target": "ACC-A001",
+          "amount": 18000.0,
+          "timestamp": "2025-01-10T23:00:00",
+          "event_id": "64ca08af-f734-43f4-95b6-29bc99940533"
+        },
+        {
+          "id": "flow-65d9c9e8-16d7-4cbf-8e55-9b538b93d3b8",
+          "source": "ACC-A001",
+          "target": "ACC-M001",
+          "amount": 18000.0,
+          "timestamp": "2025-01-10T23:00:00",
+          "event_id": "65d9c9e8-16d7-4cbf-8e55-9b538b93d3b8"
+        }
+      ]
+    },
+    "geospatial": {
+      "events": [
+        {
+          "id": "32c8be95-f897-4218-b5dd-b665fd839478",
+          "event_type": "CALL",
+          "ts_start": "2025-01-07T10:00:00",
+          "actor_raw": "9900000001",
+          "peer_raw": "9800000001",
+          "location_raw": "TWR-DEL-001",
+          "lat": 30.72385,
+          "lng": 76.73323,
+          "location_name": "Cell Site (TWR-DEL-001)"
+        },
+        {
+          "id": "0382dc0e-1ea2-479d-8aea-e8721eb49627",
+          "event_type": "CALL",
+          "ts_start": "2025-01-08T11:00:00",
+          "actor_raw": "9800000001",
+          "peer_raw": "9700000003",
+          "location_raw": "TWR-CHD-001",
+          "lat": 30.77009,
+          "lng": 76.74641,
+          "location_name": "Cell Site (TWR-CHD-001)"
+        },
+        {
+          "id": "74c97cf1-8640-46c3-9d40-40f56ba3ef35",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:00:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000004",
+          "location_raw": "TWR-CHD-001",
+          "lat": 30.77009,
+          "lng": 76.74641,
+          "location_name": "Cell Site (TWR-CHD-001)"
+        },
+        {
+          "id": "f1b34d7d-7fbc-425d-9f45-5268b0911e14",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:03:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000006",
+          "location_raw": "TWR-CHD-001",
+          "lat": 30.77009,
+          "lng": 76.74641,
+          "location_name": "Cell Site (TWR-CHD-001)"
+        },
+        {
+          "id": "c4aec891-3b89-40a3-8e59-ed9dc22121fa",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:06:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000007",
+          "location_raw": "TWR-CHD-001",
+          "lat": 30.77009,
+          "lng": 76.74641,
+          "location_name": "Cell Site (TWR-CHD-001)"
+        },
+        {
+          "id": "c1ad60ab-af72-4403-9948-e7ae3e7cd930",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:09:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000008",
+          "location_raw": "TWR-CHD-001",
+          "lat": 30.77009,
+          "lng": 76.74641,
+          "location_name": "Cell Site (TWR-CHD-001)"
+        },
+        {
+          "id": "e9efbf98-30cf-4e5f-9d6b-d38ba34b7e35",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:12:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000009",
+          "location_raw": "TWR-CHD-001",
+          "lat": 30.77009,
+          "lng": 76.74641,
+          "location_name": "Cell Site (TWR-CHD-001)"
+        },
+        {
+          "id": "fcf2d338-2a6a-40ae-8985-e34462c00aa9",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:15:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000010",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "3605c1a4-a4a1-43e2-b5c2-ea57e6635a09",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:18:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000011",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "54480f49-a52d-4cdb-a410-e45885f0ce29",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:21:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000012",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "cbc3bbc7-f2c8-4029-a2c4-2a97741808af",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:24:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000013",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "9c185e7e-8477-4a55-a705-0995fcdc3b44",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:27:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000014",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "0ee72e84-c026-4826-b87d-8c84f87555b0",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:30:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000005",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "49d5cb5d-103b-4567-b53d-7ad925c41057",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:33:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000015",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "c76ae1ac-316b-4aab-811a-60941f122895",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:36:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000016",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "38355554-3487-4f62-ab0c-2e81faffad5f",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:39:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000017",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "4c66545f-f601-4640-ae13-43e07684dfb2",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:42:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000018",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "2499b9de-f5c7-4227-b826-f914c372849e",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:45:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000019",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "32ee0483-d29c-448c-ad8b-86843cd28442",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:48:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000020",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "a74c72f2-db98-40f8-a8e7-f1d3f725c249",
+          "event_type": "CALL",
+          "ts_start": "2025-01-09T14:51:00",
+          "actor_raw": "9800000002",
+          "peer_raw": "9700000021",
+          "location_raw": "TWR-CHD-002",
+          "lat": 30.71606,
+          "lng": 76.76966,
+          "location_name": "Cell Site (TWR-CHD-002)"
+        },
+        {
+          "id": "f79f87d7-12b2-4b5d-9dd9-6b28a75a1df4",
+          "event_type": "CALL",
+          "ts_start": "2025-01-10T10:00:00",
+          "actor_raw": "9800000003",
+          "peer_raw": "9700000001",
+          "location_raw": "TWR-MUM-001",
+          "lat": 30.71997,
+          "lng": 76.83098,
+          "location_name": "Cell Site (TWR-MUM-001)"
+        },
+        {
+          "id": "f567b4b3-3c24-4121-8afe-f3315f6b135b",
+          "event_type": "CALL",
+          "ts_start": "2025-01-10T11:00:00",
+          "actor_raw": "9800000003",
+          "peer_raw": "9700000002",
+          "location_raw": "TWR-MUM-001",
+          "lat": 30.71997,
+          "lng": 76.83098,
+          "location_name": "Cell Site (TWR-MUM-001)"
+        }
+      ]
+    },
+    "generated_at": "2026-09-05T18:51:46.092958+00:00"
+  }
+}

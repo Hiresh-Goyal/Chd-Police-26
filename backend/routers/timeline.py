@@ -111,6 +111,15 @@ async def get_timeline(
     end: Optional[str] = Query(None),
 ):
     """Retrieve canonical events sorted chronologically by ts_start with optional filtering."""
+    if not isinstance(entity_id, str):
+        entity_id = None
+    if not isinstance(event_type, str):
+        event_type = None
+    if not isinstance(start, str):
+        start = None
+    if not isinstance(end, str):
+        end = None
+
     try:
         from sqlalchemy import and_, select
         from backend.db.connection import get_connection

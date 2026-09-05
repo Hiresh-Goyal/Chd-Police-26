@@ -231,6 +231,17 @@ fraud_scores_table = Table(
     Column("computed_at", Text, nullable=False),                   # UTC ISO-8601
 )
 
+audit_logs = Table("audit_logs", metadata,
+    Column("id",         Text, primary_key=True),
+    Column("case_id",    Text, ForeignKey("cases.id"), nullable=True),
+    Column("user",       Text, nullable=False),
+    Column("action",     Text, nullable=False),   # LOGIN | UPLOAD | ANALYZE | VIEW_ALERTS | VIEW_REPORT | VIEW_GRAPH
+    Column("target",     Text, nullable=True),    # file_id, page name, or entity_id
+    Column("detail",     Text, nullable=True),    # JSON string with extra context
+    Column("ip_address", Text, nullable=True),
+    Column("ts",         Text, nullable=False),   # UTC ISO8601
+)
+
 
 # ──────────────────────────────────────────────
 #  Pydantic Models

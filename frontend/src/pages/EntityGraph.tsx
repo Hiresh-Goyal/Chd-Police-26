@@ -29,7 +29,6 @@ interface GraphEdge {
   to: string;
   label: string;
   color: string;
-  color: string;
   animated?: boolean;
   confidence_tier?: string;
 }
@@ -366,7 +365,7 @@ export const EntityGraph: React.FC = () => {
                   {Object.entries(selectedNode.details).map(([k, v]) => (
                     <div key={k} className="p-2.5 flex justify-between gap-2">
                       <span className="text-[#64748B] font-medium">{k}</span>
-                      <span className="font-mono text-[#191C1E] font-semibold text-right">{v}</span>
+                      <span className="font-mono text-[#191C1E] font-semibold text-right">{String(v)}</span>
                     </div>
                   ))}
                 </div>

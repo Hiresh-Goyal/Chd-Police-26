@@ -7,9 +7,10 @@ Handles login and user status retrieval.
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
+from backend.auth.audit import log_action
 from backend.auth.jwt import (
     authenticate_user,
     create_access_token,
@@ -37,7 +38,7 @@ class UserResponse(BaseModel):
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(credentials: LoginRequest):
+async def login(credentials: LoginRequest, request: Request):
     """Authenticate user with username and password.
 
     Hardcoded accounts:
@@ -54,6 +55,12 @@ async def login(credentials: LoginRequest):
 
     access_token = create_access_token(
         data={"sub": user["username"], "role": user["role"]}
+    )
+
+    log_action(
+        user=credentials.username,
+        action="LOGIN",
+        ip_address=request.client.host if request.client else None,
     )
 
     return {

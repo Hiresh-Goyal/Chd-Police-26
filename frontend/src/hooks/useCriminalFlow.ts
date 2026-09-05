@@ -5,7 +5,7 @@ import { MONEY_TRAIL_NODES } from '../data/mockData';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
 export const useCriminalFlow = (caseId: string) => {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 

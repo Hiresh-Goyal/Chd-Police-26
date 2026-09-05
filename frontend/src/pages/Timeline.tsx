@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TimelineEvent } from '../data/mockData';
+import { TimelineEvent, CASE_2847_TIMELINE } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
 import { useTimeline } from '../hooks/useTimeline';
 

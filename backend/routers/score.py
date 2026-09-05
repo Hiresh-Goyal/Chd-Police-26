@@ -83,6 +83,9 @@ async def get_fraud_score(case_id: str):
                     except Exception:
                         top_findings = []
 
+                if isinstance(top_findings, list) and top_findings and isinstance(top_findings[0], str):
+                    top_findings = [{"id": fid, "rule_id": "FINDING"} for fid in top_findings]
+
                 breakdown = row.findings_breakdown
                 if isinstance(breakdown, str):
                     try:

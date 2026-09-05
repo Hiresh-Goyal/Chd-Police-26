@@ -15,7 +15,7 @@ def init_db():
     """Create all tables defined in schema.py (idempotent — skips existing)."""
     engine = get_engine()
     metadata.create_all(engine)
-    print("✓ All tables created successfully.")
+    print("[OK] All tables created successfully.")
 
 
 if __name__ == "__main__":

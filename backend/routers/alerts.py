@@ -7,8 +7,11 @@ Alerts and Finding detail endpoints providing evidence drill-down from finding t
 import json
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
+
+from backend.auth.audit import log_action
+from backend.auth.jwt import get_current_user
 
 router = APIRouter(prefix="/cases", tags=["Alerts"])
 
@@ -165,8 +168,20 @@ def _parse_json_field(val: Any) -> list:
 
 
 @router.get("/{case_id}/alerts", response_model=List[FindingSummary])
-async def get_alerts(case_id: str):
+async def get_alerts(
+    case_id: str,
+    request: Request = None,
+    current_user: Optional[dict] = Depends(get_current_user),
+):
     """Retrieve alerts/findings list sorted by (fraud_weight * confidence) descending."""
+    user_name = current_user.get("username", "admin") if isinstance(current_user, dict) else str(current_user or "admin")
+    log_action(
+        user=user_name,
+        action="VIEW_ALERTS",
+        case_id=case_id,
+        ip_address=request.client.host if request and request.client else None,
+    )
+
     try:
         from sqlalchemy import select
         from backend.db.connection import get_connection

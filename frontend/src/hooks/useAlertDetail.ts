@@ -38,7 +38,7 @@ const mockAlertDetail = {
   ]
 };
 
-export const useAlertDetail = (alertId: string) => {
+export const useAlertDetail = (alertId: string, caseId: string = 'default-case') => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -53,7 +53,7 @@ export const useAlertDetail = (alertId: string) => {
           await new Promise(r => setTimeout(r, 400));
           if (isMounted) setData({ ...mockAlertDetail, id: alertId });
         } else {
-          const res = await getAlertDetail(alertId);
+          const res = await getAlertDetail(caseId, alertId);
           if (isMounted) setData(res);
         }
       } catch (err: any) {

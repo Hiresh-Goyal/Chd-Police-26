@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getFraudScore } from '../api/client';
-import { CASE_2847 } from '../data/mockData';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
 const mockFraudScore = {
-  score: CASE_2847.fraudScore,
+  score: 89,
   riskLevel: 'CRITICAL',
   topFindings: [
     { ruleName: 'Rapid Mule Transfer', weight: 40, confidence: 'HIGH', evidenceSummary: '₹48,000 transferred to HDFC immediately after call' },
@@ -30,7 +29,24 @@ export const useFraudScore = (caseId: string) => {
           if (isMounted) setData(mockFraudScore);
         } else {
           const res = await getFraudScore(caseId);
-          if (isMounted) setData(res);
+          // Normalize snake_case → camelCase to match mock shape
+          const normalized = {
+            score: res.score,
+            riskLevel: res.risk_level,
+            totalFindings: res.total_findings,
+            topFindings: (res.top_findings ?? []).map((f: any) => ({
+              ruleName: f.rule_id,
+              weight: f.fraud_weight,
+              confidence: f.severity,
+              evidenceSummary: f.explanation,
+              // keep originals too:
+              rule_id: f.rule_id,
+              fraud_weight: f.fraud_weight,
+              severity: f.severity,
+              explanation: f.explanation,
+            })),
+          };
+          if (isMounted) setData(normalized);
         }
       } catch (err: any) {
         if (isMounted) setError(err);
@@ -45,3 +61,4 @@ export const useFraudScore = (caseId: string) => {
 
   return { data, loading, error };
 };
+

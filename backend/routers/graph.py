@@ -201,4 +201,4 @@ async def get_case_graph(case_id: str):
     except Exception as e:
         print(f"Graph query failed or database not ready: {e}")
 
-    return _MOCK_GRAPH
+    return {"nodes": [], "edges": []}

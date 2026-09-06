@@ -30,10 +30,14 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
 export const CaseStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Merge persisted user-created cases with the static mock cases
   const [cases, setCases] = useState<CaseSummary[]>(() => {
     const persisted = loadFromStorage<CaseSummary[]>(STORAGE_KEY_CASES, []);
+    if (!USE_MOCK) return persisted;
+    
     // Keep static cases + any user-created ones (by id not in ALL_CASES)
     const staticIds = new Set(ALL_CASES.map(c => c.id));
     const userCreated = persisted.filter(c => !staticIds.has(c.id));

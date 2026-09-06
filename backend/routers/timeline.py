@@ -180,13 +180,4 @@ async def get_timeline(
     except Exception as e:
         print(f"Timeline DB query failed or tables uninitialized: {e}")
 
-    # Fallback filtering on mock data
-    filtered = _MOCK_TIMELINE
-    if event_type:
-        filtered = [e for e in filtered if e["event_type"].lower() == event_type.lower()]
-    if entity_id:
-        filtered = [
-            e for e in filtered
-            if e["actor_entity_id"] == entity_id or e["actor_raw"] == entity_id
-        ]
-    return filtered
+    return []

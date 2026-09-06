@@ -19,7 +19,7 @@ export const CaseWorkspace: React.FC = () => {
   const uploadedFiles = getCaseFiles(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
 
-  const [notes, setNotes] = useState(caseData?.notes ?? []);
+  const [notes, setNotes] = useState((caseData as any)?.notes ?? []);
 
   const [newNoteText, setNewNoteText] = useState('');
   const [isAddNoteModalOpen, setIsAddNoteModalOpen] = useState(false);
@@ -69,13 +69,15 @@ export const CaseWorkspace: React.FC = () => {
             <span className="font-mono text-sm font-bold text-[#0B5CAB]">Case #{caseId}</span>
             <span className="text-[#94A3B8]">—</span>
             <h1 className="text-lg font-bold text-[#191C1E]">
-              {caseData.title}
+              {caseData.title ?? (caseData as any).name ?? `Case #${caseId}`}
             </h1>
           </div>
           <div className="text-xs text-[#424751] flex items-center gap-2">
-            <span>Opened {caseData.openedDate}</span>
+            <span>Opened {caseData.created_at
+              ? new Date(caseData.created_at).toLocaleDateString('en-IN')
+              : ((caseData as any).openedDate ?? '—')}</span>
             <span className="w-1 h-1 rounded-full bg-[#C2C6D3]"></span>
-            <span>Assigned to Insp. {caseData.assignedIO}</span>
+            <span>Assigned to Insp. {(caseData as any).assignedIO ?? localStorage.getItem('ds_user') ?? 'Officer'}</span>
           </div>
         </div>
 

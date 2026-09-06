@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CASE_2847 } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
 import { useGraph } from '../hooks/useGraph';
 import { tierColor } from '../utils/confidence';
@@ -39,7 +38,6 @@ export const EntityGraph: React.FC = () => {
   const navigate = useNavigate();
   const { getCaseFiles, getCase } = useCaseStore();
 
-  const isDemo = caseId === '2847';
   const uploadedFiles = getCaseFiles(caseId ?? '');
   const caseData = getCase(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
@@ -60,7 +58,7 @@ export const EntityGraph: React.FC = () => {
   };
 
   // Empty state for new cases with no uploads
-  if (!isDemo && !hasUploads) {
+  if (!loading && nodes.length === 0 && !hasUploads) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
         <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">hub</span>

@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routers import (
     alerts,
+    audit,
     auth,
     cases,
     correlation,
@@ -44,8 +45,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from backend.routers.audit import router as audit_router
-
 # Mount all routers under /api prefix
 app.include_router(auth.router, prefix="/api")
 app.include_router(cases.router, prefix="/api")
@@ -56,7 +55,7 @@ app.include_router(score.router, prefix="/api")
 app.include_router(criminalflow.router, prefix="/api")
 app.include_router(geospatial.router, prefix="/api")
 app.include_router(correlation.router, prefix="/api")
-app.include_router(audit_router, prefix="/api")
+app.include_router(audit.router, prefix="/api")
 
 
 @app.get("/api/health", tags=["Health"])

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Lock, User, ArrowRight } from 'lucide-react';
 import { useToast } from '../components/common/Toast';
+import { login } from '../api/client';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -10,20 +11,23 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier || !password) {
       showToast('Please enter both Badge Number and Password', 'error');
       return;
     }
-    
     setIsLoading(true);
-    // Simulate network request
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await login({ username: identifier, password });
       showToast('Authentication successful. Welcome, Officer.', 'success');
       navigate('/dashboard');
-    }, 1200);
+    } catch (err: any) {
+      const msg = err?.message || 'Authentication failed. Check credentials.';
+      showToast(msg, 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -11,6 +11,9 @@ export const Alerts: React.FC = () => {
   const { data: alerts, loading } = useAlerts(caseId);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
+  const criticalCount = (alerts ?? []).filter((a: any) => a.severity === 'CRITICAL').length;
+  const highCount = (alerts ?? []).filter((a: any) => a.severity === 'HIGH').length;
+
   return (
     <div className="flex flex-col gap-6 h-full">
       {/* Workspace Header */}
@@ -29,8 +32,12 @@ export const Alerts: React.FC = () => {
             LIVE ALERTS STREAM
           </h2>
           <div className="flex gap-2 text-xs font-bold font-mono">
-            <span className="bg-[#DC2626]/10 text-[#DC2626] px-2.5 py-1 rounded border border-[#DC2626]/20">3 CRITICAL</span>
-            <span className="bg-orange-500/10 text-orange-600 px-2.5 py-1 rounded border border-orange-500/20">5 HIGH</span>
+            <span className="bg-[#DC2626]/10 text-[#DC2626] px-2.5 py-1 rounded border border-[#DC2626]/20">
+              {criticalCount} CRITICAL
+            </span>
+            <span className="bg-orange-500/10 text-orange-600 px-2.5 py-1 rounded border border-orange-500/20">
+              {highCount} HIGH
+            </span>
           </div>
         </div>
 
@@ -55,22 +62,26 @@ export const Alerts: React.FC = () => {
                       <span className={`w-2.5 h-2.5 rounded-full ${alert.severity === 'CRITICAL' ? 'bg-[#DC2626] animate-ping' : alert.severity === 'HIGH' ? 'bg-orange-500' : 'bg-yellow-500'}`}></span>
                       <span className={`text-[11px] font-bold tracking-wider uppercase ${alert.severity === 'CRITICAL' ? 'text-[#DC2626]' : alert.severity === 'HIGH' ? 'text-orange-600' : 'text-yellow-600'}`}>{alert.severity}</span>
                     </div>
-                    <span className="text-[11px] font-mono text-[#64748B]">{alert.timeAgo}</span>
+                    <span className="text-[11px] font-mono text-[#64748B]">
+                      {alert.created_at ? new Date(alert.created_at).toLocaleString('en-IN') : '—'}
+                    </span>
                   </div>
-                  <div className="text-base font-semibold text-[#191C1E]">{alert.title}</div>
+                  <div className="text-base font-semibold text-[#191C1E]">
+                    {alert.rule_id ?? 'UNKNOWN_RULE'} — {alert.severity}
+                  </div>
                   <div className="flex gap-2 items-center">
                     <div className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-[#424751]">{alert.rule_id || 'RULE_X'}</div>
-                    {alert.fraudScoreContribution && (
-                      <div className="font-mono text-xs bg-red-100 px-2 py-0.5 rounded text-red-600">+{alert.fraudScoreContribution} Risk Score</div>
+                    {alert.fraud_weight != null && (
+                      <div className="font-mono text-xs bg-red-100 px-2 py-0.5 rounded text-red-600">+{alert.fraud_weight} Risk Score</div>
                     )}
                   </div>
                   <div className="text-sm text-[#424751] mt-1">
-                    {alert.description}
+                    {alert.explanation ?? '—'}
                   </div>
                 </div>
                 {selectedAlertId === alert.id && (
                   <div className="mt-2 ml-4">
-                    <EvidenceChain alertId={alert.id} />
+                    <EvidenceChain alertId={alert.id} caseId={caseId} />
                   </div>
                 )}
               </div>

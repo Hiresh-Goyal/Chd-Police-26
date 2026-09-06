@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ALL_CASES, CaseSummary } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
+import { useCases } from '../hooks/useCases';
+import { createCase } from '../api/client';
+import type { CaseAPI } from '../types/api';
 import { PriorityBadge, StatusBadge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
@@ -10,7 +12,8 @@ import { useToast } from '../components/common/Toast';
 export const MyCases: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { cases, addCase } = useCaseStore();
+  const { cases: storeCases, addCase } = useCaseStore();
+  const { data: apiCases, loading: casesLoading } = useCases();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
@@ -21,6 +24,31 @@ export const MyCases: React.FC = () => {
   const [newCaseSubject, setNewCaseSubject] = useState('');
   const [newCaseType, setNewCaseType] = useState('Investment Scam');
   const [newCasePriority, setNewCasePriority] = useState<'Critical' | 'High' | 'Medium' | 'Low'>('High');
+
+  // Merge API cases with user-created store cases
+  const allCaseIds = new Set(apiCases.map(c => c.id));
+  const userOnlyCases = storeCases.filter(c => !allCaseIds.has(c.id));
+
+  const adaptedApiCases = apiCases.map(c => ({
+    id: c.id,
+    subject: c.name,
+    title: c.title ?? c.name,
+    type: '—',
+    status: c.status === 'OPEN' ? 'Active' : c.status,
+    priority: 'High' as const,
+    openedDate: new Date(c.created_at).toLocaleDateString('en-IN'),
+    assignedIO: '—',
+    ioRole: '',
+    ioStation: '',
+    fraudScore: 0,
+    estimatedLoss: '—',
+    entitiesCount: 0,
+    lastActivity: new Date(c.created_at).toLocaleString('en-IN'),
+    stats: { cdr: 0, bank: 0, ipdr: 0, social: 0, anomalies: 0, evidence: 0 },
+    entities: [], notes: [], alerts: [],
+  }));
+
+  const cases = [...userOnlyCases, ...adaptedApiCases];
 
   // Filtered cases
   const filteredCases = cases.filter(c => {
@@ -48,40 +76,44 @@ export const MyCases: React.FC = () => {
     showToast('Exported cases CSV successfully.', 'success');
   };
 
-  const handleCreateCase = (e: React.FormEvent) => {
+  const handleCreateCase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCaseSubject.trim()) {
       showToast('Please enter subject/entity name.', 'warning');
       return;
     }
-    const newId = (2848 + cases.filter(c => c.id !== '2847').length + Math.floor(Math.random() * 10)).toString();
-    const createdCase: CaseSummary = {
-      id: newId,
-      title: `${newCaseType} — ${newCaseSubject}`,
-      subject: newCaseSubject,
-      type: newCaseType,
-      status: 'Active',
-      priority: newCasePriority,
-      openedDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-      assignedIO: 'Amrit Singh',
-      ioRole: 'Senior Inspector',
-      ioStation: 'Sector 17, Chandigarh UT',
-      fraudScore: 65,
-      estimatedLoss: '₹2,00,000',
-      entitiesCount: 1,
-      lastActivity: 'Just now',
-      stats: { cdr: 0, bank: 0, social: 0, ipdr: 0, anomalies: 0, evidence: 0 },
-      entities: [],
-      notes: [],
-      alerts: []
-    };
-
-    addCase(createdCase);
-    setIsNewCaseModalOpen(false);
-    setNewCaseSubject('');
-    showToast(`Case #${newId} created — upload evidence to begin analysis.`, 'success');
-    // Navigate directly to upload page so user can start ingesting files
-    navigate(`/cases/${newId}/upload-evidence`);
+    try {
+      const created: CaseAPI = await createCase({
+        name: newCaseSubject,
+        title: `${newCaseType} — ${newCaseSubject}`,
+        description: `Priority: ${newCasePriority}`,
+      });
+      // Also add to local store for immediate display with richer shape:
+      addCase({
+        id: created.id,
+        subject: created.name,
+        title: created.title ?? created.name,
+        type: newCaseType,
+        status: 'Active',
+        priority: newCasePriority,
+        openedDate: new Date(created.created_at).toLocaleDateString('en-IN'),
+        assignedIO: localStorage.getItem('ds_user') ?? 'Officer',
+        ioRole: 'Investigator',
+        ioStation: 'Chandigarh UT',
+        fraudScore: 0,
+        estimatedLoss: '—',
+        entitiesCount: 0,
+        lastActivity: 'Just now',
+        stats: { cdr: 0, bank: 0, ipdr: 0, social: 0, anomalies: 0, evidence: 0 },
+        entities: [], notes: [], alerts: [],
+      });
+      setIsNewCaseModalOpen(false);
+      setNewCaseSubject('');
+      showToast(`Case #${created.id} created — upload evidence to begin analysis.`, 'success');
+      navigate(`/cases/${created.id}/upload-evidence`);
+    } catch (err: any) {
+      showToast(err?.message ?? 'Failed to create case.', 'error');
+    }
   };
 
   return (

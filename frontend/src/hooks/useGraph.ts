@@ -1,7 +1,62 @@
 import { useState, useEffect } from 'react';
 import { getGraph } from '../api/client';
+import type { GraphNode as GraphNodeAPI, GraphEdge as GraphEdgeAPI } from '../types/api';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
+// Normalize backend GraphNode → display shape with x/y layout
+function layoutNodes(nodes: GraphNodeAPI[]): any[] {
+  const cx = 600, cy = 400, r = 280;
+  return nodes.map((n, i) => {
+    const angle = (2 * Math.PI * i) / Math.max(nodes.length, 1) - Math.PI / 2;
+    const typeColorMap: Record<string, string> = {
+      PERSON: '#DC2626', PHONE: '#0891B2', ACCOUNT: '#F97316',
+      IMEI: '#475569', IP: '#7C3AED', SOCIAL: '#16A34A', ATM: '#F97316',
+    };
+    const typeDomainMap: Record<string, string> = {
+      PERSON: 'NCRP', PHONE: 'CDR', ACCOUNT: 'BANK',
+      IMEI: 'CDR', IP: 'IPDR', SOCIAL: 'SOCIAL', ATM: 'BANK',
+    };
+    const riskScore = Math.round(n.fraud_score_contribution);
+    const riskLevel =
+      riskScore >= 80 ? 'CRITICAL' :
+      riskScore >= 60 ? 'HIGH' :
+      riskScore >= 40 ? 'MEDIUM' : 'LOW';
+    return {
+      id: n.id,
+      name: n.canonical_value,
+      sub: n.type,
+      type: n.type,
+      domain: typeDomainMap[n.type] ?? 'CDR',
+      x: Math.round(cx + r * Math.cos(angle)),
+      y: Math.round(cy + r * Math.sin(angle)),
+      riskScore,
+      riskLevel,
+      confidence_tier: n.confidence_tier,
+      role: n.type,
+      details: {
+        'Canonical Value': n.canonical_value,
+        'Type': n.type,
+        'Confidence Tier': n.confidence_tier,
+        'Fraud Score Contribution': `${riskScore}`,
+      },
+      color: typeColorMap[n.type] ?? '#64748B',
+    };
+  });
+}
+
+function normalizeEdges(edges: GraphEdgeAPI[], nodes: any[]): any[] {
+  const nodeColorMap = Object.fromEntries(nodes.map((n: any) => [n.id, n.color]));
+  return edges.map(e => ({
+    id: e.id,
+    from: e.source,
+    to: e.target,
+    label: e.link_type.replace(/_/g, ' '),
+    color: nodeColorMap[e.source] ?? '#64748B',
+    confidence_tier: e.confidence_tier,
+    animated: e.confidence_tier === 'CONFIRMED',
+  }));
+}
 
 // Pulled from EntityGraph.tsx
 const mockGraphData = {
@@ -82,7 +137,9 @@ export const useGraph = (caseId: string) => {
           if (isMounted) setData(mockGraphData);
         } else {
           const res = await getGraph(caseId);
-          if (isMounted) setData(res);
+          const normalizedNodes = layoutNodes(res.nodes);
+          const normalizedEdges = normalizeEdges(res.edges, normalizedNodes);
+          if (isMounted) setData({ nodes: normalizedNodes, edges: normalizedEdges });
         }
       } catch (err: any) {
         if (isMounted) setError(err);

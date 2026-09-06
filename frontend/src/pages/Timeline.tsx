@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TimelineEvent, CASE_2847_TIMELINE } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
 import { useTimeline } from '../hooks/useTimeline';
 
@@ -18,13 +17,24 @@ export const Timeline: React.FC = () => {
   const uploadedFiles = getCaseFiles(caseId ?? '');
   const caseData = getCase(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
-  const isDemo = caseId === '2847';
-
   const [activeDomains, setActiveDomains] = useState<string[]>(['CDR', 'IPDR', 'BANK', 'SOCIAL', 'NCRP']);
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: timelineEvents, loading } = useTimeline(caseId ?? '', { search: searchQuery });
 
-  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
+  // Map display domain names to API event_type values:
+  const domainToEventType: Record<string, string> = {
+    CDR: 'CALL',
+    IPDR: 'IPDR_SESSION',
+    BANK: 'BANK_TRANSFER',
+    SOCIAL: 'SOCIAL_POST',
+  };
+  // Pass event_type filter only when exactly one domain is active:
+  const eventTypeFilter = activeDomains.length === 1 ? domainToEventType[activeDomains[0]] : undefined;
+  const { data: timelineEvents, loading } = useTimeline(caseId ?? '', {
+    search: searchQuery,
+    eventType: eventTypeFilter,
+  });
+
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [zoomScale, setZoomScale] = useState<'1hr' | '30m' | '15m'>('1hr');
   const [selectedDate, setSelectedDate] = useState('15 Aug 2026');
 
@@ -52,7 +62,7 @@ export const Timeline: React.FC = () => {
   };
 
   // Empty state for new cases with no uploads
-  if (!isDemo && !hasUploads) {
+  if (!loading && timelineEvents.length === 0 && !hasUploads) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
         <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">timeline</span>
@@ -75,9 +85,9 @@ export const Timeline: React.FC = () => {
           <div className="flex items-center gap-2 text-xs text-[#64748B] mb-1">
             <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId}</span>
             <span>•</span>
-            <span className="font-medium text-[#191C1E]">{isDemo ? 'Rajesh Verma' : (caseData?.subject ?? 'Subject')}</span>
+            <span className="font-medium text-[#191C1E]">{(caseData as any)?.subject ?? (caseData as any)?.name ?? 'Subject'}</span>
             <span>•</span>
-            <span>{isDemo ? 'Investment Scam' : (caseData?.type ?? 'Case')}</span>
+            <span>{(caseData as any)?.type ?? ((caseData as any)?.title ?? 'Case')}</span>
           </div>
           <h1 className="text-2xl font-bold text-[#0B2340] tracking-tight">Cross-Domain Timeline</h1>
           <p className="text-sm text-[#424751] mt-0.5">
@@ -243,7 +253,7 @@ export const Timeline: React.FC = () => {
             <div className="flex-1 p-2 relative flex items-center">
               {/* Event 09:15 */}
               <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[0])}
+                onClick={() => setSelectedEvent(timelineEvents.find((e: any) => e.event_type.includes('SOCIAL')) || timelineEvents[0])}
                 className="ml-[4%] bg-[#16A34A]/10 border border-[#16A34A]/40 rounded px-2.5 py-1.5 cursor-pointer hover:shadow-sm hover:scale-[1.02] transition-all flex items-center gap-2 max-w-xs"
               >
                 <span className="w-2 h-2 rounded-full bg-[#16A34A]"></span>
@@ -268,7 +278,7 @@ export const Timeline: React.FC = () => {
             <div className="flex-1 p-2 relative flex items-center">
               {/* Event 14:00 */}
               <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[1])}
+                onClick={() => setSelectedEvent(timelineEvents.find((e: any) => e.event_type === 'CALL') || timelineEvents[0])}
                 className="ml-[56%] bg-[#0891B2]/10 border-2 border-[#0891B2] rounded px-3 py-1.5 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex items-center gap-2 max-w-sm"
               >
                 <span className="material-symbols-outlined text-[#0891B2] text-[16px]">call</span>
@@ -293,7 +303,7 @@ export const Timeline: React.FC = () => {
             <div className="flex-1 p-2 relative flex items-center">
               {/* Event 14:28 */}
               <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[2])}
+                onClick={() => setSelectedEvent(timelineEvents.find((e: any) => e.event_type === 'IPDR_SESSION') || timelineEvents[0])}
                 className="ml-[66%] bg-[#7C3AED]/10 border-2 border-[#7C3AED] rounded px-3 py-1.5 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex items-center gap-2 max-w-sm"
               >
                 <span className="material-symbols-outlined text-[#7C3AED] text-[16px]">router</span>
@@ -318,7 +328,7 @@ export const Timeline: React.FC = () => {
             <div className="flex-1 p-2 relative flex items-center gap-3">
               {/* Event 14:32 (IMPS) */}
               <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[3])}
+                onClick={() => setSelectedEvent(timelineEvents.find((e: any) => e.event_type === 'BANK_TRANSFER') || timelineEvents[0])}
                 className="ml-[68%] bg-[#DC2626]/10 border-2 border-[#DC2626] rounded px-3 py-1.5 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex items-center gap-2 max-w-xs ring-2 ring-[#DC2626]/20"
               >
                 <span className="material-symbols-outlined text-[#DC2626] text-[16px]">account_balance</span>
@@ -330,7 +340,7 @@ export const Timeline: React.FC = () => {
 
               {/* Event 15:10 (ATM) */}
               <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[4])}
+                onClick={() => setSelectedEvent(timelineEvents.find((e: any) => e.event_type === 'BANK_TRANSFER' && e.amount) || timelineEvents[0])}
                 className="bg-[#F97316]/10 border-2 border-[#F97316] rounded px-3 py-1.5 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex items-center gap-2 max-w-xs"
               >
                 <span className="material-symbols-outlined text-[#F97316] text-[16px]">local_atm</span>
@@ -355,7 +365,7 @@ export const Timeline: React.FC = () => {
             <div className="flex-1 p-2 relative flex items-center">
               {/* Event 16:20 */}
               <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[5])}
+                onClick={() => setSelectedEvent(timelineEvents.find((e: any) => e.event_type === 'COMPLAINT') || timelineEvents[0])}
                 className="ml-[82%] bg-[#C8102E]/10 border border-[#C8102E]/40 rounded px-2.5 py-1.5 cursor-pointer hover:shadow-sm hover:scale-[1.02] transition-all flex items-center gap-2 max-w-xs"
               >
                 <span className="w-2 h-2 rounded-full bg-[#C8102E]"></span>
@@ -430,7 +440,7 @@ export const Timeline: React.FC = () => {
                   <div key={key} className="p-2.5 flex justify-between gap-3">
                     <span className="text-[#64748B] font-medium">{key}</span>
                     <span className="font-mono text-[#191C1E] font-semibold text-right break-all">
-                      {value}
+                      {String(value)}
                     </span>
                   </div>
                 ))}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AUDIT_LOGS, AuditLogEntry } from '../data/mockData';
+import { useAuditLogs } from '../hooks/useAuditLogs';
 import { DomainBadge, StatusBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
@@ -9,23 +9,34 @@ export const AuditLog: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const [logs, setLogs] = useState<AuditLogEntry[]>(AUDIT_LOGS);
-  const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(AUDIT_LOGS[0]);
+  const { data: logs, loading: logsLoading } = useAuditLogs(undefined, 200);
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [severityFilter, setSeverityFilter] = useState('All');
 
-  const filteredLogs = logs.filter(l => {
+  // Auto-select first log when data loads
+  React.useEffect(() => {
+    if (logs.length > 0 && !selectedLog) {
+      setSelectedLog(logs[0]);
+    }
+  }, [logs]);
+
+  const filteredLogs = logs.filter((l: any) => {
+    const domain = l.domain ?? '';
+    const action = l.action ?? '';
+    const status = l.status ?? '';
+
     const matchesCategory =
       categoryFilter === 'All' ||
-      (categoryFilter === 'CDR Access' && l.domain === 'CDR') ||
-      (categoryFilter === 'Bank View' && l.domain === 'BANK') ||
-      (categoryFilter === 'Case Edit' && l.action.includes('Modified')) ||
-      (categoryFilter === 'Export' && l.action.includes('Exported'));
+      (categoryFilter === 'CDR Access' && domain === 'CDR') ||
+      (categoryFilter === 'Bank View' && domain === 'BANK') ||
+      (categoryFilter === 'Case Edit' && action.includes('Modified')) ||
+      (categoryFilter === 'Export' && action.includes('Exported'));
 
     const matchesSeverity =
       severityFilter === 'All' ||
-      (severityFilter === 'Critical' && l.status === 'FAILED') ||
-      (severityFilter === 'Info' && l.status === 'SUCCESS');
+      (severityFilter === 'Critical' && status === 'FAILED') ||
+      (severityFilter === 'Info' && status === 'SUCCESS');
 
     return matchesCategory && matchesSeverity;
   });
@@ -38,7 +49,7 @@ export const AuditLog: React.FC = () => {
   const handleExportCSV = () => {
     const csvContent =
       'Timestamp,Officer,Action,Target,Domain,IP Address,Device ID,Status\n' +
-      filteredLogs.map(l => `"${l.timestamp}","${l.officerName} (${l.officerId})","${l.action}","${l.targetEntity}","${l.domain}","${l.ipAddress}","${l.deviceId}","${l.status}"`).join('\n');
+      filteredLogs.map((l: any) => `"${l.timestamp ?? l.created_at ?? ''}","${(l.officerName ?? l.officer_name ?? '')} (${l.officerId ?? l.officer_id ?? ''})","${l.action ?? ''}","${l.targetEntity ?? l.target_entity ?? ''}","${l.domain ?? ''}","${l.ipAddress ?? l.ip_address ?? ''}","${l.deviceId ?? l.device_id ?? ''}","${l.status ?? ''}"`).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -128,9 +139,20 @@ export const AuditLog: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EDF0F4] text-[#191C1E]">
-                {filteredLogs.map(log => {
+                {logsLoading ? (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-[#64748B]">Loading audit logs…</td></tr>
+                ) : filteredLogs.map((log: any) => {
                   const isSelected = selectedLog?.id === log.id;
-                  const isFailed = log.status === 'FAILED';
+                  const logStatus = log.status ?? '';
+                  const isFailed = logStatus === 'FAILED';
+                  const officerName = log.officerName ?? log.officer_name ?? '—';
+                  const officerId = log.officerId ?? log.officer_id ?? '';
+                  const logAction = log.action ?? '—';
+                  const logDomain = log.domain ?? '';
+                  const targetEntity = log.targetEntity ?? log.target_entity ?? '—';
+                  const ipAddress = log.ipAddress ?? log.ip_address ?? '—';
+                  const deviceId = log.deviceId ?? log.device_id ?? '';
+                  const logTimestamp = log.timestamp ?? log.created_at ?? '—';
 
                   return (
                     <tr
@@ -143,37 +165,37 @@ export const AuditLog: React.FC = () => {
                       }`}
                     >
                       <td className="px-4 py-3 font-mono text-[11px] text-[#64748B]">
-                        {log.timestamp}
+                        {logTimestamp}
                       </td>
 
                       <td className="px-4 py-3 font-medium">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded bg-[#0B2340] text-white flex items-center justify-center font-bold text-[10px]">
-                            {log.officerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            {officerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                           </div>
                           <span>
-                            {log.officerName}
-                            <span className="text-[#64748B] text-[10px] ml-1 font-mono">ID:{log.officerId}</span>
+                            {officerName}
+                            <span className="text-[#64748B] text-[10px] ml-1 font-mono">ID:{officerId}</span>
                           </span>
                         </div>
                       </td>
 
                       <td className={`px-4 py-3 font-medium ${isFailed ? 'text-[#DC2626]' : 'text-[#191C1E]'}`}>
-                        {log.action}
+                        {logAction}
                       </td>
 
                       <td className="px-4 py-3">
-                        <DomainBadge domain={log.domain} size="sm" className="mr-1.5" />
-                        <span className="font-mono text-xs">{log.targetEntity}</span>
+                        {logDomain && <DomainBadge domain={logDomain} size="sm" className="mr-1.5" />}
+                        <span className="font-mono text-xs">{targetEntity}</span>
                       </td>
 
                       <td className="px-4 py-3 font-mono text-[11px] text-[#64748B]">
-                        {log.ipAddress}<br />
-                        <span className="text-[#94A3B8]">{log.deviceId}</span>
+                        {ipAddress}<br />
+                        <span className="text-[#94A3B8]">{deviceId}</span>
                       </td>
 
                       <td className="px-4 py-3 text-center">
-                        {log.status === 'SUCCESS' ? (
+                        {logStatus === 'SUCCESS' ? (
                           <span className="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
                         ) : (
                           <span className="material-symbols-outlined text-[#DC2626] text-[18px]">error</span>
@@ -192,14 +214,12 @@ export const AuditLog: React.FC = () => {
 
           {/* Table Pagination */}
           <div className="flex items-center justify-between py-3 text-xs text-[#64748B]">
-            <span>Showing 1 to {filteredLogs.length} of 14,285 entries</span>
+            <span>Showing 1 to {filteredLogs.length} of {logs.length} entries</span>
             <div className="flex gap-1 font-mono">
               <button disabled className="px-2 py-1 border border-[#D9E1EA] rounded bg-white disabled:opacity-40">
                 <span className="material-symbols-outlined text-[16px]">chevron_left</span>
               </button>
               <button className="px-2.5 py-1 border border-[#0B5CAB] bg-[#0B5CAB] text-white rounded font-bold">1</button>
-              <button className="px-2.5 py-1 border border-[#D9E1EA] bg-white text-[#191C1E] rounded hover:bg-slate-50">2</button>
-              <button className="px-2.5 py-1 border border-[#D9E1EA] bg-white text-[#191C1E] rounded hover:bg-slate-50">3</button>
               <button disabled className="px-2 py-1 border border-[#D9E1EA] rounded bg-white">
                 <span className="material-symbols-outlined text-[16px]">chevron_right</span>
               </button>
@@ -218,14 +238,14 @@ export const AuditLog: React.FC = () => {
             <div className="p-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3.5 text-xs">
               <div>
                 <div className="flex items-center gap-1.5 mb-1 font-bold text-sm text-[#191C1E]">
-                  {selectedLog.status === 'SUCCESS' ? (
+                  {(selectedLog.status ?? '') === 'SUCCESS' ? (
                     <span className="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
                   ) : (
                     <span className="material-symbols-outlined text-[#DC2626] text-[18px]">error</span>
                   )}
-                  <span>{selectedLog.action}</span>
+                  <span>{selectedLog.action ?? '—'}</span>
                 </div>
-                <span className="font-mono text-[11px] text-[#64748B] block">{selectedLog.timestamp}</span>
+                <span className="font-mono text-[11px] text-[#64748B] block">{selectedLog.timestamp ?? selectedLog.created_at ?? '—'}</span>
               </div>
 
               {/* Actor Section */}
@@ -233,13 +253,13 @@ export const AuditLog: React.FC = () => {
                 <h4 className="font-bold text-[10px] text-[#64748B] uppercase tracking-wider mb-2">Actor</h4>
                 <div className="grid grid-cols-3 gap-1.5 text-xs">
                   <div className="text-[#64748B]">Name:</div>
-                  <div className="col-span-2 font-semibold text-[#191C1E]">{selectedLog.officerName}</div>
+                  <div className="col-span-2 font-semibold text-[#191C1E]">{selectedLog.officerName ?? selectedLog.officer_name ?? '—'}</div>
                   <div className="text-[#64748B]">User ID:</div>
-                  <div className="col-span-2 font-mono text-[#191C1E]">{selectedLog.officerId}</div>
+                  <div className="col-span-2 font-mono text-[#191C1E]">{selectedLog.officerId ?? selectedLog.officer_id ?? '—'}</div>
                   <div className="text-[#64748B]">Role:</div>
-                  <div className="col-span-2 text-[#191C1E]">{selectedLog.officerRole}</div>
+                  <div className="col-span-2 text-[#191C1E]">{selectedLog.officerRole ?? selectedLog.officer_role ?? '—'}</div>
                   <div className="text-[#64748B]">Station:</div>
-                  <div className="col-span-2 text-[#191C1E]">{selectedLog.officerStation}</div>
+                  <div className="col-span-2 text-[#191C1E]">{selectedLog.officerStation ?? selectedLog.officer_station ?? '—'}</div>
                 </div>
               </div>
 
@@ -248,11 +268,11 @@ export const AuditLog: React.FC = () => {
                 <h4 className="font-bold text-[10px] text-[#64748B] uppercase tracking-wider mb-2">Context</h4>
                 <div className="grid grid-cols-3 gap-1.5 text-xs">
                   <div className="text-[#64748B]">Target:</div>
-                  <div className="col-span-2 font-semibold text-[#191C1E]">{selectedLog.targetEntity}</div>
+                  <div className="col-span-2 font-semibold text-[#191C1E]">{selectedLog.targetEntity ?? selectedLog.target_entity ?? '—'}</div>
                   <div className="text-[#64748B]">Client IP:</div>
-                  <div className="col-span-2 font-mono text-[#191C1E]">{selectedLog.ipAddress}</div>
+                  <div className="col-span-2 font-mono text-[#191C1E]">{selectedLog.ipAddress ?? selectedLog.ip_address ?? '—'}</div>
                   <div className="text-[#64748B]">Device ID:</div>
-                  <div className="col-span-2 font-mono text-[#191C1E]">{selectedLog.deviceId}</div>
+                  <div className="col-span-2 font-mono text-[#191C1E]">{selectedLog.deviceId ?? selectedLog.device_id ?? '—'}</div>
                 </div>
               </div>
 
@@ -261,7 +281,7 @@ export const AuditLog: React.FC = () => {
                 <h4 className="font-bold text-[10px] text-[#64748B] uppercase tracking-wider mb-1.5">Raw Metadata</h4>
                 <div className="bg-[#111827] rounded border border-[#374151] p-3 overflow-x-auto">
                   <pre className="font-mono text-[11px] text-[#A5C8FF] leading-relaxed">
-                    {JSON.stringify(selectedLog.rawMetadata, null, 2)}
+                    {JSON.stringify(selectedLog.rawMetadata ?? selectedLog.raw_metadata ?? selectedLog, null, 2)}
                   </pre>
                 </div>
               </div>

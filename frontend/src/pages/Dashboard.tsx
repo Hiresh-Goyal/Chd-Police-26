@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ALL_CASES, CASE_2847 } from '../data/mockData';
+import { useCases } from '../hooks/useCases';
 import { useToast } from '../components/common/Toast';
 
 export const Dashboard: React.FC = () => {
@@ -8,6 +8,8 @@ export const Dashboard: React.FC = () => {
   const { showToast } = useToast();
   const [isActivityPaused, setIsActivityPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState('Oct 24, 2024 | 14:45');
+
+  const { data: cases, loading: casesLoading } = useCases();
 
   useEffect(() => {
     const updateTime = () => {
@@ -26,6 +28,8 @@ export const Dashboard: React.FC = () => {
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const activeCasesCount = casesLoading ? '…' : cases.filter(c => c.status === 'OPEN' || c.status === 'Active').length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,10 +61,10 @@ export const Dashboard: React.FC = () => {
             <span className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">ACTIVE CASES</span>
             <span className="material-symbols-outlined text-[#0B5CAB] bg-[#0B5CAB]/10 p-1.5 rounded">folder</span>
           </div>
-          <div className="text-3xl font-bold text-[#191C1E] mb-1">24</div>
+          <div className="text-3xl font-bold text-[#191C1E] mb-1">{activeCasesCount}</div>
           <div className="text-xs text-[#424751] flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px] text-emerald-600">arrow_upward</span>
-            <span className="text-emerald-700 font-semibold">+3</span> this shift
+            <span className="text-emerald-700 font-semibold">{casesLoading ? '' : `${cases.length} total`}</span>
           </div>
         </div>
 
@@ -70,7 +74,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider">CRITICAL ALERTS</span>
             <span className="material-symbols-outlined text-[#DC2626] bg-[#DC2626]/10 p-1.5 rounded">warning</span>
           </div>
-          <div className="text-3xl font-bold text-[#DC2626] mb-1">7</div>
+          <div className="text-3xl font-bold text-[#DC2626] mb-1">—</div>
           <div className="text-xs text-[#DC2626] font-medium flex items-center gap-1">
             Requires immediate action
           </div>
@@ -82,7 +86,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">ENTITIES LINKED TODAY</span>
             <span className="material-symbols-outlined text-[#16A34A] bg-[#16A34A]/10 p-1.5 rounded">hub</span>
           </div>
-          <div className="text-3xl font-bold text-[#191C1E] mb-1">142</div>
+          <div className="text-3xl font-bold text-[#191C1E] mb-1">—</div>
           <div className="text-xs text-[#424751] flex items-center gap-1">
             Cross-domain matched
           </div>
@@ -94,7 +98,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">EVIDENCE REPORTS</span>
             <span className="material-symbols-outlined text-[#7C3AED] bg-[#7C3AED]/10 p-1.5 rounded">description</span>
           </div>
-          <div className="text-3xl font-bold text-[#191C1E] mb-1">12</div>
+          <div className="text-3xl font-bold text-[#191C1E] mb-1">—</div>
           <div className="text-xs text-[#424751] flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
             Generated successfully
@@ -123,72 +127,48 @@ export const Dashboard: React.FC = () => {
                 <th className="py-3 px-4 w-28">Case ID</th>
                 <th className="py-3 px-4">Subject / Entity</th>
                 <th className="py-3 px-4">Type</th>
-                <th className="py-3 px-4">Priority</th>
                 <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Last Activity</th>
+                <th className="py-3 px-4">State</th>
+                <th className="py-3 px-4">Created</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#D9E1EA]/60">
-              {/* Row 1: Case #2847 */}
-              <tr className="hover:bg-[#EFF6FF]/40 transition-colors group bg-[#F0F7FF]/50 border-l-4 border-l-[#0B5CAB]">
-                <td className="py-3.5 px-4 font-mono font-bold text-[#0B5CAB]">#2847</td>
-                <td className="py-3.5 px-4 font-semibold text-[#191C1E]">
-                  Rajesh Verma
-                  <span className="text-xs text-[#64748B] font-normal block font-mono">HDFC 4521 / +91 9812345678</span>
-                </td>
-                <td className="py-3.5 px-4 text-[#424751]">Investment Scam</td>
-                <td className="py-3.5 px-4">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/20">
-                    CRITICAL
-                  </span>
-                </td>
-                <td className="py-3.5 px-4">
-                  <span className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Active
-                  </span>
-                </td>
-                <td className="py-3.5 px-4 text-[#424751] font-mono text-xs">2 min ago</td>
-                <td className="py-3.5 px-4 text-right">
-                  <Link
-                    to="/cases/2847"
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-[#0B5CAB] hover:bg-[#084A8B] text-white text-xs font-bold rounded shadow-xs transition-colors"
-                  >
-                    <span>ANALYZE</span>
-                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                  </Link>
-                </td>
-              </tr>
-
-              {/* Row 2: Case #2846 */}
-              <tr className="hover:bg-slate-50 transition-colors group">
-                <td className="py-3 px-4 font-mono text-[#0B5CAB]">#2846</td>
-                <td className="py-3 px-4 font-medium text-[#191C1E]">
-                  Unknown <span className="font-mono text-xs text-[#64748B] font-normal">(IP: 104.xx)</span>
-                </td>
-                <td className="py-3 px-4 text-[#424751]">Cyber Intrusion</td>
-                <td className="py-3 px-4">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-700 border border-orange-500/20">
-                    HIGH
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <span className="inline-flex items-center gap-1.5 text-[#424751] text-xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#727783]"></span>
-                    Pending
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-[#424751] font-mono text-xs">18 min ago</td>
-                <td className="py-3 px-4 text-right">
-                  <button
-                    onClick={() => showToast('Opening Case #2846 overview.', 'info')}
-                    className="px-3 py-1 border border-[#D9E1EA] hover:bg-slate-100 text-[#334155] text-xs font-bold rounded transition-colors"
-                  >
-                    VIEW
-                  </button>
-                </td>
-              </tr>
+              {casesLoading ? (
+                <tr><td colSpan={7} className="py-6 text-center text-[#64748B]">Loading cases…</td></tr>
+              ) : cases.slice(0, 10).map(c => (
+                <tr key={c.id} className="hover:bg-[#EFF6FF]/40 transition-colors group">
+                  <td className="py-3.5 px-4 font-mono font-bold text-[#0B5CAB]">#{c.id}</td>
+                  <td className="py-3.5 px-4 font-semibold text-[#191C1E]">
+                    {c.name}
+                    <span className="text-xs text-[#64748B] font-normal block font-mono">{c.title ?? ''}</span>
+                  </td>
+                  <td className="py-3.5 px-4 text-[#424751]">—</td>
+                  <td className="py-3.5 px-4">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/20">
+                      {c.status}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Active
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-[#424751] font-mono text-xs">
+                    {new Date(c.created_at).toLocaleDateString('en-IN')}
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    <Link
+                      to={`/cases/${c.id}`}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-[#0B5CAB] hover:bg-[#084A8B] text-white text-xs font-bold rounded shadow-xs transition-colors"
+                    >
+                      ANALYZE
+                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    </Link>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

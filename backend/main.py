@@ -14,15 +14,23 @@ from routers.correlation import router as correlation_router
 from routers.entities import router as entities_router
 from routers.report import router as report_router
 from routers.search import router as search_router
+from routers.admin import router as admin_router
 
 # Initialize the mock users
 setup_users()
 
 app = FastAPI(title="DigitalSentinel API")
 
+import os
+
+CORS_ORIGINS = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://localhost:5173"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +55,7 @@ app.include_router(correlation_router, prefix="/api", dependencies=[Depends(get_
 app.include_router(entities_router, prefix="/api", dependencies=[Depends(get_current_user)])
 app.include_router(report_router, prefix="/api", dependencies=[Depends(get_current_user)])
 app.include_router(search_router, prefix="/api", dependencies=[Depends(get_current_user)])
+app.include_router(admin_router, prefix="/api", dependencies=[Depends(get_current_user)])
 
 @app.get("/api/health")
 def health():

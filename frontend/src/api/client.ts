@@ -22,6 +22,10 @@ export class ApiClient {
     this.token = token;
   }
 
+  clearToken() {
+    this.token = null;
+  }
+
   private async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const headers = new Headers(options.headers || {});
     if (this.token) {
@@ -47,6 +51,10 @@ export class ApiClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
+  }
+
+  getMe() {
+    return this.fetch<{ id: string; username: string; role: string }>('/auth/me');
   }
 
   // Cases
@@ -97,6 +105,10 @@ export class ApiClient {
     return this.fetch<Alert[]>(`/cases/${caseId}/alerts${query ? `?${query}` : ''}`);
   }
 
+  getGlobalAlerts(limit: number = 50) {
+    return this.fetch<any[]>(`/alerts?limit=${limit}`);
+  }
+
   getAlertDetail(caseId: string, findingId: string) {
     return this.fetch<AlertDetail>(`/cases/${caseId}/alerts/${findingId}`);
   }
@@ -123,6 +135,43 @@ export class ApiClient {
 
   search(caseId: string, query: string) {
     return this.fetch<SearchResult>(`/cases/${caseId}/search?q=${encodeURIComponent(query)}`);
+  }
+  // Admin endpoints (Phase D)
+  getUsers() {
+    return this.fetch<any[]>('/admin/users');
+  }
+
+  updateUserRole(userId: string, role: string) {
+    return this.fetch<any>(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  deactivateUser(userId: string) {
+    return this.fetch<any>(`/admin/users/${userId}/deactivate`, { method: 'POST' });
+  }
+
+  getAuditLogs(params?: { limit?: number; action?: string }) {
+    const query = params ? new URLSearchParams(params as Record<string, string>).toString() : '';
+    return this.fetch<any[]>(`/admin/audit-logs${query ? `?${query}` : ''}`);
+  }
+
+  getWatchlist() {
+    return this.fetch<any[]>('/admin/watchlist');
+  }
+
+  addWatchlist(entry: { entity_value: string; entity_type: string; reason: string }) {
+    return this.fetch<any>('/admin/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    });
+  }
+
+  toggleWatchlist(id: string) {
+    return this.fetch<any>(`/admin/watchlist/${id}/toggle`, { method: 'POST' });
   }
 }
 

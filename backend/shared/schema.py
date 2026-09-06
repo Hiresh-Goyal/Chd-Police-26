@@ -176,6 +176,7 @@ findings = Table(
     Column('explanation', String),
     Column('rule_version', String, server_default='1.0'),
     Column('ml_signal', Float, server_default='0.0'),
+    Column('ml_explanation', String, nullable=True),
     Column('created_at', TIMESTAMP(timezone=True), server_default=text('now()'))
 )
 

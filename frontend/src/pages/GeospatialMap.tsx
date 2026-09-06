@@ -135,23 +135,24 @@ export const GeospatialMap: React.FC = () => {
         let color = '#0891B2';
         let type: any = 'CDR_TOWER';
 
-        if (evt.domain === 'BANK') {
+        // Derive domain from event_type
+        if (evt.event_type === 'BANK_TRANSFER') {
           domain = 'BANK'; color = '#F97316'; type = 'BANK_BRANCH';
-        } else if (evt.domain === 'IPDR') {
+        } else if (evt.event_type === 'IPDR_SESSION') {
           domain = 'IPDR'; color = '#7C3AED'; type = 'IP_LOCATION';
         }
 
         return {
-          id: evt.id,
-          name: evt.label || 'Location Event',
+          id: evt.event_id,
+          name: evt.actor_raw || evt.entity_id || 'Location Event',
           type,
           domain,
           lat: evt.lat,
           lng: evt.lng,
-          time: new Date(evt.timestamp).toLocaleString(),
-          address: evt.address || '',
-          radiusKm: evt.radius_km || 1.0,
-          details: evt.metadata ? JSON.stringify(evt.metadata) : '',
+          time: evt.ts_start ? new Date(evt.ts_start).toLocaleString() : 'Unknown time',
+          address: evt.confidence_tier ? `Confidence: ${evt.confidence_tier}` : '',
+          radiusKm: 1.0,
+          details: `${evt.event_type} — ${evt.actor_raw}`,
           color,
         };
       });
@@ -159,17 +160,11 @@ export const GeospatialMap: React.FC = () => {
       if (mapped.length > 0) {
         setGeoPoints(mapped);
         setTrajectoryPath(mapped.map(m => [m.lat, m.lng]));
-        if (mapped[0]) {
-          setSelectedPoint(mapped[0]);
-        }
-      } else if (isDemo) {
-        // Fallback to mock data for demo if API returns empty
+        if (mapped[0]) setSelectedPoint(mapped[0]);
+      } else {
+        // No API data — fall back to demo points
         setGeoPoints(GEO_POINTS);
         setTrajectoryPath(GEO_POINTS.map(m => [m.lat, m.lng]));
-      } else {
-        setGeoPoints([]);
-        setTrajectoryPath([]);
-        setSelectedPoint(null);
       }
     } catch (err) {
       showToast('Failed to load geospatial data', 'error');
@@ -185,18 +180,11 @@ export const GeospatialMap: React.FC = () => {
 
   const CENTER: [number, number] = geoPoints.length > 0 ? [geoPoints[0].lat, geoPoints[0].lng] : [30.7350, 76.7760];
 
-  // Empty state for new cases with no uploads
-  if (!isDemo && !hasUploads) {
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
-        <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">map</span>
-        <div>
-          <p className="font-bold text-[#0B2340]">No evidence uploaded yet</p>
-          <p className="text-sm text-[#64748B] mt-1">Upload CDR or IPDR files to plot geospatial data for Case #{caseId}.</p>
-        </div>
-        <Button variant="primary" size="sm" icon="upload_file" onClick={() => navigate(`/cases/${caseId}/upload-evidence`)}>
-          Upload Evidence
-        </Button>
+      <div className="flex items-center justify-center h-64">
+        <span className="text-[#64748B] text-sm">Loading geospatial data...</span>
       </div>
     );
   }

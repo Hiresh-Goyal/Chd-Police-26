@@ -251,7 +251,15 @@ export const CaseWorkspace: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold text-[#191C1E] truncate">{finding.explanation || 'Alert Detected'}</div>
-                    <div className="text-[9px] font-mono text-[#64748B] truncate uppercase">{finding.rule_id}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <div className="text-[9px] font-mono text-[#64748B] truncate uppercase">{finding.rule_id}</div>
+                      {finding.ml_signal > 0 && (
+                        <div className="flex items-center gap-1 text-[9px] font-mono font-bold text-purple-700 bg-purple-100 px-1 rounded" title={finding.ml_explanation || 'AI Anomaly Detected'}>
+                          <span className="material-symbols-outlined text-[10px]">auto_awesome</span>
+                          AI FLAG
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="shrink-0 bg-[#DC2626]/10 text-[#DC2626] text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">
                     {Math.round(finding.fraud_weight)}

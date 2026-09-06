@@ -53,7 +53,13 @@ def behavioral_summary(case_id: str, db: Session = Depends(get_db)):
         if not entity_findings:
             continue
         
-        role = entity.role_signal or 'UNKNOWN'
+        meta = entity.metadata or {}
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except Exception:
+                meta = {}
+        role = meta.get('role_signal') or 'UNKNOWN'
         tier = entity.confidence_tier or 'CANDIDATE'
         canonical = entity.canonical_value or 'Unknown'
         

@@ -8,48 +8,83 @@ import { Drawer } from '../components/common/Drawer';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
 
+// Domain config
+const DOMAIN_CONFIG: Record<string, { color: string; icon: string; label: string }> = {
+  CDR:    { color: '#0891B2', icon: 'call',             label: 'Voice & SMS' },
+  IPDR:   { color: '#7C3AED', icon: 'router',           label: 'Data Sessions' },
+  BANK:   { color: '#F97316', icon: 'account_balance',  label: 'IMPS & Cash-out' },
+  SOCIAL: { color: '#16A34A', icon: 'forum',            label: 'WhatsApp / TG' },
+  NCRP:   { color: '#C8102E', icon: 'report',           label: '1930 Portal' },
+};
+
+interface MappedEvent {
+  id: string;
+  timestamp: string;
+  timeDisplay: string;
+  domain: string;
+  title: string;
+  description: string;
+  source: string;
+  provenance: string;
+  isCritical: boolean;
+  metadata: Record<string, unknown>;
+}
+
 export const Timeline: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
 
-  const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
+  const [timelineEvents, setTimelineEvents] = useState<MappedEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (caseId) {
-      loadTimeline();
-    }
+    if (caseId) loadTimeline();
   }, [caseId]);
 
   const loadTimeline = async () => {
     try {
       setIsLoading(true);
-      const events = await apiClient.getTimeline(caseId!);
-      // Map API events to component format
-      const mappedEvents = events.map(e => {
+      const events: TimelineEvent[] = await apiClient.getTimeline(caseId!);
+      const mappedEvents: MappedEvent[] = events.map(e => {
         let domain = 'NCRP';
-        if (e.event_type === 'Call') domain = 'CDR';
-        if (e.event_type === 'Transaction') domain = 'BANK';
-        if (e.event_type === 'IP_Session') domain = 'IPDR';
-        if (e.event_type === 'Social_Message') domain = 'SOCIAL';
+        if (e.event_type === 'CALL' || e.event_type === 'SMS') domain = 'CDR';
+        if (e.event_type === 'BANK_TRANSFER') domain = 'BANK';
+        if (e.event_type === 'IPDR_SESSION') domain = 'IPDR';
+        if (e.event_type === 'SOCIAL_POST' || e.event_type === 'SOCIAL_INTERACTION') domain = 'SOCIAL';
+        if (e.event_type === 'LOCATION_PING') domain = 'CDR';
 
         const timestamp = new Date(e.ts_start || new Date());
         return {
           id: e.id,
           timestamp: timestamp.toISOString(),
-          timeDisplay: `${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}`,
+          timeDisplay: `${String(timestamp.getHours()).padStart(2,'0')}:${String(timestamp.getMinutes()).padStart(2,'0')}`,
           domain,
-          title: `${e.event_type} - ${e.actor_raw} -> ${e.peer_raw || 'Unknown'}`,
-          description: e.amount ? `Amount: ${e.amount}` : e.location_raw ? `Location: ${e.location_raw}` : '',
+          title: `${e.event_type.replace(/_/g, ' ')} — ${e.actor_raw} → ${e.peer_raw || 'Unknown'}`,
+          description: e.amount
+            ? `Amount: ₹${Number(e.amount).toLocaleString()}`
+            : e.location_raw
+              ? `Location: ${e.location_raw}`
+              : e.device_id ? `Device: ${e.device_id}` : '',
           source: e.source_file_name || 'System',
           provenance: `Row ${e.source_row}`,
-          isCritical: e.episode_id !== null, // Highlight if part of episode
-          metadata: e.payload || {}
+          isCritical: e.episode_id !== null,
+          metadata: {
+            'Event Type': e.event_type,
+            'Actor': e.actor_raw,
+            'Peer': e.peer_raw || '—',
+            'Time': timestamp.toLocaleString(),
+            ...(e.amount ? { 'Amount': `₹${Number(e.amount).toLocaleString()}` } : {}),
+            ...(e.location_raw ? { 'Location': e.location_raw } : {}),
+            ...(e.device_id ? { 'Device': e.device_id } : {}),
+            'Source File': e.source_file_name || '—',
+            'Source Row': String(e.source_row ?? '—'),
+            'Episode': e.episode_label || (e.episode_id ? 'Yes' : 'None'),
+          },
         };
       });
       setTimelineEvents(mappedEvents);
-    } catch (err) {
+    } catch {
       showToast('Failed to load timeline events', 'error');
     } finally {
       setIsLoading(false);
@@ -57,9 +92,8 @@ export const Timeline: React.FC = () => {
   };
 
   const [activeDomains, setActiveDomains] = useState<string[]>(['CDR', 'IPDR', 'BANK', 'SOCIAL', 'NCRP']);
-  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<MappedEvent | null>(null);
   const [zoomScale, setZoomScale] = useState<'1hr' | '30m' | '15m'>('1hr');
-  const [selectedDate, setSelectedDate] = useState('All');
 
   const toggleDomain = (domain: string) => {
     if (activeDomains.includes(domain)) {
@@ -79,19 +113,53 @@ export const Timeline: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `timeline_case_${caseId}_${selectedDate.replace(/\s+/g, '_')}.json`;
+    a.download = `timeline_case_${caseId}.json`;
     a.click();
     showToast('Timeline exported successfully.', 'success');
   };
 
-  // Empty state for new cases with no uploads
-  if (!isDemo && !hasUploads) {
+  // Group events by domain for lane rendering
+  const eventsByDomain = useMemo(() => {
+    const grouped: Record<string, MappedEvent[]> = {};
+    for (const ev of timelineEvents) {
+      if (!grouped[ev.domain]) grouped[ev.domain] = [];
+      grouped[ev.domain].push(ev);
+    }
+    return grouped;
+  }, [timelineEvents]);
+
+  // Compute time range for position calculation
+  const timeRange = useMemo(() => {
+    if (timelineEvents.length === 0) return { min: 0, max: 1 };
+    const times = timelineEvents.map(e => new Date(e.timestamp).getTime());
+    const min = Math.min(...times);
+    const max = Math.max(...times);
+    return { min, max: max === min ? min + 3600000 : max };
+  }, [timelineEvents]);
+
+  const getPositionPercent = (ts: string) => {
+    const t = new Date(ts).getTime();
+    return ((t - timeRange.min) / (timeRange.max - timeRange.min)) * 88 + 2; // 2–90% range
+  };
+
+  // Episodes / correlated events
+  const criticalEvents = timelineEvents.filter(e => e.isCritical);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <span className="text-[#64748B] text-sm">Loading timeline events...</span>
+      </div>
+    );
+  }
+
+  if (timelineEvents.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
         <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">timeline</span>
         <div>
-          <p className="font-bold text-[#0B2340]">No evidence uploaded yet</p>
-          <p className="text-sm text-[#64748B] mt-1">Upload CDR, bank or IPDR files to generate the timeline.</p>
+          <p className="font-bold text-[#0B2340]">No timeline events found</p>
+          <p className="text-sm text-[#64748B] mt-1">Upload CDR, Bank, IPDR or Social files to generate the timeline.</p>
         </div>
         <Button variant="primary" size="sm" icon="upload_file" onClick={() => navigate(`/cases/${caseId}/upload-evidence`)}>
           Upload Evidence
@@ -100,21 +168,29 @@ export const Timeline: React.FC = () => {
     );
   }
 
+  // Format time labels for the header axis
+  const minTime = new Date(timeRange.min);
+  const maxTime = new Date(timeRange.max);
+  const axisLabels: string[] = [];
+  for (let i = 0; i <= 5; i++) {
+    const t = new Date(timeRange.min + (i / 5) * (timeRange.max - timeRange.min));
+    axisLabels.push(`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`);
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Page Header */}
       <header className="border-b border-[#D9E1EA] pb-3 flex flex-col md:flex-row md:items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs text-[#64748B] mb-1">
-            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId}</span>
+            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId?.substring(0, 8)}</span>
             <span>•</span>
-            <span className="font-medium text-[#191C1E]">{isDemo ? 'Rajesh Verma' : (caseData?.subject ?? 'Subject')}</span>
-            <span>•</span>
-            <span>{isDemo ? 'Investment Scam' : (caseData?.type ?? 'Case')}</span>
+            <span className="font-medium text-[#191C1E]">{timelineEvents.length} events across {Object.keys(eventsByDomain).length} domains</span>
           </div>
           <h1 className="text-2xl font-bold text-[#0B2340] tracking-tight">Cross-Domain Timeline</h1>
           <p className="text-sm text-[#424751] mt-0.5">
             Chronological multi-lane correlation of telecom, bank, data, and social events.
+            Spanning {minTime.toLocaleString()} → {maxTime.toLocaleString()}
           </p>
         </div>
 
@@ -135,54 +211,27 @@ export const Timeline: React.FC = () => {
 
       {/* Controls Bar */}
       <div className="bg-white border border-[#D9E1EA] rounded-md px-4 py-2.5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
-        {/* Date Selector & Zoom */}
+        {/* Domain Filter Pills */}
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <span className="material-symbols-outlined text-[#64748B] text-[18px]">calendar_today</span>
-            <select
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="font-mono text-xs font-bold text-[#191C1E] bg-[#F8FAFC] border border-[#D9E1EA] rounded px-2 py-1 cursor-pointer"
-            >
-              <option value="15 Aug 2026">15 Aug 2026 (Incident Day)</option>
-              <option value="14 Aug 2026">14 Aug 2026 (Pre-Contact)</option>
-            </select>
-          </div>
-
-          <div className="h-4 w-px bg-[#D9E1EA] hidden sm:block"></div>
-
-          {/* Domain Filter Pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] font-bold text-[#64748B] tracking-wider uppercase mr-1">
               DOMAINS:
             </span>
-
-            {[
-              { key: 'CDR', label: 'CDR', color: '#0891B2' },
-              { key: 'IPDR', label: 'IPDR', color: '#7C3AED' },
-              { key: 'BANK', label: 'BANK', color: '#F97316' },
-              { key: 'SOCIAL', label: 'SOCIAL', color: '#16A34A' },
-              { key: 'NCRP', label: 'NCRP', color: '#C8102E' }
-            ].map(dom => {
-              const active = activeDomains.includes(dom.key);
+            {Object.entries(DOMAIN_CONFIG).map(([key, cfg]) => {
+              const active = activeDomains.includes(key);
+              const count = eventsByDomain[key]?.length ?? 0;
               return (
                 <button
-                  key={dom.key}
-                  onClick={() => toggleDomain(dom.key)}
+                  key={key}
+                  onClick={() => toggleDomain(key)}
                   className={`text-xs font-mono font-bold px-2 py-0.5 rounded border transition-all flex items-center gap-1.5 ${active
-                      ? 'bg-white shadow-xs'
-                      : 'opacity-40 bg-slate-100 border-transparent text-slate-400'
+                    ? 'bg-white shadow-xs'
+                    : 'opacity-40 bg-slate-100 border-transparent text-slate-400'
                     }`}
-                  style={{
-                    borderColor: active ? dom.color : 'transparent',
-                    color: active ? dom.color : undefined
-                  }}
+                  style={{ borderColor: active ? cfg.color : 'transparent', color: active ? cfg.color : undefined }}
                 >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: dom.color }}
-                  ></span>
-                  {dom.label}
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.color }} />
+                  {key} {count > 0 && <span className="opacity-70">({count})</span>}
                 </button>
               );
             })}
@@ -216,181 +265,87 @@ export const Timeline: React.FC = () => {
           <div className="w-32 shrink-0 border-r border-[#D9E1EA] flex items-center justify-center font-bold uppercase text-[10px] text-[#424751]">
             TIMELINE LANE
           </div>
-          <div className="flex-1 relative flex items-center justify-between px-6">
-            <span>09:00</span>
-            <span>11:00</span>
-            <span>13:00</span>
-            <span>14:00</span>
-            <span>15:00</span>
-            <span>17:00</span>
+          <div className="flex-1 relative flex items-center justify-between px-4">
+            {axisLabels.map((label, i) => (
+              <span key={i}>{label}</span>
+            ))}
           </div>
         </div>
 
-        {/* Lane: EPISODES / Nexus Sequence */}
-        <div className="flex min-h-[70px] border-b border-[#D9E1EA] bg-[#FFF5F5]/60 relative group">
-          <div className="w-32 shrink-0 border-r border-[#D9E1EA] bg-white flex flex-col justify-center px-3 py-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">
-              EPISODES
-            </span>
-            <span className="text-[9px] text-[#64748B] font-mono">Core Correlation</span>
-          </div>
-          <div className="flex-1 p-2 relative flex items-center">
-            {/* Correlated Nexus block spanning from 14:00 to 15:15 */}
-            <div
-              onClick={() => showToast('Correlated Modus Operandi sequence: Voice Call → Data Session → ₹48,000 IMPS → ATM Withdrawal.', 'info')}
-              className="ml-[55%] w-[38%] bg-[#DC2626]/10 border-2 border-dashed border-[#DC2626] rounded-md p-2 cursor-pointer hover:bg-[#DC2626]/20 transition-all flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[#DC2626] text-[18px] animate-pulse">
-                warning
-              </span>
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold text-[#DC2626] font-mono">
-                  CALL → DATA → TRANSFER → ATM NEXUS
-                </div>
-                <div className="text-[10px] text-[#424751] truncate">
-                  High-velocity sequence across 4 domains in 70 mins
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Lane: SOCIAL */}
-        {activeDomains.includes('SOCIAL') && (
-          <div className="flex min-h-[75px] border-b border-[#D9E1EA] relative hover:bg-[#F8FAFC] transition-colors">
+        {/* Episodes Lane — highlight correlated events */}
+        {criticalEvents.length > 0 && (
+          <div className="flex min-h-[60px] border-b border-[#D9E1EA] bg-[#FFF5F5]/60 relative">
             <div className="w-32 shrink-0 border-r border-[#D9E1EA] bg-white flex flex-col justify-center px-3 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#16A34A]">
-                SOCIAL
-              </span>
-              <span className="text-[9px] text-[#64748B] font-mono">WhatsApp / TG</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">EPISODES</span>
+              <span className="text-[9px] text-[#64748B] font-mono">Correlated Events</span>
             </div>
             <div className="flex-1 p-2 relative flex items-center">
-              {/* Event 09:15 */}
-              <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[0])}
-                className="ml-[4%] bg-[#16A34A]/10 border border-[#16A34A]/40 rounded px-2.5 py-1.5 cursor-pointer hover:shadow-sm hover:scale-[1.02] transition-all flex items-center gap-2 max-w-xs"
-              >
-                <span className="w-2 h-2 rounded-full bg-[#16A34A]"></span>
-                <div>
-                  <div className="text-[11px] font-bold text-[#16A34A] font-mono">09:15 • Social Contact</div>
-                  <div className="text-[10px] text-[#191C1E] truncate">WhatsApp promo from +44 7700...</div>
+              {criticalEvents.slice(0, 3).map(ev => (
+                <div
+                  key={ev.id}
+                  style={{ left: `${getPositionPercent(ev.timestamp)}%`, position: 'absolute' }}
+                  onClick={() => setSelectedEvent(ev)}
+                  className="bg-[#DC2626]/10 border-2 border-dashed border-[#DC2626] rounded px-2 py-1 cursor-pointer hover:bg-[#DC2626]/20 transition-all text-[10px] font-bold text-[#DC2626] font-mono whitespace-nowrap"
+                >
+                  {ev.timeDisplay} ⚡
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Lane: CDR */}
-        {activeDomains.includes('CDR') && (
-          <div className="flex min-h-[75px] border-b border-[#D9E1EA] relative hover:bg-[#F8FAFC] transition-colors">
-            <div className="w-32 shrink-0 border-r border-[#D9E1EA] bg-white flex flex-col justify-center px-3 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#0891B2]">
-                CDR
-              </span>
-              <span className="text-[9px] text-[#64748B] font-mono">Voice & SMS</span>
-            </div>
-            <div className="flex-1 p-2 relative flex items-center">
-              {/* Event 14:00 */}
-              <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[1])}
-                className="ml-[56%] bg-[#0891B2]/10 border-2 border-[#0891B2] rounded px-3 py-1.5 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex items-center gap-2 max-w-sm"
-              >
-                <span className="material-symbols-outlined text-[#0891B2] text-[16px]">call</span>
-                <div>
-                  <div className="text-[11px] font-bold text-[#0891B2] font-mono">14:00 • Voice Call (14m 23s)</div>
-                  <div className="text-[10px] text-[#191C1E] truncate">+91 9812345678 → Victim (Cell ID 45892)</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Domain Lanes — rendered from real fetched data */}
+        {Object.entries(DOMAIN_CONFIG).map(([domainKey, cfg]) => {
+          if (!activeDomains.includes(domainKey)) return null;
+          const laneEvents = eventsByDomain[domainKey] || [];
 
-        {/* Lane: IPDR */}
-        {activeDomains.includes('IPDR') && (
-          <div className="flex min-h-[75px] border-b border-[#D9E1EA] relative hover:bg-[#F8FAFC] transition-colors">
-            <div className="w-32 shrink-0 border-r border-[#D9E1EA] bg-white flex flex-col justify-center px-3 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#7C3AED]">
-                IPDR
-              </span>
-              <span className="text-[9px] text-[#64748B] font-mono">Data Sessions</span>
-            </div>
-            <div className="flex-1 p-2 relative flex items-center">
-              {/* Event 14:28 */}
-              <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[2])}
-                className="ml-[66%] bg-[#7C3AED]/10 border-2 border-[#7C3AED] rounded px-3 py-1.5 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex items-center gap-2 max-w-sm"
-              >
-                <span className="material-symbols-outlined text-[#7C3AED] text-[16px]">router</span>
-                <div>
-                  <div className="text-[11px] font-bold text-[#7C3AED] font-mono">14:28 • Banking Data Session</div>
-                  <div className="text-[10px] text-[#191C1E] truncate">IP: 103.76.234.12 (Port 443, 2.4MB)</div>
-                </div>
+          return (
+            <div key={domainKey} className="flex min-h-[75px] border-b border-[#D9E1EA] relative hover:bg-[#F8FAFC] transition-colors last:border-b-0">
+              <div className="w-32 shrink-0 border-r border-[#D9E1EA] bg-white flex flex-col justify-center px-3 py-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: cfg.color }}>
+                  {domainKey}
+                </span>
+                <span className="text-[9px] text-[#64748B] font-mono">{cfg.label}</span>
+                {laneEvents.length > 0 && (
+                  <span className="text-[8px] text-[#94A3B8] font-mono">{laneEvents.length} events</span>
+                )}
               </div>
-            </div>
-          </div>
-        )}
+              <div className="flex-1 py-2 relative">
+                {laneEvents.length === 0 ? (
+                  <div className="flex items-center h-full px-4">
+                    <span className="text-[10px] text-[#CBD5E1] font-mono italic">No {domainKey} events in this case</span>
+                  </div>
+                ) : (
+                  laneEvents.map(ev => {
+                    const leftPct = getPositionPercent(ev.timestamp);
+                    return (
+                      <div
+                        key={ev.id}
+                        onClick={() => setSelectedEvent(ev)}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all text-[10px] font-bold font-mono whitespace-nowrap border-2 ${
+                          ev.isCritical ? 'ring-2 ring-offset-1' : ''
+                        }`}
+                        style={{
+                          left: `${leftPct}%`,
+                          position: 'absolute',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          backgroundColor: `${cfg.color}18`,
+                          borderColor: ev.isCritical ? '#DC2626' : cfg.color,
+                          color: ev.isCritical ? '#DC2626' : cfg.color,
+                        }}
+                      >
+                        <span className="material-symbols-outlined text-[13px]">{cfg.icon}</span>
+                        <span>{ev.timeDisplay}</span>
+                      </div>
+                    );
 
-        {/* Lane: BANK */}
-        {activeDomains.includes('BANK') && (
-          <div className="flex min-h-[85px] border-b border-[#D9E1EA] relative hover:bg-[#F8FAFC] transition-colors">
-            <div className="w-32 shrink-0 border-r border-[#D9E1EA] bg-white flex flex-col justify-center px-3 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">
-                BANK
-              </span>
-              <span className="text-[9px] text-[#64748B] font-mono">IMPS & Cash-out</span>
-            </div>
-            <div className="flex-1 p-2 relative flex items-center gap-3">
-              {/* Event 14:32 (IMPS) */}
-              <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[3])}
-                className="ml-[68%] bg-[#DC2626]/10 border-2 border-[#DC2626] rounded px-3 py-1.5 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex items-center gap-2 max-w-xs ring-2 ring-[#DC2626]/20"
-              >
-                <span className="material-symbols-outlined text-[#DC2626] text-[16px]">account_balance</span>
-                <div>
-                  <div className="text-[11px] font-bold text-[#DC2626] font-mono">14:32 • IMPS Transfer</div>
-                  <div className="text-[10px] text-[#191C1E] font-bold font-mono">₹48,000 → HDFC 4521</div>
-                </div>
-              </div>
-
-              {/* Event 15:10 (ATM) */}
-              <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[4])}
-                className="bg-[#F97316]/10 border-2 border-[#F97316] rounded px-3 py-1.5 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all flex items-center gap-2 max-w-xs"
-              >
-                <span className="material-symbols-outlined text-[#F97316] text-[16px]">local_atm</span>
-                <div>
-                  <div className="text-[11px] font-bold text-[#F97316] font-mono">15:10 • ATM Cash-Out</div>
-                  <div className="text-[10px] text-[#191C1E] font-bold font-mono">₹47,500 @ Sector 22</div>
-                </div>
+                  })
+                )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Lane: NCRP */}
-        {activeDomains.includes('NCRP') && (
-          <div className="flex min-h-[75px] relative hover:bg-[#F8FAFC] transition-colors">
-            <div className="w-32 shrink-0 border-r border-[#D9E1EA] bg-white flex flex-col justify-center px-3 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#C8102E]">
-                NCRP
-              </span>
-              <span className="text-[9px] text-[#64748B] font-mono">1930 Portal</span>
-            </div>
-            <div className="flex-1 p-2 relative flex items-center">
-              {/* Event 16:20 */}
-              <div
-                onClick={() => setSelectedEvent(CASE_2847_TIMELINE[5])}
-                className="ml-[82%] bg-[#C8102E]/10 border border-[#C8102E]/40 rounded px-2.5 py-1.5 cursor-pointer hover:shadow-sm hover:scale-[1.02] transition-all flex items-center gap-2 max-w-xs"
-              >
-                <span className="w-2 h-2 rounded-full bg-[#C8102E]"></span>
-                <div>
-                  <div className="text-[11px] font-bold text-[#C8102E] font-mono">16:20 • NCRP Complaint</div>
-                  <div className="text-[10px] text-[#191C1E] truncate">Ref: NCRP-2026-89128</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })}
       </div>
 
       {/* Event Details Drawer */}
@@ -398,7 +353,7 @@ export const Timeline: React.FC = () => {
         isOpen={selectedEvent !== null}
         onClose={() => setSelectedEvent(null)}
         title={selectedEvent?.title || 'Event Details'}
-        subtitle={selectedEvent?.timestamp}
+        subtitle={selectedEvent ? new Date(selectedEvent.timestamp).toLocaleString() : undefined}
         width="w-[420px]"
         footer={
           <>
@@ -440,7 +395,7 @@ export const Timeline: React.FC = () => {
                 )}
               </div>
               <p className="text-sm font-medium text-[#191C1E] leading-snug">
-                {selectedEvent.description}
+                {selectedEvent.description || selectedEvent.title}
               </p>
             </div>
 
@@ -454,7 +409,7 @@ export const Timeline: React.FC = () => {
                   <div key={key} className="p-2.5 flex justify-between gap-3">
                     <span className="text-[#64748B] font-medium">{key}</span>
                     <span className="font-mono text-[#191C1E] font-semibold text-right break-all">
-                      {value}
+                      {String(value)}
                     </span>
                   </div>
                 ))}

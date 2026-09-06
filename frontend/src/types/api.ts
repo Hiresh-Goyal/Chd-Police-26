@@ -76,6 +76,7 @@ export interface Alert {
   event_count: number;
   explanation: string;
   ml_signal: number;
+  ml_explanation?: string | null;
   created_at: string;
 }
 

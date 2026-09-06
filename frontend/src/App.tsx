@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './components/common/Toast';
 import { AppShell } from './components/shell/AppShell';
 import { CaseStoreProvider } from './context/CaseStore';
+import { apiClient } from './api/client';
 
 // Pages
 import { Login } from './pages/Login';
@@ -30,6 +31,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const App: React.FC = () => {
+  // Phase C: Bootstrap session from localStorage on every app load.
+  // Validates stored token against /auth/me — clears stale tokens automatically.
+  useEffect(() => {
+    const token = localStorage.getItem('ds_token');
+    if (token) {
+      apiClient.setToken(token);
+      apiClient.getMe().catch(() => {
+        // Token invalid or expired — clear everything
+        localStorage.removeItem('ds_token');
+        localStorage.removeItem('ds_role');
+        apiClient.clearToken();
+      });
+    }
+  }, []);
+
   return (
     <ToastProvider>
       <CaseStoreProvider>

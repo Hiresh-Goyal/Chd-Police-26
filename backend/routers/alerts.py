@@ -8,6 +8,20 @@ from db.connection import get_db
 
 router = APIRouter()
 
+@router.get("/alerts")
+def get_global_alerts(limit: int = 50, db: Session = Depends(get_db)):
+    query = """
+        SELECT f.id, f.case_id, c.title as case_title, f.rule_id, f.severity, f.fraud_weight, 
+               SUBSTRING(f.explanation, 1, 200) as explanation,
+               f.ml_signal, f.ml_explanation, f.created_at
+        FROM findings f
+        LEFT JOIN cases c ON f.case_id = c.id
+        ORDER BY f.created_at DESC
+        LIMIT :limit
+    """
+    rows = db.execute(text(query), {"limit": limit}).fetchall()
+    return [dict(r._mapping) for r in rows]
+
 @router.get("/cases/{case_id}/alerts")
 def get_alerts(case_id: uuid.UUID, severity: Optional[str] = None, rule_id: Optional[str] = None, db: Session = Depends(get_db)):
     query = """
@@ -16,7 +30,7 @@ def get_alerts(case_id: uuid.UUID, severity: Optional[str] = None, rule_id: Opti
                jsonb_array_length(entity_ids) as entity_count,
                jsonb_array_length(event_ids) as event_count,
                SUBSTRING(explanation, 1, 200) as explanation,
-               ml_signal, created_at
+               ml_signal, ml_explanation, created_at
         FROM findings
         WHERE case_id = :case_id
     """
@@ -41,7 +55,9 @@ def get_alert_detail(case_id: uuid.UUID, finding_id: uuid.UUID, db: Session = De
         raise HTTPException(404, "Finding not found")
         
     f_dict = dict(f._mapping)
-    f_dict['ml_explanation'] = "Anomalous transaction identified by Isolation Forest" if f.ml_signal > 0.6 else None
+    # The DB now returns the real ml_explanation, no need to overwrite unless it's empty
+    if not f_dict.get('ml_explanation') and f.ml_signal > 0.6:
+        f_dict['ml_explanation'] = "Anomalous transaction identified by ML"
     
     # Entities
     if f.entity_ids:

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ALL_CASES, CASE_2847 } from '../data/mockData';
+import { useToast } from '../components/common/Toast';
 import { apiClient } from '../api/client';
 import type { Case } from '../types/api';
+
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();

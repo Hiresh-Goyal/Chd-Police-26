@@ -11,88 +11,120 @@ interface ReportSectionItem {
 
 /* ── helpers ────────────────────────────────────────────────── */
 
-function generateReportHTML(sections: ReportSectionItem[], certOfficer: string): string {
-  const includedNames = sections.filter(s => s.included).map(s => s.name);
+function generateReportHTML(sections: ReportSectionItem[], certOfficer: string, reportData: any): string {
+  const caseData = reportData?.case || { id: 'UNKNOWN', title: 'Unknown Case' };
+  const summary = reportData?.summary || {};
+  const findings = reportData?.findings || [];
+  const moneyFlow = reportData?.money_flow || { nodes: [], links: [] };
+  const mlSignals = reportData?.ml_signals || {};
+  const chain = reportData?.chain_of_custody || [];
+  
+  const includedNames = sections.filter(s => s.included).map(s => s.id);
+
+  // Filter ML explanations
+  const aiFindings = findings.filter((f: any) => f.ml_signal > 0 && f.ml_explanation);
+  
+  // Format findings for Section 2
+  const findingsHTML = findings.map((f: any, i: number) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><span class="confidential" style="background:#e0e7ff; color:#3730a3; border-color:#c7d2fe;">${f.rule_id}</span></td>
+      <td>${f.severity}</td>
+      <td>${f.explanation}</td>
+    </tr>
+  `).join('');
+
+  // Format AI for Section 1b (AI Synthesized Summary)
+  const aiHTML = aiFindings.length > 0 ? `
+    <div style="background-color: #faf5ff; border-left: 4px solid #9333ea; padding: 12px; margin-top: 15px;">
+      <h3 style="color: #6b21a8; font-size: 12px; margin-bottom: 8px;">AI-Synthesized Behavioral Anomalies</h3>
+      <ul style="font-size: 11px; padding-left: 15px; color: #4c1d95;">
+        ${aiFindings.map((f: any) => `<li><strong>${f.rule_id} Context:</strong> ${f.ml_explanation} (Confidence: ${(f.ml_signal * 100).toFixed(1)}%)</li>`).join('')}
+      </ul>
+    </div>
+  ` : '';
+
+  // Format Money Flow for Section 5
+  const flowHTML = moneyFlow.links.map((l: any) => {
+    const source = moneyFlow.nodes.find((n: any) => n.id === l.source)?.canonical_value || l.source;
+    const target = moneyFlow.nodes.find((n: any) => n.id === l.target)?.canonical_value || l.target;
+    return `
+      <tr>
+        <td>${source}</td>
+        <td>${target}</td>
+        <td>₹${l.amount?.toLocaleString() || 'Unknown'}</td>
+        <td>${l.link_type}</td>
+      </tr>
+    `;
+  }).join('');
+
+  // Format Chain of Custody for Section 6
+  const chainHTML = chain.map((c: any) => `
+    <tr>
+      <td>${c.original_name}</td>
+      <td style="font-family: monospace; font-size: 10px;">${c.sha256}</td>
+      <td>${new Date(c.uploaded_at).toLocaleString('en-IN')}</td>
+    </tr>
+  `).join('');
 
   const sectionBlocks: Record<string, string> = {
     sec_1: `
-      <h2>1. Executive Case Overview &amp; Complainant Details</h2>
-      <p>Investigation established that subject <strong>Rajesh Verma</strong> coordinated an investment fraud scheme through social media channels, communicating via target SIM <strong>+91 9812345678</strong>. The suspect directed victims to transfer funds promising high returns on a fictitious trading platform.</p>
+      <h2>1. Executive Case Overview &amp; ML Synthesis</h2>
+      <p>Investigation established that the subject coordinates a fraud scheme via multiple domains. Total fraud score computed by Rakshak Setu is <strong>${summary.fraud_score || 0} (${summary.risk_level || 'UNKNOWN'})</strong>.</p>
       <table>
-        <tr><td>Case Reference ID</td><td>#2847</td></tr>
-        <tr><td>Primary Subject / Accused</td><td>Rajesh Verma</td></tr>
-        <tr><td>Complainant</td><td>Priya Sharma, Sector 21, Chandigarh</td></tr>
-        <tr><td>Estimated Defraud Amount</td><td>₹4,82,000</td></tr>
-        <tr><td>Primary Incident Date</td><td>15 August 2026</td></tr>
-        <tr><td>Investigating Officer</td><td>Insp. Amrit Singh, Sr. Inspector, Sector 17 Unit</td></tr>
-      </table>`,
+        <tr><td>Case Reference ID</td><td>#${caseData.id?.substring(0,8)}</td></tr>
+        <tr><td>Primary Subject / Accused</td><td>${caseData.title.split('—')[1] || caseData.title}</td></tr>
+        <tr><td>Case Type</td><td>${caseData.title.split('—')[0] || 'Investigation'}</td></tr>
+        <tr><td>Total Flagged Anomalies</td><td>${summary.total_findings || 0}</td></tr>
+        <tr><td>Data Domains Analyzed</td><td>${(summary.data_sources || []).join(', ')}</td></tr>
+        <tr><td>Investigating Officer</td><td>${certOfficer.split(',')[0]}</td></tr>
+      </table>
+      ${aiHTML}
+    `,
     sec_2: `
-      <h2>2. Critical Modus Operandi Nexus (Call → IPDR → IMPS → ATM)</h2>
-      <p>Cellular tower logs corroborate suspect presence at Sector 17 at 14:00 IST. VOIP call was followed by IPDR data sessions and IMPS transfer of ₹48,000 into HDFC Account XXXXXXX4521, culminating in terminal cash withdrawal of ₹47,500 at Sector 22 ATM.</p>
+      <h2>2. Critical Modus Operandi &amp; Rules Fired</h2>
+      <p>The system's deterministic rules engine identified the following high-confidence tactical behaviors:</p>
       <table>
-        <tr><th>Step</th><th>Domain</th><th>Detail</th></tr>
-        <tr><td>1</td><td>CDR</td><td>VOIP call from +91 9812345678 to victim — 14m 23s</td></tr>
-        <tr><td>2</td><td>IPDR</td><td>IP 103.76.234.12 — data to NetBanking portal</td></tr>
-        <tr><td>3</td><td>BANK</td><td>IMPS TXN ₹48,000 → HDFC XXXXXXX4521</td></tr>
-        <tr><td>4</td><td>BANK</td><td>ATM Cashout ₹47,500 — Sector 22 ATM SIB8922</td></tr>
-      </table>`,
-    sec_3: `
-      <h2>3. Cross-Domain Chronological Timeline (15 Aug 2026)</h2>
-      <table>
-        <tr><th>Time</th><th>Domain</th><th>Event</th></tr>
-        <tr><td>09:15</td><td>SOCIAL</td><td>Initial Social Contact via WhatsApp MSG from +44 7738 900977</td></tr>
-        <tr><td>14:00</td><td>CDR</td><td>Voice Call — Duration 14m 23s (Tower Cell ID 45892)</td></tr>
-        <tr><td>14:28</td><td>IPDR</td><td>Active Data Session — IP: 103.76.234.12 (Port 443), Data: 2.4MB</td></tr>
-        <tr><td>14:32</td><td>BANK</td><td>Fraudulent Transfer — IMPS ₹48,000 → HDFC XXXXXXX4521</td></tr>
-        <tr><td>15:10</td><td>BANK</td><td>ATM Withdrawal — ₹47,500 at Sector 22 ATM</td></tr>
-      </table>`,
-    sec_4: `
-      <h2>4. Entity Link Analysis &amp; Multi-Domain Associations</h2>
-      <p>Cross-domain entity resolution identified 6 suspect entities linked across CDR, IPDR and BANK domains. Primary subject Rajesh Verma shares call records and IP session logs with secondary entities operating mule accounts.</p>
-      <table>
-        <tr><th>Entity</th><th>Role</th><th>Domain Link</th><th>Risk Score</th></tr>
-        <tr><td>Rajesh Verma</td><td>Primary Subject / Target P1</td><td>CDR + IPDR + BANK</td><td>92</td></tr>
-        <tr><td>+91 9812345678</td><td>Primary Contact (IMSI)</td><td>CDR</td><td>88</td></tr>
-        <tr><td>HDFC XXXXXXX4521</td><td>Mule Account T1</td><td>BANK</td><td>85</td></tr>
-      </table>`,
+        <tr><th>#</th><th>Rule ID</th><th>Severity</th><th>Explanation</th></tr>
+        ${findingsHTML || '<tr><td colspan="4" style="text-align:center;">No findings detected.</td></tr>'}
+      </table>
+    `,
     sec_5: `
       <h2>5. CriminalFlow Financial Trail &amp; Mule Dispersal</h2>
-      <p>Total defraud amount of ₹4,82,000 was dispersed across multiple mule accounts via IMPS and then rapidly converted to cash via ATM withdrawals to prevent recovery.</p>
+      <p>The financial ledger was analyzed via network graph to trace fund movement across potential mule accounts.</p>
       <table>
-        <tr><th>From</th><th>To</th><th>Amount</th><th>Method</th></tr>
-        <tr><td>Victim Account</td><td>HDFC XXXXXXX4521</td><td>₹48,000</td><td>IMPS</td></tr>
-        <tr><td>HDFC XXXXXXX4521</td><td>ATM SIB8922</td><td>₹47,500</td><td>Cash Withdrawal</td></tr>
-      </table>`,
+        <tr><th>Source Account</th><th>Destination Account</th><th>Amount</th><th>Method</th></tr>
+        ${flowHTML || '<tr><td colspan="4" style="text-align:center;">No financial transfers recorded.</td></tr>'}
+      </table>
+    `,
     sec_6: `
       <h2>6. Cryptographic Evidence Integrity (SHA-256 Ledger)</h2>
+      <p>All source files ingested for this case are permanently hashed to guarantee evidentiary non-repudiation.</p>
       <table>
-        <tr><th>Evidence File</th><th>SHA-256 Hash</th></tr>
-        <tr><td>CDR_Export_15Aug.csv</td><td>a3f1...9d2e (truncated for display)</td></tr>
-        <tr><td>IPDR_Session_Log.json</td><td>b7c4...1f8a (truncated for display)</td></tr>
-        <tr><td>BANK_Stmt_HDFC4521.pdf</td><td>d9e2...3c5b (truncated for display)</td></tr>
-      </table>`,
+        <tr><th>Evidence File</th><th>SHA-256 Hash</th><th>Ingestion Timestamp</th></tr>
+        ${chainHTML || '<tr><td colspan="3" style="text-align:center;">No files uploaded.</td></tr>'}
+      </table>
+    `,
     sec_7: `
       <h2>7. Section 65B Indian Evidence Act Certification</h2>
       <div class="cert-box">
         <p><strong>Certificate Under Section 65B(4) of Indian Evidence Act, 1872</strong></p>
-        <p><em>"I hereby certify that the electronic output provided herein is a true reproduction of system records maintained during ordinary course of investigative duty without tampering or modification."</em></p>
+        <p><em>"I hereby certify that the electronic output provided herein is a true reproduction of system records maintained during ordinary course of investigative duty without tampering or modification. The digital forensic analytics were generated automatically by the Rakshak Setu system."</em></p>
         <p style="margin-top:24px"><strong>${certOfficer}</strong><br/>
-        Digital Signature ID: DS-2026-CHDPOL-1042<br/>
+        Digital Signature Verified<br/>
         Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-      </div>`,
+      </div>
+    `,
   };
 
-  const sectionsHTML = sections
-    .filter(s => s.included)
-    .map(s => sectionBlocks[s.id] ?? '')
-    .join('\n');
+  const sectionsHTML = includedNames.map(id => sectionBlocks[id]).filter(Boolean).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FIR #2847 — Forensic Evidence Dossier</title>
+  <title>FIR #${caseData.id?.substring(0,8)} — Forensic Evidence Dossier</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1e293b; background: #fff; padding: 40px; max-width: 900px; margin: auto; }
@@ -124,11 +156,11 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string):
   </div>
 
   <div class="meta-box">
-    <div><span>Case Reference:</span><span>FIR #2847 / 2026</span></div>
-    <div><span>Subject / Accused:</span><span>Rajesh Verma</span></div>
-    <div><span>Total Defraud Amount:</span><span class="red">₹4,82,000</span></div>
-    <div><span>Primary Incident Date:</span><span>15 August 2026</span></div>
-    <div><span>Investigating Officer:</span><span>Insp. Amrit Singh</span></div>
+    <div><span>Case Reference:</span><span>#${caseData.id?.substring(0,8)}</span></div>
+    <div><span>Subject / Accused:</span><span>${caseData.title.split('—')[1] || caseData.title}</span></div>
+    <div><span>Risk Level:</span><span class="red">${summary.risk_level || 'UNKNOWN'}</span></div>
+    <div><span>Total Findings:</span><span>${summary.total_findings || 0}</span></div>
+    <div><span>Investigating Officer:</span><span>${certOfficer.split(',')[0]}</span></div>
     <div><span>Report Generated:</span><span>${new Date().toLocaleString('en-IN')}</span></div>
   </div>
 
@@ -146,22 +178,19 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string):
 export const EvidenceReport: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
-  const isDemo = caseId === '2847';
 
   const [certOfficer, setCertOfficer] = useState('Insp. Amrit Singh, Senior Inspector (ID: 1042)');
-  const [caseData, setCaseData] = useState<any>(null);
+  const [reportData, setReportData] = useState<any>(null);
   
   useEffect(() => {
     if (caseId) {
-      apiClient.getCase(caseId).then(data => setCaseData(data)).catch(() => {});
+      apiClient.getReport(caseId).then(data => setReportData(data)).catch(() => {});
     }
   }, [caseId]);
 
   const [sections, setSections] = useState<ReportSectionItem[]>([
-    { id: 'sec_1', name: '1. Executive Case Overview & Complainant Details', included: true },
-    { id: 'sec_2', name: '2. Critical Modus Operandi Nexus (Call → IPDR → IMPS → ATM)', included: true },
-    { id: 'sec_3', name: '3. Cross-Domain Chronological Timeline (15 Aug 2026)', included: true },
-    { id: 'sec_4', name: '4. Entity Link Analysis & Multi-Domain Associations', included: true },
+    { id: 'sec_1', name: '1. Executive Case Overview & ML Synthesis', included: true },
+    { id: 'sec_2', name: '2. Critical Modus Operandi & Rules Fired', included: true },
     { id: 'sec_5', name: '5. CriminalFlow Financial Trail & Mule Dispersal', included: true },
     { id: 'sec_6', name: '6. Cryptographic Evidence Integrity (SHA-256 Ledger)', included: true },
     { id: 'sec_7', name: '7. Section 65B Indian Evidence Act Certification', included: true },
@@ -173,7 +202,7 @@ export const EvidenceReport: React.FC = () => {
 
   /** Build a Blob URL from the generated HTML */
   const buildBlobUrl = (): string => {
-    const html = generateReportHTML(sections, certOfficer, caseData || { id: caseId, title: 'Unknown' });
+    const html = generateReportHTML(sections, certOfficer, reportData || {});
     const blob = new Blob([html], { type: 'text/html' });
     return URL.createObjectURL(blob);
   };
@@ -190,7 +219,7 @@ export const EvidenceReport: React.FC = () => {
     const url = buildBlobUrl();
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `FIR_${caseId}_Dossier.html`;
+    anchor.download = `FIR_${caseId?.substring(0,8)}_Dossier.html`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -204,7 +233,7 @@ export const EvidenceReport: React.FC = () => {
       <header className="border-b border-[#D9E1EA] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs text-[#64748B] mb-1">
-            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId}</span>
+            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId?.substring(0,8)}</span>
             <span>•</span>
             <span>Official Court &amp; Legal Proceedings Dossier</span>
           </div>
@@ -244,80 +273,56 @@ export const EvidenceReport: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
             <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4]">
               <label className="text-[#64748B] block mb-0.5 font-medium">Case Reference ID</label>
-              <div className="font-mono font-bold text-[#0B2340] text-sm">#{caseId}</div>
+              <div className="font-mono font-bold text-[#0B2340] text-sm">#{caseId?.substring(0,8)}</div>
             </div>
             <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4]">
               <label className="text-[#64748B] block mb-0.5 font-medium">Primary Subject</label>
-              <div className="font-bold text-[#0B2340] text-sm">{caseData ? caseData.title : 'Loading...'}</div>
+              <div className="font-semibold text-[#0B2340] text-sm">{reportData?.case?.title || 'Unknown'}</div>
             </div>
             <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4]">
-              <label className="text-[#64748B] block mb-0.5 font-medium">Incident Date</label>
-              <div className="font-bold text-[#0B2340] text-sm">{caseData ? new Date(caseData.updated_at).toLocaleDateString() : 'Loading...'}</div>
-            </div>
-            <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4] col-span-2 sm:col-span-3">
-              <label className="text-[#64748B] block mb-1 font-medium">Investigating Officer (IO)</label>
-              <div className="font-semibold text-[#0B2340] flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[#0B2340] text-white flex items-center justify-center text-[9px] font-bold shrink-0">AS</span>
-                {certOfficer}
-              </div>
+              <label className="text-[#64748B] block mb-0.5 font-medium">Certifying Officer</label>
+              <input 
+                type="text" 
+                value={certOfficer} 
+                onChange={(e) => setCertOfficer(e.target.value)}
+                className="w-full bg-transparent border-b border-[#cbd5e1] font-semibold text-[#0B2340] text-sm outline-none focus:border-[#0B5CAB]"
+              />
             </div>
           </div>
         </div>
 
-        {/* Section 65B Certification */}
+        {/* Sections Selection */}
         <div className="bg-white border border-[#D9E1EA] rounded-md p-5 shadow-xs">
-          <h2 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[#0B5CAB] text-[18px]">verified</span>
-            Section 65B Indian Evidence Act Certification
-          </h2>
-          <p className="text-xs text-[#64748B] mb-3">
-            Identify the certifying authority attesting to electronic data integrity and tamper-evident custody.
-          </p>
-          <div className="max-w-lg">
-            <label className="block text-xs font-bold text-[#424751] mb-1">
-              Certifying Officer / Authority Name &amp; Rank
-            </label>
-            <input
-              type="text"
-              value={certOfficer}
-              onChange={e => setCertOfficer(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-[#D9E1EA] rounded text-xs text-[#191C1E] focus:outline-none focus:border-[#0B5CAB]"
-            />
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <h2 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[#0B5CAB] text-[18px]">list_alt</span>
+                Include in Report
+              </h2>
+              <p className="text-xs text-[#64748B]">Select the automated modules to bundle into the final PDF/HTML dossier.</p>
+            </div>
+            <span className="text-[10px] font-mono bg-[#F8FAFC] text-[#64748B] px-2 py-1 rounded border border-[#EDF0F4]">
+              {sections.filter(s => s.included).length} SELECTED
+            </span>
           </div>
-        </div>
-
-        {/* Report Section Selection — full width */}
-        <div className="bg-white border border-[#D9E1EA] rounded-md p-5 shadow-xs">
-          <h2 className="text-xs font-bold text-[#0B2340] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[#0B5CAB] text-[18px]">format_list_bulleted</span>
-            Report Section Selection
-          </h2>
-          <p className="text-xs text-[#64748B] mb-3">
-            Select analytical modules to compile into the final court submission.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {sections.map(sec => (
-              <label
-                key={sec.id}
-                className="flex items-center gap-3 p-3 rounded bg-[#F8FAFC] border border-[#EDF0F4] hover:bg-[#EFF6FF] hover:border-[#0B5CAB]/30 cursor-pointer transition-colors text-xs"
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {sections.map(section => (
+              <label 
+                key={section.id}
+                className={`flex items-start gap-3 p-3 rounded border cursor-pointer transition-colors ${
+                  section.included ? 'bg-[#EFF6FF] border-[#0B5CAB]/30' : 'bg-white border-[#D9E1EA] hover:bg-[#F8FAFC]'
+                }`}
               >
-                <input
-                  type="checkbox"
-                  checked={sec.included}
-                  onChange={() => toggleSection(sec.id)}
-                  className="w-4 h-4 rounded accent-[#0B5CAB] shrink-0"
+                <input 
+                  type="checkbox" 
+                  checked={section.included}
+                  onChange={() => toggleSection(section.id)}
+                  className="mt-0.5 w-4 h-4 text-[#0B5CAB] rounded border-gray-300 focus:ring-[#0B5CAB]"
                 />
-                <span className={`font-medium ${sec.included ? 'text-[#191C1E]' : 'text-[#94A3B8] line-through'}`}>
-                  {sec.name}
-                </span>
+                <div className="flex-1 text-sm font-medium text-[#191C1E]">{section.name}</div>
               </label>
             ))}
-          </div>
-
-          {/* Inline status bar */}
-          <div className="mt-3 pt-3 border-t border-[#EDF0F4] flex items-center justify-between text-xs text-[#64748B]">
-            <span>{sections.filter(s => s.included).length} of {sections.length} sections selected</span>
-            <span className="text-[#0B5CAB] font-semibold">FIR_2847_Dossier_15Aug2026.html</span>
           </div>
         </div>
 

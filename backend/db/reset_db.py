@@ -1,7 +1,7 @@
 """
 backend/db/reset_db.py
 
-Drops ALL tables then recreates them from schema.py.
+Drops ALL tables and recreates them from shared/schema.py.
 DEV ONLY — destroys all data.
 
 Usage:
@@ -13,17 +13,25 @@ from backend.shared.schema import metadata
 
 
 def reset_db():
-    """Drop all tables and recreate from scratch. DEV ONLY."""
+    """Drop all tables and recreate them from the current schema. DEV ONLY."""
     engine = get_engine()
+
+    print("[INFO] Dropping all tables...")
     metadata.drop_all(engine)
-    print("✗ All tables dropped.")
+    print("[OK] All tables dropped.")
+
+    print("[INFO] Recreating all tables...")
     metadata.create_all(engine)
-    print("✓ All tables recreated.")
+    print("[OK] All tables recreated successfully.")
 
 
 if __name__ == "__main__":
-    confirm = input("This will DELETE ALL DATA. Type 'yes' to continue: ")
+    confirm = input(
+        "This will DELETE ALL DATA from the database. "
+        "Type 'yes' to continue: "
+    )
+
     if confirm.strip().lower() == "yes":
         reset_db()
     else:
-        print("Aborted.")
+        print("[ABORTED] Database reset cancelled.")

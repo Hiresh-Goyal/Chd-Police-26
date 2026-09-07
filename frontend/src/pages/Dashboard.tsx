@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* KPI 2 */}
+        {/* KPI 2
         <div className="bg-white border border-[#D9E1EA] rounded-md p-4 flex flex-col shadow-xs border-l-4 border-l-[#DC2626]">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider">CRITICAL ALERTS</span>
@@ -78,9 +78,9 @@ export const Dashboard: React.FC = () => {
           <div className="text-xs text-[#DC2626] font-medium flex items-center gap-1">
             Requires immediate action
           </div>
-        </div>
+        </div> */}
 
-        {/* KPI 3 */}
+        {/* KPI 3
         <div className="bg-white border border-[#D9E1EA] rounded-md p-4 flex flex-col shadow-xs">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">ENTITIES LINKED TODAY</span>
@@ -90,9 +90,9 @@ export const Dashboard: React.FC = () => {
           <div className="text-xs text-[#424751] flex items-center gap-1">
             Cross-domain matched
           </div>
-        </div>
+        </div> */}
 
-        {/* KPI 4 */}
+        {/* KPI 4
         <div className="bg-white border border-[#D9E1EA] rounded-md p-4 flex flex-col shadow-xs">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">EVIDENCE REPORTS</span>
@@ -103,7 +103,7 @@ export const Dashboard: React.FC = () => {
             <span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
             Generated successfully
           </div>
-        </div>
+        </div>*/}
       </div>
 
 

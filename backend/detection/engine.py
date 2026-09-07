@@ -31,7 +31,7 @@ def run_detection(case_id: str) -> DetectionResult:
     from backend.detection.episodes import build_episodes
     from backend.detection.score import compute_fraud_score
     from backend.detection.rules import run_all_rules
-    from backend.shared.schema import findings, episodes as episodes_tbl, fraud_scores
+    from backend.shared.schema import findings_table, episodes_table, fraud_scores_table
     
     db_gen = get_db()
     conn = next(db_gen)
@@ -41,7 +41,7 @@ def run_detection(case_id: str) -> DetectionResult:
             # 1. Build Episodes
             eps = build_episodes(conn, case_id)
             if eps:
-                conn.execute(episodes_tbl.insert(), eps)
+                conn.execute(episodes_table.insert(), eps)
             
             # 2. Run Rules
             all_findings = run_all_rules(conn, case_id)
@@ -67,12 +67,12 @@ def run_detection(case_id: str) -> DetectionResult:
                         "source_file_ids": f.source_file_ids,
                         "source_rows": f.source_rows
                     })
-                conn.execute(findings.insert(), findings_data)
+                conn.execute(findings_table.insert(), findings_data)
                 
             # 5. Write fraud score to DB
             # Upsert or insert depending on DB. We'll delete and insert.
-            conn.execute(fraud_scores.delete().where(fraud_scores.c.case_id == case_id))
-            conn.execute(fraud_scores.insert().values(
+            conn.execute(fraud_scores_table.delete().where(fraud_scores_table.c.case_id == case_id))
+            conn.execute(fraud_scores_table.insert().values(
                 case_id=case_id,
                 score=fs_result.score,
                 risk_level=fs_result.risk_level,

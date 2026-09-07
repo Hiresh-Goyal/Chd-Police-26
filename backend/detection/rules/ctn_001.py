@@ -11,23 +11,48 @@ def evaluate(conn: Connection, case_id: str) -> List[FindingResult]:
     where the call's peer_raw matches (via entity_links) the transfer's actor_raw or peer_raw. 
     Weight: 25. Severity: HIGH.
     """
-    # For a hackathon, we can do a simplified heuristic if entity_links query is too complex.
-    # We will simulate returning a FindingResult if we find matching events.
+    query = text("""
+        SELECT 
+            c.id as call_id,
+            b.id as bank_id,
+            c.actor_entity_id as call_actor_ent,
+            c.peer_entity_id as call_peer_ent,
+            b.actor_entity_id as bank_actor_ent,
+            b.peer_entity_id as bank_peer_ent,
+            c.source_file_id as c_file,
+            c.source_row as c_row,
+            b.source_file_id as b_file,
+            b.source_row as b_row
+        FROM canonical_events c
+        JOIN canonical_events b ON c.case_id = b.case_id
+        WHERE c.case_id = :case_id 
+          AND c.event_type = 'CALL'
+          AND b.event_type = 'BANK_TRANSFER'
+          AND b.ts_start >= c.ts_start
+          AND EXTRACT(EPOCH FROM b.ts_start::timestamptz) - EXTRACT(EPOCH FROM c.ts_start::timestamptz) <= 1800
+          AND (
+              (c.actor_entity_id = b.actor_entity_id AND c.actor_entity_id IS NOT NULL) OR
+              (c.actor_entity_id = b.peer_entity_id AND c.actor_entity_id IS NOT NULL) OR
+              (c.peer_entity_id = b.actor_entity_id AND c.peer_entity_id IS NOT NULL) OR
+              (c.peer_entity_id = b.peer_entity_id AND c.peer_entity_id IS NOT NULL)
+          )
+    """)
+    
+    rows = conn.execute(query, {"case_id": case_id}).fetchall()
+    
     findings = []
-    
-    # Just a placeholder implementation to fulfill the contract
-    # In a real scenario, this would involve complex joins
-    
-    findings.append(FindingResult(
-        rule_id="CTN-001",
-        severity="HIGH",
-        weight=25,
-        confidence=1.0,
-        entity_ids=["e1", "e2"],
-        event_ids=["ev1", "ev2"],
-        source_file_ids=["sf1", "sf2"],
-        source_rows=[10, 15],
-        explanation="Call immediately preceding a bank transfer"
-    ))
-    
+    for r in rows:
+        ent_ids = list(set(filter(None, [r.call_actor_ent, r.call_peer_ent, r.bank_actor_ent, r.bank_peer_ent])))
+        findings.append(FindingResult(
+            rule_id="CTN-001",
+            severity="HIGH",
+            weight=25,
+            confidence=0.95,
+            entity_ids=ent_ids,
+            event_ids=[r.call_id, r.bank_id],
+            source_file_ids=[r.c_file, r.b_file],
+            source_rows=[r.c_row, r.b_row],
+            explanation="Call immediately preceding a bank transfer within 30 min window"
+        ))
+        
     return findings

@@ -274,232 +274,44 @@ async def analyze_case(
     user_name = current_user.get("username", "admin") if isinstance(current_user, dict) else str(current_user or "admin")
 
     # 1. Call Member 2's resolve(case_id) if available
-    try:
-        from backend.resolution.resolver import resolve
-        resolve(case_id)
-    except Exception as e:
-        print(f"Warning: resolver call failed or not imported: {e}")
+    from backend.resolution.resolver import resolve
+    resolve(case_id)
 
-    # 2. Call Member 3's run_detection(case_id) if available
-    try:
-        from backend.detection.engine import run_detection
-        det_res = run_detection(case_id)
+    # 2. Call Member 3's run_detection(case_id)
+    from backend.detection.engine import run_detection
+    det_res = run_detection(case_id)
 
-        findings_list = []
-        for f in det_res.findings:
-            findings_list.append({
-                "id": str(uuid.uuid4()),
-                "rule_id": f.rule_id,
-                "severity": f.severity,
-                "fraud_weight": getattr(f, "weight", 20),
-                "weight": getattr(f, "weight", 20),
-                "confidence": f.confidence,
-                "entity_ids": f.entity_ids,
-                "event_ids": f.event_ids,
-                "source_file_ids": f.source_file_ids,
-                "source_rows": f.source_rows,
-                "explanation": f.explanation,
-            })
-
-        log_action(
-            user=user_name,
-            action="ANALYZE",
-            case_id=case_id,
-            detail={"findings_created": len(det_res.findings), "fraud_score": det_res.fraud_score},
-            ip_address=request.client.host if request and request.client else None,
-        )
-
-        return {
-            "case_id": case_id,
-            "findings": findings_list,
-            "episodes_created": det_res.episodes_created,
-            "fraud_score": det_res.fraud_score,
-            "risk_level": det_res.risk_level,
-            "findings_created": len(findings_list),
-        }
-    except Exception as e:
-        print(f"Warning: detection engine call failed or not imported: {e}")
-
-    # Realistic mock fallback complying with required demo findings and score >= 70
-    mock_findings = [
-        {
-            "id": f"find-{uuid.uuid4().hex[:8]}",
-            "rule_id": "CTN-001",
-            "severity": "HIGH",
-            "fraud_weight": 25,
-            "weight": 25,
-            "confidence": 0.95,
-            "entity_ids": ["ent-coord", "ent-mule-1"],
-            "event_ids": ["evt-call-01", "evt-bank-01"],
-            "source_file_ids": ["raw-cdr-1", "raw-bank-1"],
-            "source_rows": [12, 45],
-            "explanation": "Call from coordinator entity immediately preceded high-value bank transfer within 30 min window.",
-        },
-        {
-            "id": f"find-{uuid.uuid4().hex[:8]}",
-            "rule_id": "SIM-002",
-            "severity": "HIGH",
-            "fraud_weight": 20,
-            "weight": 20,
-            "confidence": 0.92,
-            "entity_ids": ["ent-coord"],
-            "event_ids": ["evt-call-02", "evt-call-03", "evt-call-04"],
-            "source_file_ids": ["raw-cdr-1"],
-            "source_rows": [15, 18, 22],
-            "explanation": "Device IMEI associated with 3 distinct MSISDNs in a 7-day rolling window indicating SIM swap activity.",
-        },
-        {
-            "id": f"find-{uuid.uuid4().hex[:8]}",
-            "rule_id": "MUL-003",
-            "severity": "CRITICAL",
-            "fraud_weight": 30,
-            "weight": 30,
-            "confidence": 0.95,
-            "entity_ids": ["ent-mule-1", "ent-agg-1"],
-            "event_ids": ["evt-bank-02", "evt-bank-03", "evt-bank-04"],
-            "source_file_ids": ["raw-bank-1"],
-            "source_rows": [50, 52, 55],
-            "explanation": "Account received funds from >=3 distinct sources and rapidly dispersed 85% within 24 hours.",
-        },
-        {
-            "id": f"find-{uuid.uuid4().hex[:8]}",
-            "rule_id": "COO-004",
-            "severity": "HIGH",
-            "fraud_weight": 25,
-            "weight": 25,
-            "confidence": 0.88,
-            "entity_ids": ["ent-coord"],
-            "event_ids": ["evt-call-10", "evt-call-11", "evt-call-12"],
-            "source_file_ids": ["raw-cdr-1"],
-            "source_rows": [3, 7, 19],
-            "explanation": "Entity identified in CDR call logs of 3 unconnected victim complaints.",
-        },
-        {
-            "id": f"find-{uuid.uuid4().hex[:8]}",
-            "rule_id": "FSM-005",
-            "severity": "MEDIUM",
-            "fraud_weight": 18,
-            "weight": 18,
-            "confidence": 0.85,
-            "entity_ids": ["ent-mule-2"],
-            "event_ids": ["evt-bank-06"],
-            "source_file_ids": ["raw-bank-1"],
-            "source_rows": [62],
-            "explanation": "SIM card activated less than 7 days prior to initiation of fraudulent funds transfer.",
-        },
-    ]
-
-    final_findings = mock_findings
-    final_score = 85
-    final_risk_level = "CRITICAL"
-
-    # Persist findings and link to actual ingested events from DB
-    try:
-        import json
-        from sqlalchemy import select
-        from backend.db.connection import get_connection
-        from backend.shared.schema import canonical_events_table, findings_table, fraud_scores_table
-
-        with get_connection() as conn:
-            call_evs = conn.execute(
-                select(canonical_events_table).where(
-                    canonical_events_table.c.case_id == case_id,
-                    canonical_events_table.c.event_type == "CALL"
-                )
-            ).fetchall()
-            bank_evs = conn.execute(
-                select(canonical_events_table).where(
-                    canonical_events_table.c.case_id == case_id,
-                    canonical_events_table.c.event_type == "BANK_TRANSFER"
-                )
-            ).fetchall()
-
-            if call_evs and bank_evs:
-                for f in final_findings:
-                    if f["rule_id"] == "CTN-001":
-                        f["event_ids"] = [str(call_evs[0].id), str(bank_evs[0].id)]
-                        f["source_file_ids"] = [str(call_evs[0].source_file_id), str(bank_evs[0].source_file_id)]
-                        f["source_rows"] = [int(call_evs[0].source_row), int(bank_evs[0].source_row)]
-                    elif f["rule_id"] == "SIM-002":
-                        f["event_ids"] = [str(c.id) for c in call_evs[:3]]
-                        f["source_file_ids"] = [str(call_evs[0].source_file_id)]
-                        f["source_rows"] = [int(c.source_row) for c in call_evs[:3]]
-                    elif f["rule_id"] == "MUL-003":
-                        f["event_ids"] = [str(b.id) for b in bank_evs[:3]]
-                        f["source_file_ids"] = [str(bank_evs[0].source_file_id)]
-                        f["source_rows"] = [int(b.source_row) for b in bank_evs[:3]]
-                    elif f["rule_id"] == "COO-004":
-                        sub = call_evs[3:6] if len(call_evs) >= 6 else [call_evs[0]]
-                        f["event_ids"] = [str(c.id) for c in sub]
-                        f["source_file_ids"] = [str(call_evs[0].source_file_id)]
-                        f["source_rows"] = [int(c.source_row) for c in sub]
-                    elif f["rule_id"] == "FSM-005":
-                        b_target = bank_evs[3] if len(bank_evs) >= 4 else bank_evs[0]
-                        f["event_ids"] = [str(b_target.id)]
-                        f["source_file_ids"] = [str(b_target.source_file_id)]
-                        f["source_rows"] = [int(b_target.source_row)]
-
-            now_iso = datetime.now(timezone.utc).isoformat()
-            conn.execute(findings_table.delete().where(findings_table.c.case_id == case_id))
-            db_rows = []
-            for f in final_findings:
-                db_rows.append({
-                    "id": f["id"],
-                    "case_id": case_id,
-                    "rule_id": f["rule_id"],
-                    "severity": f["severity"],
-                    "fraud_weight": f.get("fraud_weight", f.get("weight", 20)),
-                    "confidence": float(f["confidence"]),
-                    "entity_ids": json.dumps(f["entity_ids"]),
-                    "event_ids": json.dumps(f["event_ids"]),
-                    "source_file_ids": json.dumps(f["source_file_ids"]),
-                    "source_rows": json.dumps(f["source_rows"]),
-                    "explanation": f["explanation"],
-                    "created_at": now_iso,
-                })
-            conn.execute(findings_table.insert(), db_rows)
-
-            conn.execute(fraud_scores_table.delete().where(fraud_scores_table.c.case_id == case_id))
-            breakdown = {f["rule_id"]: f.get("fraud_weight", 20) for f in final_findings}
-            top_findings_list = [
-                {
-                    "rule_id": f["rule_id"],
-                    "severity": f["severity"],
-                    "fraud_weight": f.get("fraud_weight", 20),
-                    "weight": f.get("fraud_weight", 20),
-                    "confidence": f["confidence"],
-                    "explanation": f["explanation"],
-                }
-                for f in final_findings[:3]
-            ]
-            conn.execute(fraud_scores_table.insert().values(
-                id=str(uuid.uuid4()),
-                case_id=case_id,
-                score=final_score,
-                risk_level=final_risk_level,
-                findings_breakdown=json.dumps(breakdown),
-                top_findings=json.dumps(top_findings_list),
-                total_findings=len(final_findings),
-                computed_at=now_iso,
-            ))
-    except Exception as e:
-        print(f"Error persisting findings to DB: {e}")
+    findings_list = []
+    for f in det_res.findings:
+        findings_list.append({
+            "id": getattr(f, "id", str(uuid.uuid4())),
+            "rule_id": f.rule_id,
+            "severity": f.severity,
+            "fraud_weight": getattr(f, "weight", 20),
+            "weight": getattr(f, "weight", 20),
+            "confidence": f.confidence,
+            "entity_ids": f.entity_ids,
+            "event_ids": f.event_ids,
+            "source_file_ids": f.source_file_ids,
+            "source_rows": f.source_rows,
+            "explanation": f.explanation,
+        })
 
     log_action(
         user=user_name,
         action="ANALYZE",
         case_id=case_id,
-        detail={"findings_created": len(final_findings), "fraud_score": final_score},
+        detail={"findings_created": len(det_res.findings), "fraud_score": det_res.fraud_score},
         ip_address=request.client.host if request and request.client else None,
     )
 
     return {
         "case_id": case_id,
-        "findings": final_findings,
-        "episodes_created": 3,
-        "fraud_score": final_score,
-        "risk_level": final_risk_level,
-        "findings_created": len(final_findings),
+        "findings": findings_list,
+        "episodes_created": det_res.episodes_created,
+        "fraud_score": det_res.fraud_score,
+        "risk_level": det_res.risk_level,
+        "findings_created": len(findings_list),
     }
 
 

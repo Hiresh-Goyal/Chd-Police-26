@@ -1,55 +1,67 @@
 from sqlalchemy.engine import Connection
-from sqlalchemy import select
+from sqlalchemy import text
 import uuid
-from collections import defaultdict
-from backend.shared.schema import canonical_events, entities, ConfidenceTier
+from datetime import datetime, timezone
+from backend.shared.schema import canonical_events_table, entities_table, ConfidenceTier
 from backend.resolution.phone_norm import normalize_phone
+import json
 
 def execute(conn: Connection, case_id: str) -> dict:
-    """
-    Group canonical_events by normalized actor_raw.
-    All events sharing the same normalized MSISDN -> same entity.
-    Confidence: 0.95. Create entity row (type=PHONE).
-    Returns stats.
-    """
-    # Fetch all CALL and SMS events (or any with phone numbers)
-    # For now, we assume all actor_raw in CALL, SMS, IPDR_SESSION, LOCATION_PING are phones
-    # But let's just get everything where event_type in ('CALL', 'SMS', 'IPDR_SESSION', 'LOCATION_PING')
-    # Actually, the instructions say: Group canonical_events by normalized actor_raw. 
-    # Let's filter by event types that use MSISDN.
-    stmt = select(
-        canonical_events.c.id,
-        canonical_events.c.actor_raw
-    ).where(
-        canonical_events.c.case_id == case_id,
-        canonical_events.c.event_type.in_(['CALL', 'SMS', 'IPDR_SESSION', 'LOCATION_PING'])
-    )
+    # Get all distinct actor_raw and peer_raw for phone-based events
+    query = text("""
+        SELECT DISTINCT raw_val FROM (
+            SELECT actor_raw as raw_val FROM canonical_events 
+            WHERE case_id = :case_id AND event_type IN ('CALL', 'SMS', 'IPDR_SESSION', 'LOCATION_PING') AND actor_raw IS NOT NULL AND actor_raw != ''
+            UNION
+            SELECT peer_raw as raw_val FROM canonical_events 
+            WHERE case_id = :case_id AND event_type IN ('CALL', 'SMS', 'IPDR_SESSION', 'LOCATION_PING') AND peer_raw IS NOT NULL AND peer_raw != ''
+        ) sub
+    """)
+    rows = conn.execute(query, {"case_id": case_id}).fetchall()
     
-    rows = conn.execute(stmt).fetchall()
-    
-    # Group by normalized phone
-    grouped = defaultdict(list)
+    unique_phones = {}
     for r in rows:
-        norm = normalize_phone(r.actor_raw)
+        norm = normalize_phone(r.raw_val)
+        if norm and norm not in unique_phones:
+            unique_phones[norm] = {"raw_vals": set()}
         if norm:
-            grouped[norm].append(r.id)
+            unique_phones[norm]["raw_vals"].add(r.raw_val)
             
-    entities_created = 0
-    # Insert entities
+    now_iso = datetime.now(timezone.utc).isoformat()
     new_entities = []
-    for norm_phone, event_ids in grouped.items():
+    entities_created = 0
+    
+    # Insert entities
+    for norm_phone, data in unique_phones.items():
         entity_id = str(uuid.uuid4())
+        data["entity_id"] = entity_id
         new_entities.append({
             "id": entity_id,
             "case_id": case_id,
-            "type": "PHONE",
-            "canonical_value": norm_phone,
-            "confidence_tier": ConfidenceTier.CONFIRMED.value,
-            "source_ids": event_ids
+            "entity_type": "PHONE",
+            "canonical_id": norm_phone,
+            "label": f"Phone {norm_phone}",
+            "metadata_json": json.dumps({"source": "msisdn_match", "raw_values": list(data["raw_vals"])}),
+            "created_at": now_iso
         })
         entities_created += 1
         
     if new_entities:
-        conn.execute(entities.insert(), new_entities)
+        conn.execute(entities_table.insert(), new_entities)
         
+    # Update canonical_events actor_entity_id
+    for norm_phone, data in unique_phones.items():
+        for raw_val in data["raw_vals"]:
+            conn.execute(text("""
+                UPDATE canonical_events
+                SET actor_entity_id = :ent_id
+                WHERE case_id = :case_id AND actor_raw = :raw_val
+            """), {"ent_id": data["entity_id"], "case_id": case_id, "raw_val": raw_val})
+            
+            conn.execute(text("""
+                UPDATE canonical_events
+                SET peer_entity_id = :ent_id
+                WHERE case_id = :case_id AND peer_raw = :raw_val
+            """), {"ent_id": data["entity_id"], "case_id": case_id, "raw_val": raw_val})
+
     return {"entities_created": entities_created, "links_created": 0}

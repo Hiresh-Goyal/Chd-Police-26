@@ -1,0 +1,16 @@
+platform,user_id,phone,content,ts,interaction_type
+Telegram,TG_C001,9800000001,Looking for part-time work from home? Earn 5000 per day guaranteed,2025-01-06 10:00:00,SOCIAL_POST
+Telegram,TG_C001,9800000001,Sent payment link to register for task-based job scheme,2025-01-06 11:00:00,SOCIAL_INTERACTION
+Telegram,TG_C001,9800000001,V001 contacted — sent onboarding instructions,2025-01-07 09:00:00,SOCIAL_INTERACTION
+Telegram,TG_C001,9800000001,V002 contacted — sent onboarding instructions,2025-01-07 09:30:00,SOCIAL_INTERACTION
+Telegram,TG_C001,9800000001,V003 contacted — sent onboarding instructions,2025-01-07 10:00:00,SOCIAL_INTERACTION
+Telegram,TG_C001,9800000001,V004 contacted — sent onboarding instructions,2025-01-07 10:30:00,SOCIAL_INTERACTION
+Telegram,TG_C001,9800000001,V005 contacted — sent onboarding instructions,2025-01-07 11:00:00,SOCIAL_INTERACTION
+Telegram,TG_C001,9800000001,Task 1 assigned to all participants — complete registration payment,2025-01-08 08:00:00,SOCIAL_POST
+Telegram,TG_C001,9800000001,Reminder — payment must be completed today to unlock earnings,2025-01-08 12:00:00,SOCIAL_POST
+Telegram,TG_C001,9800000001,Congratulations to those who completed — next task tomorrow,2025-01-08 20:00:00,SOCIAL_POST
+Telegram,TG_V001,9700000001,I made the payment as instructed,2025-01-08 14:30:00,SOCIAL_INTERACTION
+Telegram,TG_V002,9700000002,Payment done — when do I get my earnings,2025-01-08 15:55:00,SOCIAL_INTERACTION
+Telegram,TG_V003,9700000003,Done — waiting for next task,2025-01-08 17:45:00,SOCIAL_INTERACTION
+Telegram,TG_V004,9700000004,Completed the payment,2025-01-09 10:40:00,SOCIAL_INTERACTION
+Telegram,TG_V005,9700000005,Payment sent — please confirm receipt,2025-01-10 10:05:00,SOCIAL_INTERACTION

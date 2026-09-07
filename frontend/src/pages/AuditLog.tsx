@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AUDIT_LOGS, AuditLogEntry } from '../data/mockData';
+import { useAuditLogs } from '../hooks/useApi';
 import { DomainBadge, StatusBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
@@ -9,8 +9,29 @@ export const AuditLog: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const [logs, setLogs] = useState<AuditLogEntry[]>(AUDIT_LOGS);
-  const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(AUDIT_LOGS[0]);
+  const { data: fetchedLogs } = useAuditLogs();
+  const [logs, setLogs] = useState<any[]>([]);
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+
+  React.useEffect(() => {
+    if (fetchedLogs) {
+      const mappedLogs = fetchedLogs.map(l => ({
+        ...l,
+        officerName: l.user_id || 'System User',
+        officerId: l.user_id || 'SYS-001',
+        officerRole: 'Investigator',
+        officerStation: 'Cyber Cell',
+        targetEntity: l.target_id || l.target_entity || 'N/A',
+        ipAddress: l.ip_address || '127.0.0.1',
+        deviceId: 'Unknown Device',
+        rawMetadata: l.metadata || {}
+      }));
+      setLogs(mappedLogs);
+      if (mappedLogs.length > 0 && !selectedLog) {
+        setSelectedLog(mappedLogs[0]);
+      }
+    }
+  }, [fetchedLogs]);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [severityFilter, setSeverityFilter] = useState('All');
 
@@ -149,7 +170,7 @@ export const AuditLog: React.FC = () => {
                       <td className="px-4 py-3 font-medium">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded bg-[#0B2340] text-white flex items-center justify-center font-bold text-[10px]">
-                            {log.officerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            {String(log.officerName || 'U').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                           </div>
                           <span>
                             {log.officerName}

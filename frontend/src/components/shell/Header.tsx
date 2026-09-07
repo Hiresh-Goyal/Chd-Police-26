@@ -7,25 +7,29 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const isCaseRoute = location.pathname.startsWith('/cases/2847');
+  const caseIdMatch = location.pathname.match(/^\/cases\/([^\/]+)/);
+  const caseId = caseIdMatch ? caseIdMatch[1] : null;
+  const isCaseRoute = !!caseId;
 
   let contextTitle = 'Operational Dashboard';
   if (location.pathname === '/cases') {
     contextTitle = 'My Cases';
-  } else if (location.pathname === '/cases/2847') {
-    contextTitle = 'Cases / #2847 — Investment Scam';
-  } else if (location.pathname === '/cases/2847/upload-evidence') {
-    contextTitle = 'Cases / #2847 / Upload Evidence';
-  } else if (location.pathname === '/cases/2847/timeline') {
-    contextTitle = 'Cases / #2847 / Cross-Domain Timeline';
-  } else if (location.pathname === '/cases/2847/entity-graph') {
-    contextTitle = 'Cases / #2847 / Entity Graph';
-  } else if (location.pathname === '/cases/2847/geospatial') {
-    contextTitle = 'Cases / #2847 / Geospatial Map';
-  } else if (location.pathname === '/cases/2847/criminal-flow') {
-    contextTitle = 'Cases / #2847 / CriminalFlow Money Trail';
-  } else if (location.pathname === '/cases/2847/evidence-report') {
-    contextTitle = 'Cases / #2847 / Evidence Report';
+  } else if (isCaseRoute) {
+    if (location.pathname.endsWith('/upload-evidence')) {
+      contextTitle = `Cases / #${caseId} / Upload Evidence`;
+    } else if (location.pathname.endsWith('/timeline')) {
+      contextTitle = `Cases / #${caseId} / Cross-Domain Timeline`;
+    } else if (location.pathname.endsWith('/entity-graph')) {
+      contextTitle = `Cases / #${caseId} / Entity Graph`;
+    } else if (location.pathname.endsWith('/geospatial')) {
+      contextTitle = `Cases / #${caseId} / Geospatial Map`;
+    } else if (location.pathname.endsWith('/criminal-flow')) {
+      contextTitle = `Cases / #${caseId} / CriminalFlow Money Trail`;
+    } else if (location.pathname.endsWith('/evidence-report')) {
+      contextTitle = `Cases / #${caseId} / Evidence Report`;
+    } else {
+      contextTitle = `Cases / #${caseId} — Case Workspace`;
+    }
   } else if (location.pathname === '/search') {
     contextTitle = 'Universal Cross-Domain Search';
   } else if (location.pathname === '/sentinelwatch') {
@@ -64,7 +68,7 @@ export const Header: React.FC = () => {
         <div className="hidden lg:flex items-center gap-2 bg-white/10 px-2.5 py-1 rounded border border-white/15">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="font-mono text-xs font-bold text-[#DBEAFE] tracking-wider">
-            {isCaseRoute ? 'CASE #2847' : 'OPERATIONAL VIEW'}
+            {isCaseRoute ? `CASE #${caseId}` : 'OPERATIONAL VIEW'}
           </span>
         </div>
 

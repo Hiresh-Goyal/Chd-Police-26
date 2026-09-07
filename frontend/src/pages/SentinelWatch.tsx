@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SENTINEL_WATCH_ITEMS, SentinelWatchItem } from '../data/mockData';
+import { useSentinelItems } from '../hooks/useApi';
 import { DomainBadge, StatusBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
@@ -7,7 +7,12 @@ import { useToast } from '../components/common/Toast';
 export const SentinelWatch: React.FC = () => {
   const { showToast } = useToast();
 
-  const [items, setItems] = useState<SentinelWatchItem[]>(SENTINEL_WATCH_ITEMS);
+  const { data: fetchedItems } = useSentinelItems();
+  const [items, setItems] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (fetchedItems) setItems(fetchedItems);
+  }, [fetchedItems]);
   const [identifier, setIdentifier] = useState('');
   const [name, setName] = useState('');
   const [streamType, setStreamType] = useState<'CDR' | 'BANK' | 'IPDR' | 'ALL'>('CDR');
@@ -21,30 +26,30 @@ export const SentinelWatch: React.FC = () => {
       return;
     }
 
-    const newItem: SentinelWatchItem = {
+    const newItem = {
       id: `watch_${Date.now()}`,
-      identifier: identifier.trim(),
-      name: name.trim() || 'Monitored Target',
-      streamType,
-      threshold,
-      riskScore: 85,
+      target_id: identifier.trim(),
+      notes: name.trim() || 'Monitored Target',
+      domain: streamType,
+      type: 'PERSON',
+      severity: 'HIGH',
       status: 'ACTIVE',
-      lastActivity: 'Monitoring initialized just now',
-      caseRef: 'Case #2847',
-      expiryDate
+      last_active: 'Monitoring initialized just now',
+      hit_count: 0,
+      created_at: new Date().toISOString()
     };
 
     setItems([newItem, ...items]);
     setIdentifier('');
     setName('');
-    showToast(`Target ${newItem.identifier} added to active SentinelWatch stream.`, 'success');
+    showToast(`Target ${newItem.target_id} added to active SentinelWatch stream.`, 'success');
   };
 
   const handleToggleStatus = (id: string) => {
     setItems(items.map(item => {
       if (item.id === id) {
         const nextStatus = item.status === 'ACTIVE' ? 'STANDBY' : 'ACTIVE';
-        showToast(`Target ${item.identifier} monitoring status changed to ${nextStatus}.`, 'info');
+        showToast(`Target ${item.target_id} monitoring status changed to ${nextStatus}.`, 'info');
         return { ...item, status: nextStatus };
       }
       return item;
@@ -169,11 +174,11 @@ export const SentinelWatch: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-sm text-[#0B2340]">
-                          {item.identifier}
+                          {item.target_id}
                         </span>
-                        <DomainBadge domain={item.streamType} size="sm" />
+                        <DomainBadge domain={item.domain} size="sm" />
                       </div>
-                      <div className="text-xs font-medium text-[#191C1E] mt-0.5">{item.name}</div>
+                      <div className="text-xs font-medium text-[#191C1E] mt-0.5">{item.notes}</div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">

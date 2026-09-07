@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { ALL_CASES, CaseSummary, EvidenceFile } from '../data/mockData';
+import { CaseSummary, EvidenceFile } from '../data/types';
+import { getCases, createCase as apiCreateCase } from '../api/client';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -16,7 +17,6 @@ export interface CaseStoreContext {
 
 const CaseStoreCtx = createContext<CaseStoreContext | null>(null);
 
-const STORAGE_KEY_CASES = 'rakshak_cases_v1';
 const STORAGE_KEY_FILES = 'rakshak_files_v1';
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -31,33 +31,65 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export const CaseStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Merge persisted user-created cases with the static mock cases
-  const [cases, setCases] = useState<CaseSummary[]>(() => {
-    const persisted = loadFromStorage<CaseSummary[]>(STORAGE_KEY_CASES, []);
-    // Keep static cases + any user-created ones (by id not in ALL_CASES)
-    const staticIds = new Set(ALL_CASES.map(c => c.id));
-    const userCreated = persisted.filter(c => !staticIds.has(c.id));
-    return [...userCreated, ...ALL_CASES];
-  });
+  const [cases, setCases] = useState<CaseSummary[]>([]);
 
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, EvidenceFile[]>>(() =>
     loadFromStorage<Record<string, EvidenceFile[]>>(STORAGE_KEY_FILES, {})
   );
 
-  // Persist user-created cases (not the static ones)
+  // Fetch real cases from backend
   useEffect(() => {
-    const staticIds = new Set(ALL_CASES.map(c => c.id));
-    const userCreated = cases.filter(c => !staticIds.has(c.id));
-    localStorage.setItem(STORAGE_KEY_CASES, JSON.stringify(userCreated));
-  }, [cases]);
+    let isMounted = true;
+    const fetchApiCases = async () => {
+      try {
+        const apiCases = await getCases();
+        const mapped: CaseSummary[] = apiCases.map(c => ({
+          id: c.id,
+          title: c.title || c.name,
+          subject: c.name,
+          type: 'Investigation',
+          status: c.status as any,
+          priority: 'High',
+          openedDate: new Date(c.created_at).toLocaleDateString(),
+          assignedIO: 'Amrit Singh',
+          ioRole: 'Inspector',
+          ioStation: 'Sector 17',
+          fraudScore: 0,
+          estimatedLoss: 'TBD',
+          entitiesCount: 0,
+          lastActivity: 'Just now',
+          stats: { cdr: 0, bank: 0, social: 0, ipdr: 0, anomalies: 0, evidence: 0 },
+          entities: [],
+          notes: [],
+          alerts: []
+        }));
+        if (isMounted) setCases(mapped);
+      } catch (e) {
+        console.error("Failed to fetch cases:", e);
+      }
+    };
+    fetchApiCases();
+    return () => { isMounted = false; };
+  }, []);
 
   // Persist uploaded files
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_FILES, JSON.stringify(uploadedFiles));
   }, [uploadedFiles]);
 
-  const addCase = useCallback((c: CaseSummary) => {
-    setCases(prev => [c, ...prev]);
+  const addCase = useCallback(async (c: CaseSummary) => {
+    try {
+      const res = await apiCreateCase({ name: c.subject, title: c.title });
+      const mapped: CaseSummary = {
+        ...c,
+        id: res.id,
+      };
+      setCases(prev => [mapped, ...prev]);
+    } catch (e) {
+      console.error("Failed to create case", e);
+      // fallback to optimistic update
+      setCases(prev => [c, ...prev]);
+    }
   }, []);
 
   const getCase = useCallback((id: string) => {

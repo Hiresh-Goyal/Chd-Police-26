@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ALL_CASES, CaseSummary } from '../data/mockData';
+import { CaseSummary } from '../data/types';
 import { useCaseStore } from '../context/CaseStore';
 import { PriorityBadge, StatusBadge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
@@ -54,7 +54,7 @@ export const MyCases: React.FC = () => {
       showToast('Please enter subject/entity name.', 'warning');
       return;
     }
-    const newId = (2848 + cases.filter(c => c.id !== '2847').length + Math.floor(Math.random() * 10)).toString();
+    const newId = Math.floor(1000 + Math.random() * 9000).toString();
     const createdCase: CaseSummary = {
       id: newId,
       title: `${newCaseType} — ${newCaseSubject}`,
@@ -271,14 +271,11 @@ export const MyCases: React.FC = () => {
         /* Case Cards Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCases.map(c => {
-            const isPrimary = c.id === '2847';
             return (
               <div
                 key={c.id}
                 onClick={() => navigate(`/cases/${c.id}`)}
-                className={`bg-white border rounded-md p-4 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between ${
-                  isPrimary ? 'border-[#0B5CAB] ring-1 ring-[#0B5CAB]/20' : 'border-[#D9E1EA]'
-                }`}
+                className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">

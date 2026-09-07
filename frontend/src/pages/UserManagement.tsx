@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SYSTEM_USERS, UserOfficer } from '../data/mockData';
+import { useSystemUsers } from '../hooks/useApi';
 import { StatusBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -8,7 +8,27 @@ import { useToast } from '../components/common/Toast';
 export const UserManagement: React.FC = () => {
   const { showToast } = useToast();
 
-  const [users, setUsers] = useState<UserOfficer[]>(SYSTEM_USERS);
+  const { data: fetchedUsers } = useSystemUsers();
+  const [users, setUsers] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (fetchedUsers) {
+      setUsers(fetchedUsers.map(u => ({
+        id: u.id,
+        badgeId: u.badge_number,
+        name: u.name,
+        rank: u.role,
+        unit: 'Cyber Cell',
+        station: u.station,
+        email: `${u.name.toLowerCase().replace(/\s+/g, '.')}@chdpolice.gov.in`,
+        role: u.role,
+        status: u.status,
+        mfaEnabled: true,
+        activeSessions: 1,
+        auditCount24h: 0
+      })));
+    }
+  }, [fetchedUsers]);
   const [searchTerm, setSearchTerm] = useState('');
   const [unitFilter, setUnitFilter] = useState('');
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -33,7 +53,7 @@ export const UserManagement: React.FC = () => {
     if (!newUserName.trim()) return;
 
     const idNum = Math.floor(Math.random() * 9000) + 1000;
-    const newUser: UserOfficer = {
+    const newUser = {
       id: `usr_${idNum}`,
       badgeId: `ID: ${idNum}`,
       name: newUserName.trim(),
@@ -130,7 +150,7 @@ export const UserManagement: React.FC = () => {
                   <td className="py-3 px-4 font-medium text-[#191C1E]">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded bg-[#0B2340] text-white font-bold flex items-center justify-center text-[10px]">
-                        {u.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        {String(u.name || 'U').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                       </div>
                       <div>
                         <div className="font-semibold text-sm text-[#191C1E]">{u.name}</div>

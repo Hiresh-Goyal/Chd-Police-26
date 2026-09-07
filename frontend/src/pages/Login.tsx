@@ -10,7 +10,7 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier || !password) {
       showToast('Please enter both Badge Number and Password', 'error');
@@ -18,12 +18,17 @@ export const Login: React.FC = () => {
     }
     
     setIsLoading(true);
-    // Simulate network request
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { login } = await import('../api/client');
+      const res = await login({ username: identifier, password });
+      localStorage.setItem('ds_token', res.access_token);
       showToast('Authentication successful. Welcome, Officer.', 'success');
       navigate('/dashboard');
-    }, 1200);
+    } catch (err) {
+      showToast('Authentication failed. Please check credentials.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

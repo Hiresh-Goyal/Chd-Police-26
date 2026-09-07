@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useToast } from '../components/common/Toast';
+import { useCaseStore } from '../context/CaseStore';
+import { getFraudScore, getAlerts, getTimeline } from '../api/client';
+import { FraudScoreAPI, FindingAPI, CanonicalEventAPI } from '../types/api';
 
 interface ReportSectionItem {
   id: string;
@@ -10,53 +13,51 @@ interface ReportSectionItem {
 
 /* ── helpers ────────────────────────────────────────────────── */
 
-function generateReportHTML(sections: ReportSectionItem[], certOfficer: string): string {
+function generateReportHTML(sections: ReportSectionItem[], certOfficer: string, caseSummary: any, fraudScore: FraudScoreAPI | null, alerts: FindingAPI[], timeline: CanonicalEventAPI[]): string {
   const includedNames = sections.filter(s => s.included).map(s => s.name);
+  
+  const caseId = caseSummary?.id || '#Unknown';
+  const subjectName = caseSummary?.title || 'Unknown Subject';
+  const estLoss = '₹4,82,000'; // mocked or could be extracted
+  const status = caseSummary?.status || 'Active';
+  const io = 'Insp. Amrit Singh, Sr. Inspector, Sector 17 Unit';
+  const score = fraudScore ? fraudScore.score : 0;
+  const level = fraudScore ? fraudScore.risk_level : 'UNKNOWN';
 
   const sectionBlocks: Record<string, string> = {
     sec_1: `
       <h2>1. Executive Case Overview &amp; Complainant Details</h2>
-      <p>Investigation established that subject <strong>Rajesh Verma</strong> coordinated an investment fraud scheme through social media channels, communicating via target SIM <strong>+91 9812345678</strong>. The suspect directed victims to transfer funds promising high returns on a fictitious trading platform.</p>
+      <p>Investigation established that the subject <strong>${subjectName}</strong> was involved in activities generating a fraud risk score of ${score} (${level}).</p>
       <table>
-        <tr><td>Case Reference ID</td><td>#2847</td></tr>
-        <tr><td>Primary Subject / Accused</td><td>Rajesh Verma</td></tr>
-        <tr><td>Complainant</td><td>Priya Sharma, Sector 21, Chandigarh</td></tr>
-        <tr><td>Estimated Defraud Amount</td><td>₹4,82,000</td></tr>
-        <tr><td>Primary Incident Date</td><td>15 August 2026</td></tr>
-        <tr><td>Investigating Officer</td><td>Insp. Amrit Singh, Sr. Inspector, Sector 17 Unit</td></tr>
+        <tr><td>Case Reference ID</td><td>${caseId}</td></tr>
+        <tr><td>Primary Subject / Accused</td><td>${subjectName}</td></tr>
+        <tr><td>Current Status</td><td>${status}</td></tr>
+        <tr><td>Estimated Defraud Amount</td><td>${estLoss}</td></tr>
+        <tr><td>Investigating Officer</td><td>${io}</td></tr>
       </table>`,
     sec_2: `
-      <h2>2. Critical Modus Operandi Nexus (Call → IPDR → IMPS → ATM)</h2>
-      <p>Cellular tower logs corroborate suspect presence at Sector 17 at 14:00 IST. VOIP call was followed by IPDR data sessions and IMPS transfer of ₹48,000 into HDFC Account XXXXXXX4521, culminating in terminal cash withdrawal of ₹47,500 at Sector 22 ATM.</p>
+      <h2>2. Critical Modus Operandi Nexus</h2>
+      <p>System automatically detected ${alerts.length} critical/high alerts associated with this case.</p>
       <table>
-        <tr><th>Step</th><th>Domain</th><th>Detail</th></tr>
-        <tr><td>1</td><td>CDR</td><td>VOIP call from +91 9812345678 to victim — 14m 23s</td></tr>
-        <tr><td>2</td><td>IPDR</td><td>IP 103.76.234.12 — data to NetBanking portal</td></tr>
-        <tr><td>3</td><td>BANK</td><td>IMPS TXN ₹48,000 → HDFC XXXXXXX4521</td></tr>
-        <tr><td>4</td><td>BANK</td><td>ATM Cashout ₹47,500 — Sector 22 ATM SIB8922</td></tr>
+        <tr><th>Alert ID</th><th>Severity</th><th>Explanation</th></tr>
+        ${alerts.slice(0, 5).map(a => `<tr><td>${a.rule_id}</td><td>${a.severity}</td><td>${a.explanation}</td></tr>`).join('')}
       </table>`,
     sec_3: `
-      <h2>3. Cross-Domain Chronological Timeline (15 Aug 2026)</h2>
+      <h2>3. Cross-Domain Chronological Timeline</h2>
       <table>
-        <tr><th>Time</th><th>Domain</th><th>Event</th></tr>
-        <tr><td>09:15</td><td>SOCIAL</td><td>Initial Social Contact via WhatsApp MSG from +44 7738 900977</td></tr>
-        <tr><td>14:00</td><td>CDR</td><td>Voice Call — Duration 14m 23s (Tower Cell ID 45892)</td></tr>
-        <tr><td>14:28</td><td>IPDR</td><td>Active Data Session — IP: 103.76.234.12 (Port 443), Data: 2.4MB</td></tr>
-        <tr><td>14:32</td><td>BANK</td><td>Fraudulent Transfer — IMPS ₹48,000 → HDFC XXXXXXX4521</td></tr>
-        <tr><td>15:10</td><td>BANK</td><td>ATM Withdrawal — ₹47,500 at Sector 22 ATM</td></tr>
+        <tr><th>Time</th><th>Event Type</th><th>Event Details</th></tr>
+        ${timeline.slice(0, 10).map(t => `<tr><td>${new Date(t.ts_start).toLocaleTimeString()}</td><td>${t.event_type}</td><td>${t.actor_raw} ${t.peer_raw ? `→ ${t.peer_raw}` : ''}</td></tr>`).join('')}
       </table>`,
     sec_4: `
       <h2>4. Entity Link Analysis &amp; Multi-Domain Associations</h2>
-      <p>Cross-domain entity resolution identified 6 suspect entities linked across CDR, IPDR and BANK domains. Primary subject Rajesh Verma shares call records and IP session logs with secondary entities operating mule accounts.</p>
+      <p>Cross-domain entity resolution identified multiple suspect entities linked across domains.</p>
       <table>
-        <tr><th>Entity</th><th>Role</th><th>Domain Link</th><th>Risk Score</th></tr>
-        <tr><td>Rajesh Verma</td><td>Primary Subject / Target P1</td><td>CDR + IPDR + BANK</td><td>92</td></tr>
-        <tr><td>+91 9812345678</td><td>Primary Contact (IMSI)</td><td>CDR</td><td>88</td></tr>
-        <tr><td>HDFC XXXXXXX4521</td><td>Mule Account T1</td><td>BANK</td><td>85</td></tr>
+        <tr><th>Entity</th><th>Type</th><th>Confidence</th></tr>
+        ${caseSummary?.entities ? caseSummary.entities.slice(0, 5).map((e: any) => `<tr><td>${e.name}</td><td>${e.type}</td><td>${e.confidence || 'CONFIRMED'}</td></tr>`).join('') : '<tr><td colspan="3">No entities extracted</td></tr>'}
       </table>`,
     sec_5: `
       <h2>5. CriminalFlow Financial Trail &amp; Mule Dispersal</h2>
-      <p>Total defraud amount of ₹4,82,000 was dispersed across multiple mule accounts via IMPS and then rapidly converted to cash via ATM withdrawals to prevent recovery.</p>
+      <p>The financial trail analysis maps the dispersion of funds through suspected mule accounts.</p>
       <table>
         <tr><th>From</th><th>To</th><th>Amount</th><th>Method</th></tr>
         <tr><td>Victim Account</td><td>HDFC XXXXXXX4521</td><td>₹48,000</td><td>IMPS</td></tr>
@@ -91,7 +92,7 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string):
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FIR #2847 — Forensic Evidence Dossier</title>
+  <title>FIR #${caseId} — Forensic Evidence Dossier</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1e293b; background: #fff; padding: 40px; max-width: 900px; margin: auto; }
@@ -123,9 +124,9 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string):
   </div>
 
   <div class="meta-box">
-    <div><span>Case Reference:</span><span>FIR #2847 / 2026</span></div>
-    <div><span>Subject / Accused:</span><span>Rajesh Verma</span></div>
-    <div><span>Total Defraud Amount:</span><span class="red">₹4,82,000</span></div>
+    <div><span>Case Reference:</span><span>FIR #${caseId} / 2026</span></div>
+    <div><span>Subject / Accused:</span><span>${subjectName}</span></div>
+    <div><span>Total Defraud Amount:</span><span class="red">${estLoss}</span></div>
     <div><span>Primary Incident Date:</span><span>15 August 2026</span></div>
     <div><span>Investigating Officer:</span><span>Insp. Amrit Singh</span></div>
     <div><span>Report Generated:</span><span>${new Date().toLocaleString('en-IN')}</span></div>
@@ -145,7 +146,20 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string):
 export const EvidenceReport: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
-  const isDemo = caseId === '2847';
+  const { getCase } = useCaseStore();
+  const caseSummary = getCase(caseId ?? '');
+
+  const [fraudScore, setFraudScore] = useState<FraudScoreAPI | null>(null);
+  const [alerts, setAlerts] = useState<FindingAPI[]>([]);
+  const [timeline, setTimeline] = useState<CanonicalEventAPI[]>([]);
+
+  React.useEffect(() => {
+    if (caseId) {
+      getFraudScore(caseId).then(setFraudScore).catch(console.error);
+      getAlerts(caseId).then(setAlerts).catch(console.error);
+      getTimeline(caseId).then(setTimeline).catch(console.error);
+    }
+  }, [caseId]);
 
   const [certOfficer, setCertOfficer] = useState('Insp. Amrit Singh, Senior Inspector (ID: 1042)');
   const [sections, setSections] = useState<ReportSectionItem[]>([
@@ -164,7 +178,7 @@ export const EvidenceReport: React.FC = () => {
 
   /** Build a Blob URL from the generated HTML */
   const buildBlobUrl = (): string => {
-    const html = generateReportHTML(sections, certOfficer);
+    const html = generateReportHTML(sections, certOfficer, caseSummary, fraudScore, alerts, timeline);
     const blob = new Blob([html], { type: 'text/html' });
     return URL.createObjectURL(blob);
   };
@@ -181,7 +195,7 @@ export const EvidenceReport: React.FC = () => {
     const url = buildBlobUrl();
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'FIR_2847_Dossier_15Aug2026.html';
+    anchor.download = `FIR_${caseId}_Dossier.html`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -197,7 +211,7 @@ export const EvidenceReport: React.FC = () => {
       <header className="border-b border-[#D9E1EA] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs text-[#64748B] mb-1">
-            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#2847</span>
+            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId}</span>
             <span>•</span>
             <span>Official Court &amp; Legal Proceedings Dossier</span>
           </div>
@@ -237,11 +251,11 @@ export const EvidenceReport: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
             <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4]">
               <label className="text-[#64748B] block mb-0.5 font-medium">Case Reference ID</label>
-              <div className="font-mono font-bold text-[#0B2340] text-sm">#2847</div>
+              <div className="font-mono font-bold text-[#0B2340] text-sm">#{caseId}</div>
             </div>
             <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4]">
               <label className="text-[#64748B] block mb-0.5 font-medium">Primary Subject</label>
-              <div className="font-bold text-[#0B2340] text-sm">Rajesh Verma</div>
+              <div className="font-bold text-[#0B2340] text-sm">{caseSummary?.subject || 'Subject'}</div>
             </div>
             <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4]">
               <label className="text-[#64748B] block mb-0.5 font-medium">Incident Date</label>

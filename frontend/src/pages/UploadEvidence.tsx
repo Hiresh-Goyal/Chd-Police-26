@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { INITIAL_EVIDENCE_FILES, EvidenceFile } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
+import { uploadEvidence, analyzeCase } from '../api/client';
+import { useCaseFiles } from '../hooks/useApi';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -14,11 +15,17 @@ export const UploadEvidence: React.FC = () => {
   const { updateCaseEvidence } = useCaseStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // For case 2847 pre-populate with demo files; new cases start empty
-  const [queue, setQueue] = useState<EvidenceFile[]>(
-    caseId === '2847' ? INITIAL_EVIDENCE_FILES : []
-  );
+  const { data: caseFiles } = useCaseFiles(caseId || '');
+  const [queue, setQueue] = useState<any[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Sync fetched files to queue
+  React.useEffect(() => {
+    if (caseFiles && caseFiles.length > 0) {
+      const merged = [...caseFiles];
+      setQueue(merged);
+    }
+  }, [caseFiles]);
 
   const completeCount = queue.filter(f => f.status === 'complete').length;
 
@@ -29,7 +36,7 @@ export const UploadEvidence: React.FC = () => {
   const handleFilesAdded = (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const newFiles: EvidenceFile[] = Array.from(files).map((file, idx) => {
+    const newFiles: any[] = Array.from(files).map((file, idx) => {
       let domain: 'CDR' | 'BANK' | 'IPDR' | 'SOCIAL' | 'NCRP' = 'CDR';
       const name = file.name.toLowerCase();
       if (name.includes('bank') || name.includes('statement') || name.includes('hdfc') || name.includes('sbi')) domain = 'BANK';
@@ -53,27 +60,43 @@ export const UploadEvidence: React.FC = () => {
     setQueue(prev => [...newFiles, ...prev]);
     showToast(`Added ${newFiles.length} file(s) to ingestion queue.`, 'info');
 
-    // Simulate progressive completion
-    newFiles.forEach(nf => {
-      setTimeout(() => {
-        setQueue(current =>
-          current.map(item =>
-            item.id === nf.id ? { ...item, status: 'parsing' as const, progress: 65 } : item
-          ) as EvidenceFile[]
-        );
-      }, 1200);
+    // Process actual uploads
+    newFiles.forEach(async (nf) => {
+      // Find the actual file object
+      const actualFile = Array.from(files).find(f => f.name === nf.name);
+      if (!actualFile || !caseId) return;
 
-      setTimeout(() => {
+      try {
+        setQueue(current => current.map(item =>
+          item.id === nf.id ? { ...item, status: 'parsing' as const, progress: 40 } : item
+        ) as any[]);
+
+        const res = await uploadEvidence(caseId, actualFile, nf.domain);
+        
+        // Trigger backend resolution & detection pipeline automatically
+        await analyzeCase(caseId);
+        
         setQueue(current => {
           const updated = current.map(item =>
-            item.id === nf.id ? { ...item, status: 'complete' as const, progress: 100 } : item
-          ) as EvidenceFile[];
+            item.id === nf.id ? { 
+              ...item, 
+              status: 'complete' as const, 
+              progress: 100,
+              recordsCount: res.events_created || nf.recordsCount
+            } : item
+          ) as any[];
           // Persist to CaseStore whenever a file completes
-          if (caseId) updateCaseEvidence(caseId, updated);
+          updateCaseEvidence(caseId, updated);
           return updated;
         });
-        showToast(`Ingestion complete for ${nf.name}`, 'success');
-      }, 2500);
+        showToast(`Ingestion complete for ${nf.name} (${res.events_created} events)`, 'success');
+      } catch (e) {
+        console.error("Upload failed", e);
+        setQueue(current => current.map(item =>
+          item.id === nf.id ? { ...item, status: 'failed' as const, progress: 0 } : item
+        ) as any[]);
+        showToast(`Failed to upload ${nf.name}`, 'warning');
+      }
     });
   };
 
@@ -105,17 +128,18 @@ export const UploadEvidence: React.FC = () => {
             Securely ingest external data sets for forensic processing and analytical correlation with Case #{caseId}.
           </p>
         </div>
-        {/* Start Analysis CTA — appears once ≥1 file is complete */}
-        {completeCount > 0 && caseId !== '2847' && (
-          <Button
-            variant="primary"
-            size="sm"
-            icon="play_arrow"
-            onClick={() => navigate(`/cases/${caseId}/timeline`)}
-          >
-            Start Analysis
-          </Button>
-        )}
+        <div className="mt-8 flex justify-end">
+          {completeCount > 0 && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon="play_arrow"
+              onClick={() => navigate(`/cases/${caseId}/timeline`)}
+            >
+              Start Analysis
+            </Button>
+          )}
+        </div>
       </header>
 
       {/* Single Column Layout */}

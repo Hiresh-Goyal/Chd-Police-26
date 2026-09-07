@@ -1,254 +1,208 @@
-import React, { useState } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MONEY_TRAIL_NODES, FlowNode } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
+import { useCriminalFlow } from '../hooks/useApi';
+import ForceGraph2D from 'react-force-graph-2d';
+import { CriminalFlowNode } from '../types/api';
 
 import { Button } from '../components/common/Button';
-import { useToast } from '../components/common/Toast';
 
 export const CriminalFlow: React.FC = () => {
-  const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { getCaseFiles } = useCaseStore();
+  const graphRef = useRef<any>();
+  const { getCase } = useCaseStore();
+  const caseData = getCase(caseId ?? '');
 
-  const isDemo = caseId === '2847';
-  const uploadedFiles = getCaseFiles(caseId ?? '');
-  const hasUploads = uploadedFiles.filter(f => f.status === 'complete' && (f.domain === 'BANK' || f.domain === 'CDR')).length > 0;
+  const { data: flowData, isLoading } = useCriminalFlow(caseId ?? '');
+  const [selectedNode, setSelectedNode] = useState<CriminalFlowNode | null>(null);
 
-  const [selectedNode, setSelectedNode] = useState<FlowNode>(MONEY_TRAIL_NODES[1]); // Default Layer 1 Mule
-  const [zoom, setZoom] = useState(1);
+  const formattedData = useMemo(() => {
+    if (!flowData) return { nodes: [], links: [] };
 
-  const handleExportGraph = () => {
-    const json = JSON.stringify(MONEY_TRAIL_NODES, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `criminalflow_case_${caseId}_money_trail.json`;
-    a.click();
-    showToast('Exported CriminalFlow money trail graph data.', 'success');
+    const nodes = flowData.nodes.map(node => {
+      let color = '#94A3B8'; // UNKNOWN
+      let size = 6;
+      if (node.role === 'VICTIM') {
+        color = '#ef4444'; // red-500
+        size = 8;
+      } else if (node.role === 'MULE') {
+        color = '#f97316'; // orange-500
+        size = 6;
+      } else if (node.role === 'AGGREGATOR') {
+        color = '#0B5CAB'; // primary blue
+        size = 10;
+      }
+
+      return {
+        ...node,
+        color,
+        val: size
+      };
+    });
+
+    const links = flowData.edges.map(edge => ({
+      ...edge,
+      source: edge.source,
+      target: edge.target,
+      label: `₹${(edge.amount || 0).toLocaleString()}`
+    }));
+
+    return { nodes, links };
+  }, [flowData]);
+
+  // Render text along link
+  const renderLinkLabel = (link: any, ctx: CanvasRenderingContext2D) => {
+    if (!link.label || !link.source.x || !link.target.x) return;
+    const MAX_FONT_SIZE = 4;
+    const LABEL_NODE_MARGIN = 6;
+
+    const start = link.source;
+    const end = link.target;
+
+    // ignore unbound links
+    if (typeof start !== 'object' || typeof end !== 'object') return;
+
+    // calculate label positioning
+    const textPos = {
+      x: start.x + (end.x - start.x) / 2,
+      y: start.y + (end.y - start.y) / 2
+    };
+
+    const relLink = { x: end.x - start.x, y: end.y - start.y };
+    let textAngle = Math.atan2(relLink.y, relLink.x);
+    // maintain label orientation
+    if (textAngle > Math.PI / 2 || textAngle < -Math.PI / 2) {
+      textAngle += Math.PI;
+    }
+
+    ctx.font = `bold ${MAX_FONT_SIZE}px Sans-Serif`;
+    const textWidth = ctx.measureText(link.label).width;
+    const bckgDimensions = [textWidth + 2, MAX_FONT_SIZE + 1];
+
+    ctx.save();
+    ctx.translate(textPos.x, textPos.y);
+    ctx.rotate(textAngle);
+
+    // draw background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillRect(-bckgDimensions[0] / 2, -bckgDimensions[1] / 2, bckgDimensions[0], bckgDimensions[1]);
+
+    // draw text
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#0B5CAB';
+    ctx.fillText(link.label, 0, 0);
+    ctx.restore();
   };
 
-  // Empty state for new cases with no bank/CDR uploads
-  if (!isDemo && !hasUploads) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
-        <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">account_tree</span>
-        <div>
-          <p className="font-bold text-[#0B2340]">No financial data uploaded yet</p>
-          <p className="text-sm text-[#64748B] mt-1">Upload bank statements or CDR files to build the money trail for Case #{caseId}.</p>
-        </div>
-        <Button variant="primary" size="sm" icon="upload_file" onClick={() => navigate(`/cases/${caseId}/upload-evidence`)}>
-          Upload Evidence
-        </Button>
-      </div>
-    );
-  }
-
-
-
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 h-full relative">
       {/* Context Header */}
       <header className="bg-white border border-[#D9E1EA] rounded-md px-5 py-3 flex flex-wrap justify-between items-center gap-3 shadow-xs">
         <div>
           <div className="text-[11px] font-bold text-[#424751] uppercase tracking-wider mb-0.5">
-            Active Case: #2847 — Investment Scam
+            Active Case: #{caseId} — {caseData?.type || 'Unknown Type'}
           </div>
           <h1 className="text-xl font-bold text-[#191C1E] flex items-center gap-2">
-            <span>Rajesh Verma</span>
+            <span>{caseData?.subject || 'Subject'}</span>
             <span className="text-[#94A3B8]">/</span>
             <span className="text-[#0B5CAB]">Money Trail & CriminalFlow Analysis</span>
           </h1>
         </div>
-
-        <Button variant="secondary" size="sm" icon="download" onClick={handleExportGraph}>
-          Export Graph
-        </Button>
       </header>
 
-      {/* Full-width Canvas */}
-      <div className="h-[720px]">
-        <section className="h-full bg-[#F8FAFC] grid-pattern border border-[#D9E1EA] rounded-md relative overflow-hidden flex flex-col shadow-xs select-none">
-          {/* Zoom/Pan Controls Overlay */}
-          <div className="absolute bottom-4 left-4 z-20 bg-white border border-[#D9E1EA] rounded shadow-sm flex flex-col">
-            <button
-              onClick={() => setZoom(z => Math.min(z + 0.15, 1.6))}
-              className="p-2 hover:bg-slate-100 border-b border-[#D9E1EA] text-[#191C1E]"
-              title="Zoom In"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-            </button>
-            <button
-              onClick={() => setZoom(z => Math.max(z - 0.15, 0.6))}
-              className="p-2 hover:bg-slate-100 border-b border-[#D9E1EA] text-[#191C1E]"
-              title="Zoom Out"
-            >
-              <span className="material-symbols-outlined text-[18px]">remove</span>
-            </button>
-            <button
-              onClick={() => setZoom(1)}
-              className="p-2 hover:bg-slate-100 text-[#191C1E]"
-              title="Reset Zoom"
-            >
-              <span className="material-symbols-outlined text-[18px]">fit_screen</span>
-            </button>
+      {/* Main Canvas Area */}
+      <div className="flex-1 bg-slate-50 border border-[#D9E1EA] rounded-md shadow-inner relative overflow-hidden flex">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
+            <span className="font-mono text-sm text-[#0B5CAB] animate-pulse">Tracing money flow...</span>
           </div>
+        )}
 
-          {/* Canvas View Container (Scrollable) */}
-          <div className="flex-1 overflow-auto custom-scrollbar p-6 flex justify-center items-start pt-8">
-            <div
-              className="relative w-[780px] h-[780px] transition-transform duration-100"
-              style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
-            >
-              {/* SVG Flow Edges */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                <defs>
-                  <marker id="flow-arrow-red" markerHeight="6" markerWidth="6" orient="auto-start-reverse" refX="8" refY="5" viewBox="0 0 10 10">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#DC2626" />
-                  </marker>
-                  <marker id="flow-arrow-slate" markerHeight="6" markerWidth="6" orient="auto-start-reverse" refX="8" refY="5" viewBox="0 0 10 10">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748B" />
-                  </marker>
-                </defs>
+        <div className="flex-1 cursor-grab active:cursor-grabbing">
+          {formattedData.nodes.length > 0 && (
+            <ForceGraph2D
+              ref={graphRef}
+              graphData={formattedData}
+              nodeLabel="label"
+              nodeColor="color"
+              nodeRelSize={6}
+              linkColor={() => 'rgba(11, 92, 171, 0.3)'}
+              linkWidth={1.5}
+              linkDirectionalArrowLength={4}
+              linkDirectionalArrowRelPos={1}
+              linkDirectionalParticles={2}
+              linkDirectionalParticleSpeed={0.01}
+              linkCanvasObjectMode={() => 'after'}
+              linkCanvasObject={renderLinkLabel}
+              onNodeClick={(node: any) => setSelectedNode(node)}
+              cooldownTicks={100}
+              onEngineStop={() => graphRef.current?.zoomToFit(400, 50)}
+            />
+          )}
+          {!isLoading && formattedData.nodes.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="font-mono text-sm text-[#64748B]">No financial data uploaded yet to build the money trail.</span>
+            </div>
+          )}
+        </div>
 
-                {/* Victim to Mule 1 (₹4,82,000) */}
-                <path d="M 390 100 L 390 190" fill="none" stroke="#DC2626" strokeWidth="5" markerEnd="url(#flow-arrow-red)" />
-                <rect x="350" y="130" width="80" height="22" rx="4" fill="#FFFFFF" stroke="#D9E1EA" strokeWidth="1" />
-                <text x="390" y="145" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">₹4,82,000</text>
+        {/* Legend */}
+        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur border border-slate-200 p-3 rounded shadow-sm text-xs pointer-events-none">
+          <div className="font-bold text-[#191C1E] mb-2 uppercase tracking-wider text-[10px]">Flow Roles</div>
+          <div className="flex flex-col gap-2 font-mono text-[#424751]">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#ef4444]"></div>
+              <span>VICTIM</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#f97316]"></div>
+              <span>MULE / LAYER 1</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#0B5CAB]"></div>
+              <span>AGGREGATOR</span>
+            </div>
+          </div>
+        </div>
 
-                {/* Mule 1 to Mule 2 (₹48,000) */}
-                <path d="M 350 310 C 350 360, 220 360, 220 410" fill="none" stroke="#DC2626" strokeWidth="4" markerEnd="url(#flow-arrow-red)" />
-                <rect x="235" y="345" width="75" height="22" rx="4" fill="#FFFFFF" stroke="#D9E1EA" strokeWidth="1" />
-                <text x="272" y="360" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">₹48,000</text>
-
-                {/* Mule 1 to UPI Dispersal (₹4,34,000) */}
-                <path d="M 430 310 C 430 360, 560 360, 560 410" fill="none" stroke="#64748B" strokeWidth="2" strokeDasharray="4,4" markerEnd="url(#flow-arrow-slate)" />
-                <rect x="475" y="345" width="80" height="22" rx="4" fill="#FFFFFF" stroke="#D9E1EA" strokeWidth="1" />
-                <text x="515" y="360" textAnchor="middle" fill="#424751" fontFamily="JetBrains Mono" fontSize="11">₹4,34,000</text>
-
-                {/* Mule 2 to ATM Cash-out (₹47,500) */}
-                <path d="M 220 530 L 220 610" fill="none" stroke="#DC2626" strokeWidth="4" markerEnd="url(#flow-arrow-red)" />
-                <rect x="180" y="555" width="80" height="22" rx="4" fill="#FFFFFF" stroke="#D9E1EA" strokeWidth="1" />
-                <text x="220" y="570" textAnchor="middle" fill="#DC2626" fontFamily="JetBrains Mono" fontSize="11" fontWeight="bold">₹47,500</text>
-              </svg>
-
-              {/* Node 1: Victim Source */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[0])}
-                className="absolute top-[10px] left-[250px] w-[280px] bg-white border border-[#D9E1EA] rounded-md shadow-xs overflow-hidden cursor-pointer hover:border-[#0B5CAB] transition-colors"
-              >
-                <div className="bg-[#F8FAFC] px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#64748B] uppercase text-[10px]">Victim Source</span>
-                  <span className="material-symbols-outlined text-[16px] text-[#64748B]">person</span>
-                </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">VICTIM-001 (SBI XXXXXXX1190)</div>
-                  <div className="font-mono text-xs text-[#0B5CAB] font-semibold mt-1">
-                    Entering: ₹4,82,000 Outflow
-                  </div>
-                </div>
+        {/* Selected Node Details Panel */}
+        {selectedNode && (
+          <div className="w-80 bg-white border-l border-[#D9E1EA] shadow-xl flex flex-col z-10 absolute right-0 inset-y-0 transform transition-transform">
+            <div className="p-4 border-b border-[#D9E1EA] flex justify-between items-start bg-[#F8FAFC]">
+              <div>
+                <div className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1">{selectedNode.role}</div>
+                <h3 className="text-lg font-bold text-[#191C1E]">{selectedNode.label}</h3>
               </div>
-
-              {/* Node 2: Layer 1 Mule (Rajesh Verma) */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[1])}
-                className={`absolute top-[190px] left-[250px] w-[280px] bg-white border-2 rounded-md shadow-md overflow-hidden cursor-pointer transition-all ${
-                  selectedNode.id === 'node_mule1'
-                    ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20'
-                    : 'border-[#DC2626]'
-                }`}
-              >
-                <div className="bg-[#DC2626]/10 px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#DC2626] uppercase text-[10px] flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">warning</span>
-                    Layer 1 Mule
-                  </span>
-                  <span className="px-1.5 py-0.2 bg-[#DC2626] text-white text-[9px] font-bold rounded font-mono">
-                    RISK: 91
-                  </span>
+              <button onClick={() => setSelectedNode(null)} className="text-[#64748B] hover:text-[#191C1E]">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            
+            <div className="p-4 flex flex-col gap-4 overflow-y-auto">
+              <div className="flex flex-col gap-1.5 text-sm">
+                <div className="flex justify-between border-b border-slate-100 pb-1">
+                  <span className="text-[#64748B]">Node ID</span>
+                  <span className="font-mono text-xs">{selectedNode.id.substring(0, 8)}...</span>
                 </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">HDFC XXXXXXX4521</div>
-                  <div className="text-xs text-[#64748B] mt-0.5">Owner: Rajesh Verma</div>
-                  <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
-                    <span className="text-[#64748B]">Received</span>
-                    <span className="font-bold text-[#191C1E]">₹4,82,000</span>
-                  </div>
+                <div className="flex justify-between border-b border-slate-100 pb-1">
+                  <span className="text-[#64748B]">Account No</span>
+                  <span className="font-mono font-bold text-[#191C1E]">{selectedNode.account_number || 'N/A'}</span>
                 </div>
-              </div>
-
-              {/* Node 3: Layer 2 Mule */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[2])}
-                className={`absolute top-[410px] left-[80px] w-[280px] bg-white border-2 rounded-md shadow-xs overflow-hidden cursor-pointer transition-all ${
-                  selectedNode.id === 'node_mule2' ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#DC2626]/60'
-                }`}
-              >
-                <div className="bg-[#DC2626]/5 px-3 py-1.5 border-b border-[#DC2626]/20 flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#DC2626] uppercase text-[10px]">Layer 2 Mule</span>
-                  <span className="px-1.5 py-0.2 bg-[#7C3AED] text-white text-[9px] font-bold rounded font-mono">
-                    RISK: 86
-                  </span>
+                <div className="flex justify-between border-b border-slate-100 pb-1 mt-2">
+                  <span className="text-[#64748B]">Total Inflow</span>
+                  <span className="font-mono font-bold text-[#0B5CAB]">₹{(selectedNode.total_inflow || 0).toLocaleString()}</span>
                 </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">HDFC XXXXXXX7832</div>
-                  <div className="text-xs text-[#DC2626] font-semibold mt-0.5">Status: Active Splitting</div>
-                  <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
-                    <span className="text-[#64748B]">Received</span>
-                    <span className="font-bold text-[#DC2626]">₹48,000</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Node 4: Secondary UPI Distribution */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[3])}
-                className={`absolute top-[410px] left-[420px] w-[280px] bg-white border rounded-md shadow-xs overflow-hidden cursor-pointer opacity-85 hover:opacity-100 transition-all ${
-                  selectedNode.id === 'node_upi' ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#D9E1EA]'
-                }`}
-              >
-                <div className="bg-[#F8FAFC] px-3 py-1.5 border-b border-[#D9E1EA] flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#64748B] uppercase text-[10px]">Secondary Distribution</span>
-                  <span className="material-symbols-outlined text-[16px] text-[#64748B]">call_split</span>
-                </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">Multiple UPI Handlers</div>
-                  <div className="text-xs text-[#64748B] font-mono mt-0.5">14 Distinct Accounts</div>
-                  <div className="flex justify-between items-center border-t border-[#EDF0F4] pt-2 mt-2 font-mono text-xs">
-                    <span className="text-[#64748B]">Dispersed</span>
-                    <span className="font-bold text-[#191C1E]">₹4,34,000</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Node 5: Terminal Node (ATM) */}
-              <div
-                onClick={() => setSelectedNode(MONEY_TRAIL_NODES[4])}
-                className={`absolute top-[610px] left-[80px] w-[280px] bg-white border-2 rounded-md shadow-md overflow-hidden cursor-pointer transition-all ${
-                  selectedNode.id === 'node_atm' ? 'border-[#0B5CAB] ring-2 ring-[#0B5CAB]/20' : 'border-[#F97316]'
-                }`}
-              >
-                <div className="bg-[#F97316]/10 px-3 py-1.5 border-b border-[#F97316]/30 flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#F97316] uppercase text-[10px]">Terminal Node</span>
-                  <span className="material-symbols-outlined text-[16px] text-[#F97316]">local_atm</span>
-                </div>
-                <div className="p-3">
-                  <div className="font-bold text-sm text-[#191C1E]">Sector 22 ATM (SIB8922)</div>
-                  <div className="text-xs text-[#64748B] mt-0.5 font-mono">15:10 IST • Cash-out</div>
-                  <div className="font-mono text-sm font-bold text-[#DC2626] mt-1.5 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">logout</span>
-                    ₹47,500 Cash
-                  </div>
+                <div className="flex justify-between border-b border-slate-100 pb-1">
+                  <span className="text-[#64748B]">Total Outflow</span>
+                  <span className="font-mono font-bold text-[#DC2626]">₹{(selectedNode.total_outflow || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        )}
       </div>
-
-
     </div>
   );
 };

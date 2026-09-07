@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useCaseStore } from '../context/CaseStore';
+import { useGeospatial } from '../hooks/useApi';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
+import { GeospatialEvent } from '../types/api';
 
 // Fix Leaflet default icon issue with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -30,60 +32,43 @@ interface GeoLocationNode {
   color: string;
 }
 
-const GEO_POINTS: GeoLocationNode[] = [
-  {
-    id: 'geo_1',
-    name: 'Cell Tower Sector 17 (Tower A)',
-    type: 'CDR_TOWER',
-    domain: 'CDR',
-    lat: 30.7398,
-    lng: 76.7827,
-    time: '14:00:12 IST (15 Aug 2026)',
-    address: 'Sector 17 Plaza Telecom Mast #45892',
-    radiusKm: 1.8,
-    details: '14m 23s voice call to victim handset (+91 9988776655)',
-    color: '#0891B2',
-  },
-  {
-    id: 'geo_2',
-    name: 'Cyber Cafe Proxy Hub (Node Alpha)',
-    type: 'IP_LOCATION',
-    domain: 'IPDR',
-    lat: 30.7412,
-    lng: 76.7795,
-    time: '14:28:44 IST (15 Aug 2026)',
-    address: 'Shop 14, Sector 17-D Market, Chandigarh',
-    radiusKm: 0.5,
-    details: 'IP 103.76.234.12 logged data transmission to NetBanking',
-    color: '#7C3AED',
-  },
-  {
-    id: 'geo_3',
-    name: 'HDFC Bank Sector 22 Branch',
-    type: 'BANK_BRANCH',
-    domain: 'BANK',
-    lat: 30.7324,
-    lng: 76.769,
-    time: '14:32:05 IST (15 Aug 2026)',
-    address: 'SCO 88-89, Sector 22-C, Chandigarh',
-    radiusKm: 0.8,
-    details: '₹48,000 IMPS credit to HDFC XXXXXXX4521',
-    color: '#F97316',
-  },
-  {
-    id: 'geo_4',
-    name: 'Sector 22 Market ATM Booth',
-    type: 'ATM_CASHOUT',
-    domain: 'BANK',
-    lat: 30.7298,
-    lng: 76.7712,
-    time: '15:10:18 IST (15 Aug 2026)',
-    address: 'ATM ID SIB8922, Near Bus Stand, Sector 22',
-    radiusKm: 0.2,
-    details: 'Physical cash withdrawal of ₹47,500',
-    color: '#DC2626',
-  },
-];
+const mapApiEventToNode = (e: GeospatialEvent): GeoLocationNode => {
+  let type: GeoLocationNode['type'] = 'CDR_TOWER';
+  let domain: GeoLocationNode['domain'] = 'CDR';
+  let color = '#0891B2';
+  let radiusKm = 1.0;
+
+  if (e.event_type.includes('IPDR')) {
+    type = 'IP_LOCATION';
+    domain = 'IPDR';
+    color = '#7C3AED';
+    radiusKm = 0.5;
+  } else if (e.event_type.includes('WITHDRAWAL') || e.event_type.includes('ATM')) {
+    type = 'ATM_CASHOUT';
+    domain = 'BANK';
+    color = '#DC2626';
+    radiusKm = 0.2;
+  } else if (e.event_type.includes('IMPS') || e.event_type.includes('BANK')) {
+    type = 'BANK_BRANCH';
+    domain = 'BANK';
+    color = '#F97316';
+    radiusKm = 0.8;
+  }
+
+  return {
+    id: e.id,
+    name: e.location_name || `Location ${e.location_raw}`,
+    type,
+    domain,
+    lat: e.lat,
+    lng: e.lng,
+    time: new Date(e.ts_start).toLocaleString('en-IN'),
+    address: e.location_name,
+    radiusKm,
+    details: `${e.event_type}: ${e.actor_raw} ${e.peer_raw ? `-> ${e.peer_raw}` : ''}`,
+    color,
+  };
+};
 
 // Custom colored marker icons
 const createColoredIcon = (color: string) =>
@@ -110,20 +95,35 @@ export const GeospatialMap: React.FC = () => {
   const navigate = useNavigate();
   const { getCaseFiles } = useCaseStore();
 
-  const isDemo = caseId === '2847';
   const uploadedFiles = getCaseFiles(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
 
-  const [selectedPoint, setSelectedPoint] = useState<GeoLocationNode | null>(GEO_POINTS[0]);
+  const { data: geospatialData, isLoading } = useGeospatial(caseId ?? '');
+  
+  const [geoPoints, setGeoPoints] = useState<GeoLocationNode[]>([]);
+  const [selectedPoint, setSelectedPoint] = useState<GeoLocationNode | null>(null);
+  
+  useEffect(() => {
+    if (geospatialData?.events?.length) {
+      const mapped = geospatialData.events.map(mapApiEventToNode);
+      setGeoPoints(mapped);
+      setSelectedPoint(mapped[0]);
+    } else {
+      setGeoPoints([]);
+      setSelectedPoint(null);
+    }
+  }, [geospatialData]);
+
   const [radiusBuffer, setRadiusBuffer] = useState<number>(2.5);
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [layers, setLayers] = useState({ cdr: true, bank: true, ipdr: true });
 
-  const CENTER: [number, number] = [30.7350, 76.7760];
-  const trajectoryPath: [number, number][] = GEO_POINTS.map(p => [p.lat, p.lng]);
+  const defaultCenter: [number, number] = [30.7350, 76.7760];
+  const CENTER: [number, number] = geoPoints.length > 0 ? [geoPoints[0].lat, geoPoints[0].lng] : defaultCenter;
+  const trajectoryPath: [number, number][] = geoPoints.map(p => [p.lat, p.lng]);
 
   // Empty state for new cases with no uploads
-  if (!isDemo && !hasUploads) {
+  if (!hasUploads) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
         <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">map</span>
@@ -141,7 +141,7 @@ export const GeospatialMap: React.FC = () => {
   const handleExportGeoJSON = () => {
     const geojson = {
       type: 'FeatureCollection',
-      features: GEO_POINTS.map(p => ({
+      features: geoPoints.map(p => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
         properties: { name: p.name, domain: p.domain, time: p.time, address: p.address, details: p.details },
@@ -151,9 +151,9 @@ export const GeospatialMap: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'case_2847_geodossier.geojson';
+    a.download = `case_${caseId}_geodossier.geojson`;
     a.click();
-    showToast('Exported GeoJSON dossier for Case #2847.', 'success');
+    showToast(`Exported GeoJSON dossier for Case #${caseId}.`, 'success');
   };
 
   return (
@@ -162,7 +162,7 @@ export const GeospatialMap: React.FC = () => {
       <header className="border-b border-[#D9E1EA] pb-3 flex justify-between items-end">
         <div>
           <div className="flex items-center gap-2 text-xs text-[#64748B] mb-1">
-            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#2847</span>
+            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId}</span>
             <span>•</span>
             <span>Spatial Geo-Trajectory &amp; Cell Tower Triangulation</span>
           </div>
@@ -215,33 +215,13 @@ export const GeospatialMap: React.FC = () => {
             <div>
               <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-1.5">Target Entity</label>
               <select className="w-full py-1.5 px-3 bg-[#F8FAFC] border border-[#D9E1EA] rounded text-xs font-medium cursor-pointer">
-                <option>Rajesh Verma (Case #2847 Primary)</option>
+                <option>Primary Target</option>
                 <option>IMEI 864359012345219 (OnePlus)</option>
                 <option>Sector 17 Watchlist Cluster</option>
               </select>
             </div>
 
-            {/* Layer Toggles */}
-            <div className="pt-2 border-t border-[#EDF0F4]">
-              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-2.5">Data Overlays</label>
-              <div className="space-y-2">
-                {[
-                  { key: 'cdr', icon: 'cell_tower', color: '#0891B2', label: 'Cell Towers (CDR)' },
-                  { key: 'bank', icon: 'local_atm', color: '#F97316', label: 'Financial Nodes (ATMs/Banks)' },
-                  { key: 'ipdr', icon: 'router', color: '#7C3AED', label: 'IP Geolocation' },
-                ].map(({ key, icon, color, label }) => (
-                  <label key={key} className="flex items-center justify-between p-2 rounded bg-[#F8FAFC] border border-[#EDF0F4] cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px]" style={{ color }}>{icon}</span>
-                      <span className="font-medium text-[#191C1E]">{label}</span>
-                    </div>
-                    <input type="checkbox" checked={(layers as any)[key]}
-                      onChange={e => setLayers({ ...layers, [key]: e.target.checked })}
-                      className="w-4 h-4 rounded accent-[#0B5CAB]" />
-                  </label>
-                ))}
-              </div>
-            </div>
+
 
             {/* Selected Waypoint Info */}
             {selectedPoint && (
@@ -260,10 +240,10 @@ export const GeospatialMap: React.FC = () => {
             {/* Geo-Points List */}
             <div className="pt-2 border-t border-[#EDF0F4]">
               <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-2">
-                Geo-Points ({GEO_POINTS.length})
+                Geo-Points ({geoPoints.length})
               </label>
               <div className="space-y-1.5">
-                {GEO_POINTS.map((pt, idx) => (
+                {geoPoints.map((pt, idx) => (
                   <button key={pt.id} onClick={() => setSelectedPoint(pt)}
                     className={`w-full text-left p-2 rounded border text-[11px] transition-colors ${
                       selectedPoint?.id === pt.id
@@ -296,11 +276,13 @@ export const GeospatialMap: React.FC = () => {
             <Polyline positions={trajectoryPath} color="#DC2626" weight={3} dashArray="8, 6" opacity={0.85} />
 
             {/* Radius buffer circle (from slider) */}
-            <Circle center={[GEO_POINTS[0].lat, GEO_POINTS[0].lng]} radius={radiusBuffer * 1000}
-              pathOptions={{ color: '#0B5CAB', fillColor: '#0B5CAB', fillOpacity: 0.04, weight: 2, dashArray: '8, 4' }} />
+            {geoPoints.length > 0 && (
+              <Circle center={[geoPoints[0].lat, geoPoints[0].lng]} radius={radiusBuffer * 1000}
+                pathOptions={{ color: '#0B5CAB', fillColor: '#0B5CAB', fillOpacity: 0.04, weight: 2, dashArray: '8, 4' }} />
+            )}
 
             {/* Individual geo-point markers */}
-            {GEO_POINTS.map((pt, idx) => {
+            {geoPoints.map((pt, idx) => {
               const show =
                 (pt.domain === 'CDR' && layers.cdr) ||
                 (pt.domain === 'BANK' && layers.bank) ||

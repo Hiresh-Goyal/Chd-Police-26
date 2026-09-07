@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { CASE_2847 } from '../data/mockData';
 import { useCaseStore } from '../context/CaseStore';
+import { useFraudScore } from '../hooks/useApi';
+import { FraudScoreAPI, FindingAPI } from '../types/api';
 
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -13,12 +14,13 @@ export const CaseWorkspace: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
   const { getCase, getCaseFiles } = useCaseStore();
 
-  // For case 2847 use rich mock data; for any other case load from store
-  const caseData = caseId === '2847' ? CASE_2847 : getCase(caseId ?? '');
+  const caseData = getCase(caseId ?? '');
   const uploadedFiles = getCaseFiles(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
 
   const [notes, setNotes] = useState(caseData?.notes ?? []);
+  
+  const { data: fraudScoreData, isLoading: isFraudScoreLoading } = useFraudScore(caseId ?? '');
 
   const [newNoteText, setNewNoteText] = useState('');
   const [isAddNoteModalOpen, setIsAddNoteModalOpen] = useState(false);
@@ -111,7 +113,7 @@ export const CaseWorkspace: React.FC = () => {
       </div>
 
       {/* Upload prompt for new cases with no evidence yet */}
-      {!hasUploads && caseId !== '2847' && (
+      {!hasUploads && (
         <div className="bg-[#EFF6FF] border border-[#0B5CAB]/20 rounded-md px-5 py-4 flex items-center gap-4">
           <span className="material-symbols-outlined text-[#0B5CAB] text-3xl shrink-0">upload_file</span>
           <div className="flex-1 min-w-0">
@@ -151,19 +153,27 @@ export const CaseWorkspace: React.FC = () => {
                     cy="50"
                     r="40"
                     fill="none"
-                    stroke="#DC2626"
+                    stroke={fraudScoreData?.risk_level === 'CRITICAL' ? '#DC2626' : fraudScoreData?.risk_level === 'HIGH' ? '#ea580c' : '#0B5CAB'}
                     strokeWidth="8"
                     strokeDasharray="251.2"
-                    strokeDashoffset="27.6"
+                    strokeDashoffset={251.2 * (1 - ((fraudScoreData?.score || 0) / 100))}
                     strokeLinecap="round"
+                    className="transition-all duration-1000 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold font-mono text-[#DC2626]">89</span>
+                  <span className={`text-2xl font-bold font-mono ${fraudScoreData?.risk_level === 'CRITICAL' ? 'text-[#DC2626]' : fraudScoreData?.risk_level === 'HIGH' ? 'text-orange-600' : 'text-[#0B5CAB]'}`}>
+                    {fraudScoreData?.score || 0}
+                  </span>
                 </div>
               </div>
-              <span className="mt-2 text-[10px] font-bold font-mono text-[#DC2626] bg-[#DC2626]/10 px-2 py-0.5 rounded border border-[#DC2626]/20 uppercase">
-                FRAUD SCORE: CRITICAL
+              <span className={`mt-2 text-[10px] font-bold font-mono px-2 py-0.5 rounded border uppercase ${
+                fraudScoreData?.risk_level === 'CRITICAL' ? 'text-[#DC2626] bg-[#DC2626]/10 border-[#DC2626]/20' : 
+                fraudScoreData?.risk_level === 'HIGH' ? 'text-orange-600 bg-orange-500/10 border-orange-500/20' : 
+                (fraudScoreData?.score || 0) > 0 ? 'text-[#0B5CAB] bg-[#0B5CAB]/10 border-[#0B5CAB]/20' :
+                'text-[#64748B] bg-slate-100 border-slate-200'
+              }`}>
+                FRAUD SCORE: {(fraudScoreData?.score || 0) > 0 ? fraudScoreData?.risk_level : 'NOT SCORED'}
               </span>
             </div>
 
@@ -171,27 +181,59 @@ export const CaseWorkspace: React.FC = () => {
             <div className="flex flex-col gap-2 text-xs divide-y divide-[#EDF0F4] pt-2">
               <div className="flex justify-between pt-1">
                 <span className="text-[#64748B]">Case ID</span>
-                <span className="font-mono font-bold text-[#191C1E]">#2847</span>
+                <span className="font-mono font-bold text-[#191C1E]">#{caseId}</span>
               </div>
               <div className="flex justify-between pt-1.5">
                 <span className="text-[#64748B]">Subject</span>
-                <span className="font-semibold text-[#191C1E]">Rajesh Verma</span>
+                <span className="font-semibold text-[#191C1E]">{caseData?.subject ?? 'Subject'}</span>
               </div>
               <div className="flex justify-between pt-1.5">
                 <span className="text-[#64748B]">Type</span>
-                <span className="text-[#191C1E]">Investment Scam</span>
+                <span className="text-[#191C1E]">{caseData?.type ?? 'Case'}</span>
               </div>
               <div className="flex justify-between pt-1.5">
                 <span className="text-[#64748B]">Est. Loss</span>
-                <span className="font-mono font-bold text-[#DC2626]">₹4,82,000</span>
+                <span className="font-mono font-bold text-[#DC2626]">₹0</span>
               </div>
               <div className="flex justify-between pt-1.5">
                 <span className="text-[#64748B]">Status</span>
                 <span className="text-[#0B5CAB] font-semibold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-[#0B5CAB] rounded-full"></span>
+                  <span className={`w-1.5 h-1.5 ${caseStatus === 'Active' ? 'bg-[#0B5CAB] animate-pulse' : 'bg-slate-400'} rounded-full`}></span>
                   {caseStatus}
                 </span>
               </div>
+            </div>
+          </div>
+
+          {/* Top 3 Contributing Findings */}
+          <div className="bg-white border border-[#D9E1EA] rounded-md shadow-xs flex flex-col overflow-hidden">
+            <div className="p-3 border-b border-[#D9E1EA] bg-[#F8FAFC] flex justify-between items-center">
+              <h3 className="text-[11px] font-bold text-[#424751] uppercase tracking-widest">
+                TOP CONTRIBUTING FINDINGS
+              </h3>
+            </div>
+            <div className="p-2 flex flex-col gap-2">
+              {isFraudScoreLoading ? (
+                <div className="text-center text-xs text-[#64748B] p-4 animate-pulse">Loading findings...</div>
+              ) : fraudScoreData?.top_findings && fraudScoreData.top_findings.length > 0 ? (
+                fraudScoreData.top_findings.slice(0, 3).map((finding: FindingAPI) => (
+                  <div key={finding.id} className="p-2.5 rounded border border-[#D9E1EA] bg-white hover:bg-[#F8FAFC] cursor-pointer transition-colors group" onClick={() => navigate('/alerts')}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold font-mono text-[#DC2626] tracking-wider">RULE {finding.rule_id}</span>
+                      <span className="text-[10px] font-bold text-[#191C1E] bg-slate-100 px-1.5 py-0.5 rounded">+{finding.fraud_weight} WGT</span>
+                    </div>
+                    <div className="text-xs text-[#191C1E] font-medium leading-snug line-clamp-2">
+                      {finding.explanation}
+                    </div>
+                    <div className="mt-1.5 text-[9px] font-mono text-[#64748B] uppercase tracking-wider flex items-center justify-between">
+                      <span>CONF: {(finding.confidence * 100).toFixed(0)}%</span>
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[#0B5CAB]">DETAILS →</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-[#64748B] text-xs p-4">No findings detected.</div>
+              )}
             </div>
           </div>
 
@@ -211,10 +253,10 @@ export const CaseWorkspace: React.FC = () => {
             </div>
 
             <div className="p-2 flex flex-col gap-1.5 overflow-y-auto max-h-[380px] custom-scrollbar">
-              {CASE_2847.entities.map(ent => (
+              {caseData?.entities && caseData.entities.map((ent: any) => (
                 <div
                   key={ent.id}
-                  onClick={() => navigate('/cases/2847/entity-graph')}
+                  onClick={() => navigate(`/cases/${caseId}/entity-graph`)}
                   className="flex items-center gap-2.5 p-2 hover:bg-[#EFF6FF]/50 rounded cursor-pointer transition-colors border border-transparent hover:border-[#D9E1EA]"
                 >
                   <div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-[#424751] shrink-0">
@@ -231,6 +273,9 @@ export const CaseWorkspace: React.FC = () => {
                   </div>
                 </div>
               ))}
+              {(!caseData?.entities || caseData.entities.length === 0) && (
+                <div className="text-center text-[#64748B] text-xs p-4">No entities extracted yet.</div>
+              )}
             </div>
           </div>
         </div>
@@ -238,52 +283,30 @@ export const CaseWorkspace: React.FC = () => {
         {/* Center Column: Overview, Quick Stats, Nexus, Mini Timeline (~6 cols / 50%) */}
         <div className="lg:col-span-6 flex flex-col gap-4">
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-[#0891B2]"></div>
-              <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">CDR</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">147</span>
+          <div className="grid grid-cols-5 gap-3 border-t border-[#EDF0F4] pt-5">
+              {[
+                { label: 'CDR', value: uploadedFiles.filter(f => f.domain === 'CDR').reduce((acc, f) => acc + (f.recordsCount || 0), 0), color: '#0B5CAB' },
+                { label: 'BANK', value: uploadedFiles.filter(f => f.domain === 'BANK').reduce((acc, f) => acc + (f.recordsCount || 0), 0), color: '#F97316' },
+                { label: 'SOCIAL', value: uploadedFiles.filter(f => f.domain === 'SOCIAL').reduce((acc, f) => acc + (f.recordsCount || 0), 0), color: '#22C55E' },
+                { label: 'IPDR', value: uploadedFiles.filter(f => f.domain === 'IPDR').reduce((acc, f) => acc + (f.recordsCount || 0), 0), color: '#8B5CF6' },
+                { label: 'ANOMALIES', value: fraudScoreData?.score ? 7 : 0, color: '#EF4444', isAlert: true },
+              ].map(stat => (
+                <div key={stat.label} className={`bg-white border rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs ${stat.isAlert ? 'bg-red-50 border-red-200' : 'border-[#D9E1EA]'}`}>
+                  <div className="absolute top-0 left-0 w-full h-[3px]" style={{ backgroundColor: stat.color }}></div>
+                  <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">{stat.label}</span>
+                  <span className={`font-mono text-base font-bold ${stat.isAlert ? 'text-red-600' : 'text-[#191C1E]'}`}>{stat.value}</span>
+                </div>
+              ))}
             </div>
-
-            <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-[#F97316]"></div>
-              <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">BANK</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">23</span>
-            </div>
-
-            <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-[#16A34A]"></div>
-              <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">SOCIAL</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">4</span>
-            </div>
-
-            <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-[#7C3AED]"></div>
-              <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">IPDR</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">18</span>
-            </div>
-
-            <div className="bg-white border border-[#DC2626]/40 rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden bg-[#DC2626]/5 shadow-xs">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-[#DC2626]"></div>
-              <span className="text-[10px] font-bold text-[#DC2626] mb-0.5 font-mono">ANOMALIES</span>
-              <span className="font-mono text-base font-bold text-[#DC2626]">7</span>
-            </div>
-
-            <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-[#0B5CAB]"></div>
-              <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">EVIDENCE</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">6</span>
-            </div>
-          </div>
 
           {/* Mini Key Event Timeline */}
-          <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
-            <div className="flex justify-between items-center border-b border-[#EDF0F4] pb-2 mb-3">
+          <div className="bg-white border border-[#D9E1EA] rounded-md shadow-xs flex flex-col">
+            <div className="flex justify-between items-center border-b border-[#EDF0F4] p-3">
               <h3 className="text-[11px] font-bold text-[#424751] tracking-widest uppercase">
-                KEY EVENT TIMELINE (15 AUG 2026)
+                KEY EVENT TIMELINE
               </h3>
               <Link
-                to="/cases/2847/timeline"
+                to={`/cases/${caseId}/timeline`}
                 className="text-xs text-[#0B5CAB] font-semibold hover:underline flex items-center gap-0.5"
               >
                 <span>Full Timeline</span>
@@ -291,81 +314,9 @@ export const CaseWorkspace: React.FC = () => {
               </Link>
             </div>
 
-            <div className="flex flex-col gap-3 relative pl-2 pr-1">
-              {/* Event 1 */}
-              <div className="flex items-start gap-3 hover:bg-[#F8FAFC] p-1.5 rounded transition-colors">
-                <div className="font-mono text-xs text-[#64748B] w-12 pt-0.5 text-right shrink-0">09:15</div>
-                <div className="w-2.5 h-2.5 rounded-full bg-[#16A34A] mt-1 shrink-0 ring-4 ring-[#16A34A]/20"></div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-[#191C1E] flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[14px] text-[#16A34A]">forum</span>
-                    Initial Social Contact
-                  </div>
-                  <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">
-                    WhatsApp MSG from +44 7700 900077
-                  </div>
-                </div>
-              </div>
-
-              {/* Event 2 */}
-              <div className="flex items-start gap-3 hover:bg-[#F8FAFC] p-1.5 rounded transition-colors">
-                <div className="font-mono text-xs text-[#64748B] w-12 pt-0.5 text-right shrink-0">14:00</div>
-                <div className="w-2.5 h-2.5 rounded-full bg-[#0891B2] mt-1 shrink-0 ring-4 ring-[#0891B2]/20"></div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-[#191C1E] flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[14px] text-[#0891B2]">call</span>
-                    Voice Call (CDR)
-                  </div>
-                  <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">
-                    Duration: 14m 23s (Tower: Cell ID 45892)
-                  </div>
-                </div>
-              </div>
-
-              {/* Event 3 */}
-              <div className="flex items-start gap-3 hover:bg-[#F8FAFC] p-1.5 rounded transition-colors">
-                <div className="font-mono text-xs text-[#64748B] w-12 pt-0.5 text-right shrink-0">14:28</div>
-                <div className="w-2.5 h-2.5 rounded-full bg-[#7C3AED] mt-1 shrink-0 ring-4 ring-[#7C3AED]/20"></div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-[#191C1E] flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[14px] text-[#7C3AED]">router</span>
-                    Active Data Session
-                  </div>
-                  <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">
-                    IP: 103.76.234.12 (Port 443) Data: 2.4MB
-                  </div>
-                </div>
-              </div>
-
-              {/* Event 4 (IMPS Transfer - Highlighted) */}
-              <div className="flex items-start gap-3 bg-[#DC2626]/5 border border-[#DC2626]/20 p-2 rounded">
-                <div className="font-mono text-xs text-[#DC2626] font-bold w-12 pt-0.5 text-right shrink-0">14:32</div>
-                <div className="w-2.5 h-2.5 rounded-full bg-[#DC2626] mt-1 shrink-0 ring-4 ring-[#DC2626]/30 animate-pulse"></div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-[#DC2626] flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[14px]">account_balance</span>
-                    Fraudulent Transfer (IMPS ₹48,000)
-                  </div>
-                  <div className="font-mono text-[11px] text-[#191C1E] mt-0.5">
-                    Amount: ₹48,000 → HDFC XXXXXXX4521
-                  </div>
-                </div>
-              </div>
-
-              {/* Event 5 */}
-              <div className="flex items-start gap-3 hover:bg-[#F8FAFC] p-1.5 rounded transition-colors">
-                <div className="font-mono text-xs text-[#64748B] w-12 pt-0.5 text-right shrink-0">15:10</div>
-                <div className="w-2.5 h-2.5 rounded-full bg-[#F97316] mt-1 shrink-0 ring-4 ring-[#F97316]/20"></div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-[#191C1E] flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[14px] text-[#F97316]">local_atm</span>
-                    ATM Withdrawal
-                  </div>
-                  <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">
-                    Location: ATM ID SIB8922, Sector 22
-                  </div>
-                </div>
-              </div>
+            <div className="p-3">
+              {/* Wait, we don't have dynamic timeline events here, just the empty state until timeline page is implemented */}
+              <div className="text-center text-[#64748B] text-xs p-6">Timeline view requires further implementation.</div>
             </div>
           </div>
         </div>

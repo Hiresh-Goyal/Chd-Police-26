@@ -7,7 +7,7 @@ interface DomainBadgeProps {
 }
 
 export const DomainBadge: React.FC<DomainBadgeProps> = ({ domain, size = 'sm', className = '' }) => {
-  const d = domain.toUpperCase();
+  const d = (domain || '').toUpperCase();
   let styles = 'bg-slate-100 text-slate-700 border-slate-200';
   let icon = 'folder';
 

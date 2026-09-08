@@ -188,6 +188,8 @@ async def get_case_files(case_id: str):
                     "id": row.id,
                     "name": row.filename,
                     "type": row.file_type,
+                    "domain": row.file_type,
+                    "recordsCount": row.row_count,
                     "size": f"{row.row_count or 0} rows",
                     "status": "complete",
                     "uploadedAt": row.uploaded_at,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useCaseStore } from '../context/CaseStore';
-import { useFraudScore } from '../hooks/useApi';
+import { useFraudScore, useGraph, useTimeline } from '../hooks/useApi';
 import { FraudScoreAPI, FindingAPI } from '../types/api';
 
 import { Button } from '../components/common/Button';
@@ -21,6 +21,16 @@ export const CaseWorkspace: React.FC = () => {
   const [notes, setNotes] = useState(caseData?.notes ?? []);
   
   const { data: fraudScoreData, isLoading: isFraudScoreLoading } = useFraudScore(caseId ?? '');
+  const { data: graphData, isLoading: isGraphLoading } = useGraph(caseId ?? '');
+  const { data: timelineData, isLoading: isTimelineLoading } = useTimeline(caseId ?? '');
+  
+  // Extract top suspect entities from graph data
+  const suspectEntities = (graphData?.nodes || [])
+    .sort((a, b) => b.fraud_score_contribution - a.fraud_score_contribution)
+    .slice(0, 6);
+
+  // Extract top 5 recent events from timeline
+  const recentEvents = (timelineData || []).slice(0, 5);
 
   const [newNoteText, setNewNoteText] = useState('');
   const [isAddNoteModalOpen, setIsAddNoteModalOpen] = useState(false);
@@ -220,7 +230,7 @@ export const CaseWorkspace: React.FC = () => {
                   <div key={finding.id} className="p-2.5 rounded border border-[#D9E1EA] bg-white hover:bg-[#F8FAFC] cursor-pointer transition-colors group" onClick={() => navigate('/alerts')}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[10px] font-bold font-mono text-[#DC2626] tracking-wider">RULE {finding.rule_id}</span>
-                      <span className="text-[10px] font-bold text-[#191C1E] bg-slate-100 px-1.5 py-0.5 rounded">+{finding.fraud_weight} WGT</span>
+                      <span className="text-[10px] font-bold text-[#191C1E] bg-slate-100 px-1.5 py-0.5 rounded">+{finding.fraud_weight || finding.weight || 0} WGT</span>
                     </div>
                     <div className="text-xs text-[#191C1E] font-medium leading-snug line-clamp-2">
                       {finding.explanation}
@@ -241,7 +251,7 @@ export const CaseWorkspace: React.FC = () => {
           <div className="bg-white border border-[#D9E1EA] rounded-md shadow-xs flex flex-col overflow-hidden">
             <div className="p-3 border-b border-[#D9E1EA] bg-[#F8FAFC] flex justify-between items-center">
               <h3 className="text-[11px] font-bold text-[#424751] uppercase tracking-widest">
-                SUSPECT ENTITIES (6)
+                SUSPECT ENTITIES ({suspectEntities.length})
               </h3>
               <button
                 onClick={() => navigate('/cases/2847/entity-graph')}
@@ -253,27 +263,30 @@ export const CaseWorkspace: React.FC = () => {
             </div>
 
             <div className="p-2 flex flex-col gap-1.5 overflow-y-auto max-h-[380px] custom-scrollbar">
-              {caseData?.entities && caseData.entities.map((ent: any) => (
-                <div
-                  key={ent.id}
-                  onClick={() => navigate(`/cases/${caseId}/entity-graph`)}
-                  className="flex items-center gap-2.5 p-2 hover:bg-[#EFF6FF]/50 rounded cursor-pointer transition-colors border border-transparent hover:border-[#D9E1EA]"
-                >
-                  <div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-[#424751] shrink-0">
-                    <span className="material-symbols-outlined text-[16px]">
-                      {ent.type === 'PERSON' ? 'person' : ent.type === 'PHONE' ? 'call' : ent.type === 'BANK' ? 'account_balance' : ent.type === 'IMEI' ? 'smartphone' : ent.type === 'IP' ? 'router' : 'forum'}
-                    </span>
+              {isGraphLoading ? (
+                <div className="text-center text-[#64748B] text-xs p-4 animate-pulse">Loading entities...</div>
+              ) : suspectEntities.length > 0 ? (
+                suspectEntities.map((ent: any) => (
+                  <div
+                    key={ent.id}
+                    onClick={() => navigate(`/cases/${caseId}/entity-graph`)}
+                    className="flex items-center gap-2.5 p-2 hover:bg-[#EFF6FF]/50 rounded cursor-pointer transition-colors border border-transparent hover:border-[#D9E1EA]"
+                  >
+                    <div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-[#424751] shrink-0">
+                      <span className="material-symbols-outlined text-[16px]">
+                        {ent.type === 'PERSON' ? 'person' : ent.type === 'PHONE' ? 'call' : ent.type === 'ACCOUNT' ? 'account_balance' : ent.type === 'IMEI' ? 'smartphone' : ent.type === 'IP' ? 'router' : 'forum'}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-[#191C1E] truncate">{ent.canonical_value}</div>
+                      <div className="text-[9px] font-mono text-[#64748B] truncate uppercase">{ent.confidence_tier}</div>
+                    </div>
+                    <div className="shrink-0 bg-[#DC2626]/10 text-[#DC2626] text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">
+                      {ent.fraud_score_contribution.toFixed(1)}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-[#191C1E] truncate">{ent.name}</div>
-                    <div className="text-[9px] font-mono text-[#64748B] truncate uppercase">{ent.role}</div>
-                  </div>
-                  <div className="shrink-0 bg-[#DC2626]/10 text-[#DC2626] text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">
-                    {ent.riskScore}
-                  </div>
-                </div>
-              ))}
-              {(!caseData?.entities || caseData.entities.length === 0) && (
+                ))
+              ) : (
                 <div className="text-center text-[#64748B] text-xs p-4">No entities extracted yet.</div>
               )}
             </div>
@@ -315,8 +328,34 @@ export const CaseWorkspace: React.FC = () => {
             </div>
 
             <div className="p-3">
-              {/* Wait, we don't have dynamic timeline events here, just the empty state until timeline page is implemented */}
-              <div className="text-center text-[#64748B] text-xs p-6">Timeline view requires further implementation.</div>
+              {isTimelineLoading ? (
+                <div className="text-center text-[#64748B] text-xs p-6 animate-pulse">Loading timeline...</div>
+              ) : recentEvents.length > 0 ? (
+                <div className="flex flex-col gap-4 relative before:absolute before:inset-y-0 before:left-3 before:w-px before:bg-slate-200 ml-1 mt-2">
+                  {recentEvents.map((evt: any) => (
+                    <div key={evt.id} className="ml-6 relative">
+                      <div className="absolute left-[-25px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#0B5CAB]"></div>
+                      <div className="border border-slate-200 rounded-md p-2.5 bg-white shadow-sm hover:border-[#D9E1EA] transition-colors flex flex-col gap-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-[#191C1E] font-mono">{evt.event_type}</span>
+                          <span className="text-[9px] text-[#64748B] font-mono">{new Date(evt.ts_start).toLocaleString()}</span>
+                        </div>
+                        <div className="text-xs text-[#424751]">
+                          <span className="font-semibold text-[#191C1E]">{evt.actor_raw}</span> 
+                          {evt.peer_raw && (
+                            <>
+                              <span className="text-[#64748B] mx-1">→</span>
+                              <span className="font-semibold text-[#191C1E]">{evt.peer_raw}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-[#64748B] text-xs p-6">No events extracted yet.</div>
+              )}
             </div>
           </div>
         </div>

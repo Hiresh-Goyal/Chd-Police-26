@@ -14,38 +14,29 @@ def build_episodes(conn: Connection, case_id: str) -> list:
     # For hackathon purposes, let's implement a simplified version of episode building
     # We group all events for a given entity that occur within a 48-hour window.
     
-    # 1. Fetch all events associated with entities
-    stmt = select(
-        entities.c.id.label('entity_id'),
-        entities.c.canonical_value,
-        entities.c.source_ids
-    ).where(
-        entities.c.case_id == case_id,
-        entities.c.confidence_tier == 'CONFIRMED'
-    )
-    ent_rows = conn.execute(stmt).fetchall()
-    
-    # Extract event ids for each CONFIRMED entity
-    event_ids_set = set()
-    entity_to_events = {}
-    for r in ent_rows:
-        e_ids = r.source_ids or []
-        entity_to_events[r.entity_id] = e_ids
-        for eid in e_ids:
-            event_ids_set.add(eid)
-            
-    if not event_ids_set:
-        return []
-        
-    # Fetch event timestamps
+    # 1. Fetch event timestamps and entity associations
+    from collections import defaultdict
     ev_stmt = select(
         canonical_events.c.id,
-        canonical_events.c.ts_start
+        canonical_events.c.ts_start,
+        canonical_events.c.actor_entity_id,
+        canonical_events.c.peer_entity_id
     ).where(
-        canonical_events.c.id.in_(list(event_ids_set))
+        canonical_events.c.case_id == case_id
     )
     ev_rows = conn.execute(ev_stmt).fetchall()
-    ev_times = {r.id: r.ts_start for r in ev_rows}
+    
+    entity_to_events = defaultdict(list)
+    ev_times = {}
+    for r in ev_rows:
+        ev_times[r.id] = r.ts_start
+        if r.actor_entity_id:
+            entity_to_events[r.actor_entity_id].append(r.id)
+        if r.peer_entity_id:
+            entity_to_events[r.peer_entity_id].append(r.id)
+            
+    if not entity_to_events:
+        return []
     
     episodes = []
     

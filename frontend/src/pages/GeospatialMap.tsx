@@ -26,6 +26,7 @@ interface GeoLocationNode {
   lat: number;
   lng: number;
   time: string;
+  timestamp: number;
   address: string;
   radiusKm: number;
   details: string;
@@ -63,6 +64,7 @@ const mapApiEventToNode = (e: GeospatialEvent): GeoLocationNode => {
     lat: e.lat,
     lng: e.lng,
     time: new Date(e.ts_start).toLocaleString('en-IN'),
+    timestamp: new Date(e.ts_start).getTime(),
     address: e.location_name,
     radiusKm,
     details: `${e.event_type}: ${e.actor_raw} ${e.peer_raw ? `-> ${e.peer_raw}` : ''}`,
@@ -71,10 +73,12 @@ const mapApiEventToNode = (e: GeospatialEvent): GeoLocationNode => {
 };
 
 // Custom colored marker icons
-const createColoredIcon = (color: string) =>
+const createColoredIcon = (color: string, number?: number) =>
   L.divIcon({
     className: '',
-    html: `<div style="width:34px;height:34px;background:${color};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.35);"></div>`,
+    html: `<div style="width:34px;height:34px;background:${color};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;position:relative;">
+             <span style="transform:rotate(45deg);color:white;font-weight:bold;font-size:14px;line-height:1;">${number !== undefined ? number : ''}</span>
+           </div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
     popupAnchor: [0, -38],
@@ -105,7 +109,7 @@ export const GeospatialMap: React.FC = () => {
   
   useEffect(() => {
     if (geospatialData?.events?.length) {
-      const mapped = geospatialData.events.map(mapApiEventToNode);
+      const mapped = geospatialData.events.map(mapApiEventToNode).sort((a, b) => a.timestamp - b.timestamp);
       setGeoPoints(mapped);
       setSelectedPoint(mapped[0]);
     } else {
@@ -118,9 +122,51 @@ export const GeospatialMap: React.FC = () => {
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [layers, setLayers] = useState({ cdr: true, bank: true, ipdr: true });
 
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const uniqueLocations = Array.from(new Set(geoPoints.map(p => p.address || p.name))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  useEffect(() => {
+    setSelectedLocations(Array.from(new Set(geoPoints.map(p => p.address || p.name))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })));
+  }, [geoPoints]);
+
+  const handleToggleLocation = (loc: string) => {
+    setSelectedLocations(prev =>
+      prev.includes(loc) ? prev.filter(l => l !== loc) : [...prev, loc]
+    );
+  };
+
+  const filteredPoints = geoPoints.filter(p => selectedLocations.includes(p.address || p.name));
+
   const defaultCenter: [number, number] = [30.7350, 76.7760];
-  const CENTER: [number, number] = geoPoints.length > 0 ? [geoPoints[0].lat, geoPoints[0].lng] : defaultCenter;
-  const trajectoryPath: [number, number][] = geoPoints.map(p => [p.lat, p.lng]);
+  const CENTER: [number, number] = filteredPoints.length > 0 ? [filteredPoints[0].lat, filteredPoints[0].lng] : defaultCenter;
+
+  const locationGroups: Record<string, GeoLocationNode[]> = {};
+  filteredPoints.forEach((pt) => {
+    const key = `${pt.lat}-${pt.lng}`;
+    if (!locationGroups[key]) locationGroups[key] = [];
+    locationGroups[key].push(pt);
+  });
+
+  const jitteredPoints = filteredPoints.map((pt, idx) => {
+    const key = `${pt.lat}-${pt.lng}`;
+    const group = locationGroups[key];
+    if (group.length === 1) {
+      return { ...pt, displayLat: pt.lat, displayLng: pt.lng, sequenceIndex: idx + 1 };
+    }
+    const groupIdx = group.findIndex(g => g.id === pt.id);
+    const radius = 0.0015; // Jitter radius (~150m)
+    const angle = (groupIdx / group.length) * 2 * Math.PI;
+    return {
+      ...pt,
+      displayLat: pt.lat + (Math.sin(angle) * radius),
+      displayLng: pt.lng + (Math.cos(angle) * radius),
+      sequenceIndex: idx + 1
+    };
+  });
+
+  const trajectoryPath: [number, number][] = jitteredPoints.map(p => [p.displayLat, p.displayLng]);
 
   // Empty state for new cases with no uploads
   if (!hasUploads) {
@@ -190,36 +236,34 @@ export const GeospatialMap: React.FC = () => {
           </div>
 
           <div className="p-4 space-y-4 flex-1 overflow-y-auto custom-scrollbar text-xs">
-            {/* Search */}
-            <div>
-              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-1.5">Search Location / Landmark</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-2.5 top-2 text-[#64748B] text-[16px]">location_on</span>
-                <input type="text" defaultValue="Sector 17 & Sector 22, Chandigarh"
-                  className="w-full pl-8 pr-3 py-1.5 bg-[#F8FAFC] border border-[#D9E1EA] rounded text-xs focus:outline-none focus:border-[#0B5CAB]" />
-              </div>
+            {/* Filter Locations */}
+            <div className="relative">
+              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-1.5">Filter Locations</label>
+              <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full text-left pl-3 pr-8 py-1.5 bg-[#F8FAFC] border border-[#D9E1EA] rounded text-xs focus:outline-none focus:border-[#0B5CAB] flex items-center justify-between"
+              >
+                <span className="truncate">{selectedLocations.length === uniqueLocations.length ? 'All Locations Selected' : `${selectedLocations.length} Location(s) Selected`}</span>
+                <span className="material-symbols-outlined text-[16px] text-[#64748B] absolute right-2">arrow_drop_down</span>
+              </button>
+              {isDropdownOpen && (
+                <div className="absolute z-10 top-full left-0 mt-1 w-full bg-white border border-[#D9E1EA] rounded shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                  {uniqueLocations.map(loc => (
+                    <label key={loc} className="flex items-center gap-2 p-2 hover:bg-[#F8FAFC] cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedLocations.includes(loc)}
+                        onChange={() => handleToggleLocation(loc)}
+                        className="accent-[#0B5CAB] cursor-pointer"
+                      />
+                      <span className="text-xs text-[#191C1E] truncate">{loc}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Radius Slider */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider">Radius Buffer</label>
-                <span className="font-mono font-bold text-[#0B5CAB]">{radiusBuffer} km</span>
-              </div>
-              <input type="range" min="0.5" max="10" step="0.5" value={radiusBuffer}
-                onChange={e => setRadiusBuffer(parseFloat(e.target.value))}
-                className="w-full accent-[#0B5CAB] cursor-pointer" />
-            </div>
 
-            {/* Target Entity */}
-            <div>
-              <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-1.5">Target Entity</label>
-              <select className="w-full py-1.5 px-3 bg-[#F8FAFC] border border-[#D9E1EA] rounded text-xs font-medium cursor-pointer">
-                <option>Primary Target</option>
-                <option>IMEI 864359012345219 (OnePlus)</option>
-                <option>Sector 17 Watchlist Cluster</option>
-              </select>
-            </div>
 
 
 
@@ -240,10 +284,10 @@ export const GeospatialMap: React.FC = () => {
             {/* Geo-Points List */}
             <div className="pt-2 border-t border-[#EDF0F4]">
               <label className="text-[11px] font-bold text-[#424751] uppercase tracking-wider block mb-2">
-                Geo-Points ({geoPoints.length})
+                Geo-Points ({filteredPoints.length})
               </label>
               <div className="space-y-1.5">
-                {geoPoints.map((pt, idx) => (
+                {filteredPoints.map((pt, idx) => (
                   <button key={pt.id} onClick={() => setSelectedPoint(pt)}
                     className={`w-full text-left p-2 rounded border text-[11px] transition-colors ${
                       selectedPoint?.id === pt.id
@@ -276,13 +320,13 @@ export const GeospatialMap: React.FC = () => {
             <Polyline positions={trajectoryPath} color="#DC2626" weight={3} dashArray="8, 6" opacity={0.85} />
 
             {/* Radius buffer circle (from slider) */}
-            {geoPoints.length > 0 && (
-              <Circle center={[geoPoints[0].lat, geoPoints[0].lng]} radius={radiusBuffer * 1000}
+            {filteredPoints.length > 0 && (
+              <Circle center={[filteredPoints[0].lat, filteredPoints[0].lng]} radius={radiusBuffer * 1000}
                 pathOptions={{ color: '#0B5CAB', fillColor: '#0B5CAB', fillOpacity: 0.04, weight: 2, dashArray: '8, 4' }} />
             )}
 
             {/* Individual geo-point markers */}
-            {geoPoints.map((pt, idx) => {
+            {jitteredPoints.map((pt) => {
               const show =
                 (pt.domain === 'CDR' && layers.cdr) ||
                 (pt.domain === 'BANK' && layers.bank) ||
@@ -292,8 +336,8 @@ export const GeospatialMap: React.FC = () => {
               return (
                 <React.Fragment key={pt.id}>
                   <Circle center={[pt.lat, pt.lng]} radius={pt.radiusKm * 1000}
-                    pathOptions={{ color: pt.color, fillColor: pt.color, fillOpacity: 0.08, weight: 1.5, dashArray: '5,5' }} />
-                  <Marker position={[pt.lat, pt.lng]} icon={createColoredIcon(pt.color)}
+                    pathOptions={{ color: pt.color, fillColor: pt.color, fillOpacity: 0.04, weight: 1.5, dashArray: '5,5' }} />
+                  <Marker position={[pt.displayLat, pt.displayLng]} icon={createColoredIcon(pt.color, pt.sequenceIndex)}
                     eventHandlers={{ click: () => setSelectedPoint(pt) }}>
                     <Popup maxWidth={260}>
                       <div style={{ fontFamily: 'inherit', fontSize: '12px' }}>
@@ -301,7 +345,7 @@ export const GeospatialMap: React.FC = () => {
                           <span style={{ background: pt.color, color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, fontFamily: 'monospace' }}>
                             {pt.domain}
                           </span>
-                          <span style={{ color: '#64748B', fontSize: '10px', fontFamily: 'monospace' }}>#{idx + 1}</span>
+                          <span style={{ color: '#64748B', fontSize: '10px', fontFamily: 'monospace' }}>#{pt.sequenceIndex}</span>
                         </div>
                         <div style={{ fontWeight: 700, color: '#0B2340', marginBottom: '4px' }}>{pt.name}</div>
                         <div style={{ color: '#64748B', marginBottom: '4px', fontSize: '11px' }}>{pt.address}</div>

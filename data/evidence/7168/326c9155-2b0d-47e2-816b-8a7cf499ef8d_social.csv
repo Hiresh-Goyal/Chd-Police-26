@@ -1,0 +1,16 @@
+platform,user_id,phone,content,ts,interaction_type
+WhatsApp,WA_LC001,9811000001,Instant loan approved up to 5 lakh — zero collateral — apply now,2025-02-01 09:00:00,SOCIAL_POST
+WhatsApp,WA_LC001,9811000001,Your loan application is pre-approved — pay small processing fee to unlock funds,2025-02-01 10:00:00,SOCIAL_POST
+WhatsApp,WA_LC001,9811000001,LV001 contacted — sent loan approval letter,2025-02-02 09:00:00,SOCIAL_INTERACTION
+WhatsApp,WA_LC001,9811000001,LV002 contacted — sent loan approval letter,2025-02-02 09:30:00,SOCIAL_INTERACTION
+WhatsApp,WA_LC001,9811000001,LV003 contacted — sent loan approval letter,2025-02-02 10:00:00,SOCIAL_INTERACTION
+WhatsApp,WA_LC001,9811000001,LV004 contacted — sent loan approval letter,2025-02-02 10:30:00,SOCIAL_INTERACTION
+WhatsApp,WA_LC001,9811000001,LV005 contacted — sent loan approval letter,2025-02-02 11:00:00,SOCIAL_INTERACTION
+WhatsApp,WA_LC001,9811000001,Processing fee of Rs 9999 required to release loan amount today,2025-02-03 08:00:00,SOCIAL_POST
+WhatsApp,WA_LC001,9811000001,Deadline today — fee must be paid by 5pm or loan cancelled,2025-02-03 11:00:00,SOCIAL_POST
+WhatsApp,WA_LC001,9811000001,Loan disbursement delayed — additional GST fee required,2025-02-06 08:00:00,SOCIAL_POST
+WhatsApp,WA_LV001,9722000001,I paid the processing fee — when will loan be credited,2025-02-03 10:50:00,SOCIAL_INTERACTION
+WhatsApp,WA_LV002,9722000002,Fee sent — please confirm and release my loan,2025-02-03 13:05:00,SOCIAL_INTERACTION
+WhatsApp,WA_LV003,9722000003,Done with first payment — now asking for GST fee too,2025-02-04 10:20:00,SOCIAL_INTERACTION
+WhatsApp,WA_LV004,9722000004,Already paid twice — still no loan,2025-02-04 14:35:00,SOCIAL_INTERACTION
+WhatsApp,WA_LV005,9722000005,Is this scheme genuine — I am getting suspicious,2025-02-05 11:55:00,SOCIAL_INTERACTION

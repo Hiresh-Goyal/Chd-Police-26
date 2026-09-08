@@ -32,8 +32,6 @@ export const Header: React.FC = () => {
     }
   } else if (location.pathname === '/search') {
     contextTitle = 'Universal Cross-Domain Search';
-  } else if (location.pathname === '/sentinelwatch') {
-    contextTitle = 'SentinelWatch Real-Time Monitoring';
   } else if (location.pathname === '/admin/users') {
     contextTitle = 'Administration / User Management';
   } else if (location.pathname === '/admin/audit-log') {

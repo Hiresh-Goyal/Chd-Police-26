@@ -17,7 +17,6 @@ import { GeospatialMap } from './pages/GeospatialMap';
 import { CriminalFlow } from './pages/CriminalFlow';
 import { EvidenceReport } from './pages/EvidenceReport';
 import { UniversalSearch } from './pages/UniversalSearch';
-import { SentinelWatch } from './pages/SentinelWatch';
 import { UserManagement } from './pages/UserManagement';
 import { AuditLog } from './pages/AuditLog';
 
@@ -49,7 +48,6 @@ export const App: React.FC = () => {
 
               {/* Global Intelligence & Administration */}
               <Route path="/search" element={<UniversalSearch />} />
-              <Route path="/sentinelwatch" element={<SentinelWatch />} />
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/audit-log" element={<AuditLog />} />
 

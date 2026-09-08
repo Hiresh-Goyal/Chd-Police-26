@@ -74,11 +74,6 @@ export const Sidebar: React.FC = () => {
           <span className="px-1.5 py-0.5 bg-[#DC2626]/10 text-[#DC2626] rounded text-[10px] font-mono font-bold">3</span>
         </NavLink>
 
-        <NavLink to="/sentinelwatch" className={navItemClass}>
-          <span className="material-symbols-outlined text-[18px]">visibility</span>
-          <span>SentinelWatch</span>
-        </NavLink>
-
         {/* Contextual Analysis Section — visible for any case route */}
         {isCaseRoute && activeCaseId && (
           <div className="mt-3 pt-3 border-t border-[#EDF0F4] animate-in fade-in duration-200">

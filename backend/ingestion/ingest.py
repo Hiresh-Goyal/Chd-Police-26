@@ -43,7 +43,7 @@ def _sha256(file_path: str) -> str:
     return h.hexdigest()
 
 
-def ingest_file(case_id: str, file_path: str, file_type: str, original_filename: str | None = None) -> dict:
+def ingest_file(case_id: str, file_path: str, file_type: str) -> dict:
     """Ingest an evidence file into the database.
 
     Steps:
@@ -78,14 +78,11 @@ def ingest_file(case_id: str, file_path: str, file_type: str, original_filename:
     raw_file_row = {
         "id": file_id,
         "case_id": case_id,
-        "filename": original_filename or os.path.basename(file_path),
+        "filename": os.path.basename(file_path),
         "file_type": file_type_lower.upper(),
         "sha256": file_hash,
         "row_count": None,  # updated after parsing
         "uploaded_at": now,
-        "file_size_bytes": os.path.getsize(file_path),
-        "status": "complete",
-        "parse_errors": None,
     }
 
     # Step 3: parse
@@ -94,7 +91,6 @@ def ingest_file(case_id: str, file_path: str, file_type: str, original_filename:
 
     # Update row_count
     raw_file_row["row_count"] = len(events)
-    raw_file_row["parse_errors"] = json.dumps(parse_errors)
 
     # Step 4: assign UUIDs to events and prepare insert dicts
     event_rows = []

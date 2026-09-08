@@ -7,26 +7,25 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const caseRouteMatch = location.pathname.match(/^\/cases\/([^/]+)(?:\/(.*))?$/);
-  const activeCaseId = caseRouteMatch?.[1] ?? null;
-  const caseSection = caseRouteMatch?.[2] ?? '';
-  const isCaseRoute = Boolean(activeCaseId);
+  const isCaseRoute = location.pathname.startsWith('/cases/2847');
 
   let contextTitle = 'Operational Dashboard';
   if (location.pathname === '/cases') {
     contextTitle = 'My Cases';
-  } else if (activeCaseId) {
-    const sectionTitles: Record<string, string> = {
-      '': 'Case Workspace',
-      'upload-evidence': 'Upload Evidence',
-      'timeline': 'Cross-Domain Timeline',
-      'entity-graph': 'Entity Graph',
-      'geospatial': 'Geospatial Map',
-      'criminal-flow': 'CriminalFlow Money Trail',
-      'evidence-report': 'Evidence Report',
-      'alerts': 'Alerts',
-    };
-    contextTitle = `Cases / #${activeCaseId}${sectionTitles[caseSection] ? ` / ${sectionTitles[caseSection]}` : ''}`;
+  } else if (location.pathname === '/cases/2847') {
+    contextTitle = 'Cases / #2847 — Investment Scam';
+  } else if (location.pathname === '/cases/2847/upload-evidence') {
+    contextTitle = 'Cases / #2847 / Upload Evidence';
+  } else if (location.pathname === '/cases/2847/timeline') {
+    contextTitle = 'Cases / #2847 / Cross-Domain Timeline';
+  } else if (location.pathname === '/cases/2847/entity-graph') {
+    contextTitle = 'Cases / #2847 / Entity Graph';
+  } else if (location.pathname === '/cases/2847/geospatial') {
+    contextTitle = 'Cases / #2847 / Geospatial Map';
+  } else if (location.pathname === '/cases/2847/criminal-flow') {
+    contextTitle = 'Cases / #2847 / CriminalFlow Money Trail';
+  } else if (location.pathname === '/cases/2847/evidence-report') {
+    contextTitle = 'Cases / #2847 / Evidence Report';
   } else if (location.pathname === '/search') {
     contextTitle = 'Universal Cross-Domain Search';
   } else if (location.pathname === '/sentinelwatch') {
@@ -65,14 +64,14 @@ export const Header: React.FC = () => {
         <div className="hidden lg:flex items-center gap-2 bg-white/10 px-2.5 py-1 rounded border border-white/15">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="font-mono text-xs font-bold text-[#DBEAFE] tracking-wider">
-            {isCaseRoute ? `CASE #${activeCaseId}` : 'OPERATIONAL VIEW'}
+            {isCaseRoute ? 'CASE #2847' : 'OPERATIONAL VIEW'}
           </span>
         </div>
 
         <div className="h-4 w-px bg-white/20 hidden sm:block" />
 
         <span className="text-xs font-semibold text-white/90 hidden sm:inline-block">
-          IO — {typeof window !== 'undefined' ? (localStorage.getItem('ds_user') ?? 'Officer') : 'Officer'}
+          IO — Amrit Singh
         </span>
 
         <button
@@ -96,9 +95,9 @@ export const Header: React.FC = () => {
         <div
           onClick={() => navigate('/admin/users')}
           className="w-8 h-8 rounded-full bg-[#E9EEF5] text-[#0B2340] flex items-center justify-center text-xs font-bold border-2 border-white/50 cursor-pointer shadow-sm hover:scale-105 transition-transform"
-          title="Open user profile"
+          title="Profile: Insp. Amrit Singh (ID: 1042)"
         >
-          {typeof window !== 'undefined' ? (localStorage.getItem('ds_user') ?? 'OF').slice(0, 2).toUpperCase() : 'OF'}
+          AS
         </div>
       </div>
     </header>

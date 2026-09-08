@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { useTimeline } from '../hooks/useTimeline';
+import { useCaseStore } from '../context/CaseStore';
 import { useCase } from '../hooks/useCase';
 import { useFraudScore } from '../hooks/useFraudScore';
 
@@ -12,22 +12,19 @@ export const CaseWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
-  const { data: timelineEvents } = useTimeline(caseId ?? '');
+  const { getCaseFiles } = useCaseStore();
 
   const { data: caseData, loading: caseLoading } = useCase(caseId ?? '');
   const { data: fraudScoreData } = useFraudScore(caseId ?? '');
-  const uploadedFiles = caseData?.evidence ?? [];
-  const hasUploads = uploadedFiles.some(f => f.status === 'complete');
+  const uploadedFiles = getCaseFiles(caseId ?? '');
+  const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
 
   const [notes, setNotes] = useState((caseData as any)?.notes ?? []);
 
   const [newNoteText, setNewNoteText] = useState('');
   const [isAddNoteModalOpen, setIsAddNoteModalOpen] = useState(false);
-  const [caseStatus, setCaseStatus] = useState<string>(caseData?.status ?? 'OPEN');
-  const displayCaseStatus = caseStatus === 'OPEN' ? 'Active' : caseStatus === 'IN_PROGRESS' ? 'Under Review' : caseStatus.charAt(0) + caseStatus.slice(1).toLowerCase();
-
+  const [caseStatus, setCaseStatus] = useState<string>(caseData?.status ?? 'Active');
   const [isCloseCaseModalOpen, setIsCloseCaseModalOpen] = useState(false);
-  useEffect(() => { if (caseData) setCaseStatus(caseData.status); }, [caseData?.status]);
 
   // If case not found, show not found
   if (caseLoading) {
@@ -42,31 +39,25 @@ export const CaseWorkspace: React.FC = () => {
     );
   }
 
-  const handleAddNote = async (e: React.FormEvent) => {
+  const handleAddNote = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newNoteText.trim() || !caseId) return;
-    try {
-      const { createCaseNote } = await import('../api/client');
-      await createCaseNote(caseId, newNoteText.trim());
-      setNewNoteText('');
-      setIsAddNoteModalOpen(false);
-      showToast('Investigator note recorded in case diary.', 'success');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to record note.', 'error');
-    }
+    if (!newNoteText.trim()) return;
+    const newNote = {
+      id: `note_${Date.now()}`,
+      timestamp: `${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ASingh`,
+      author: 'Insp. Amrit Singh',
+      text: newNoteText.trim()
+    };
+    setNotes([newNote, ...notes]);
+    setNewNoteText('');
+    setIsAddNoteModalOpen(false);
+    showToast('Investigator note recorded in case diary.', 'success');
   };
 
-  const handleCloseCase = async () => {
-    if (!caseId) return;
-    try {
-      const { updateCase } = await import('../api/client');
-      const updated = await updateCase(caseId, { status: 'CLOSED' });
-      setCaseStatus(updated.status);
-      setIsCloseCaseModalOpen(false);
-      showToast(`Case #${caseId} status updated to CLOSED.`, 'info');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to close case.', 'error');
-    }
+  const handleCloseCase = () => {
+    setCaseStatus('Closed');
+    setIsCloseCaseModalOpen(false);
+    showToast(`Case #${caseId} status updated to CLOSED.`, 'info');
   };
 
   return (
@@ -86,12 +77,12 @@ export const CaseWorkspace: React.FC = () => {
               ? new Date(caseData.created_at).toLocaleDateString('en-IN')
               : ((caseData as any).openedDate ?? '—')}</span>
             <span className="w-1 h-1 rounded-full bg-[#C2C6D3]"></span>
-            <span>Assigned to {caseData.assigned_io_name ?? caseData.assigned_io ?? 'Officer'}</span>
+            <span>Assigned to Insp. {(caseData as any).assignedIO ?? localStorage.getItem('ds_user') ?? 'Officer'}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {caseData.priority === 'CRITICAL' && (
+          {caseData.priority === 'Critical' && (
             <div className="bg-[#DC2626]/10 text-[#DC2626] px-2.5 py-1 rounded border border-[#DC2626]/20 text-xs font-bold font-mono flex items-center gap-1">
               <span className="material-symbols-outlined text-[14px]">warning</span>
               CRITICAL
@@ -102,7 +93,7 @@ export const CaseWorkspace: React.FC = () => {
             onClick={() => showToast(`Case is currently ${caseStatus}.`, 'info')}
             className="bg-[#F8FAFC] border border-[#D9E1EA] px-3 py-1.5 rounded flex items-center gap-1.5 text-xs font-semibold text-[#191C1E] hover:bg-slate-100 transition-colors"
           >
-            <span className={`w-2 h-2 rounded-full ${caseStatus === 'OPEN' || caseStatus === 'IN_PROGRESS' ? 'bg-[#0B5CAB] animate-pulse' : 'bg-slate-400'}`}></span>
+            <span className={`w-2 h-2 rounded-full ${caseStatus === 'Active' ? 'bg-[#0B5CAB] animate-pulse' : 'bg-slate-400'}`}></span>
             {caseStatus}
           </button>
 
@@ -126,7 +117,7 @@ export const CaseWorkspace: React.FC = () => {
       </div>
 
       {/* Upload prompt for new cases with no evidence yet */}
-      {!hasUploads && (
+      {!hasUploads && caseId !== '2847' && (
         <div className="bg-[#EFF6FF] border border-[#0B5CAB]/20 rounded-md px-5 py-4 flex items-center gap-4">
           <span className="material-symbols-outlined text-[#0B5CAB] text-3xl shrink-0">upload_file</span>
           <div className="flex-1 min-w-0">
@@ -205,25 +196,25 @@ export const CaseWorkspace: React.FC = () => {
             <div className="flex flex-col gap-2 text-xs divide-y divide-[#EDF0F4] pt-2">
               <div className="flex justify-between pt-1">
                 <span className="text-[#64748B]">Case ID</span>
-                <span className="font-mono font-bold text-[#191C1E]">#{caseData.id}</span>
+                <span className="font-mono font-bold text-[#191C1E]">#2847</span>
               </div>
               <div className="flex justify-between pt-1.5">
                 <span className="text-[#64748B]">Subject</span>
-                <span className="font-semibold text-[#191C1E]">{caseData.name || caseData.title}</span>
+                <span className="font-semibold text-[#191C1E]">Rajesh Verma</span>
               </div>
               <div className="flex justify-between pt-1.5">
                 <span className="text-[#64748B]">Type</span>
-                <span className="text-[#191C1E]">{caseData.case_type || caseData.title || '—'}</span>
+                <span className="text-[#191C1E]">Investment Scam</span>
               </div>
               <div className="flex justify-between pt-1.5">
                 <span className="text-[#64748B]">Est. Loss</span>
-                <span className="font-mono font-bold text-[#DC2626]">₹{caseData.estimated_loss.toLocaleString('en-IN')}</span>
+                <span className="font-mono font-bold text-[#DC2626]">₹4,82,000</span>
               </div>
               <div className="flex justify-between pt-1.5">
                 <span className="text-[#64748B]">Status</span>
                 <span className="text-[#0B5CAB] font-semibold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-[#0B5CAB] rounded-full"></span>
-                  {displayCaseStatus}
+                  {caseStatus}
                 </span>
               </div>
             </div>
@@ -233,10 +224,10 @@ export const CaseWorkspace: React.FC = () => {
           <div className="bg-white border border-[#D9E1EA] rounded-md shadow-xs flex flex-col overflow-hidden">
             <div className="p-3 border-b border-[#D9E1EA] bg-[#F8FAFC] flex justify-between items-center">
               <h3 className="text-[11px] font-bold text-[#424751] uppercase tracking-widest">
-                SUSPECT ENTITIES ({caseData.entities_count})
+                SUSPECT ENTITIES (6)
               </h3>
               <button
-                onClick={() => navigate(`/cases/${caseId}/entity-graph`)}
+                onClick={() => navigate('/cases/2847/entity-graph')}
                 className="text-[#0B5CAB] hover:bg-[#0B5CAB]/10 p-1 rounded"
                 title="View in Entity Graph"
               >
@@ -261,7 +252,7 @@ export const CaseWorkspace: React.FC = () => {
                     <div className="text-[9px] font-mono text-[#64748B] truncate uppercase">{ent.role}</div>
                   </div>
                   <div className="shrink-0 bg-[#DC2626]/10 text-[#DC2626] text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">
-                    {ent.risk_score}
+                    {ent.riskScore}
                   </div>
                 </div>
               ))}
@@ -276,37 +267,37 @@ export const CaseWorkspace: React.FC = () => {
             <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#0891B2]"></div>
               <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">CDR</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">{caseData.stats.cdr}</span>
+              <span className="font-mono text-base font-bold text-[#191C1E]">147</span>
             </div>
 
             <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#F97316]"></div>
               <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">BANK</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">{caseData.stats.bank}</span>
+              <span className="font-mono text-base font-bold text-[#191C1E]">23</span>
             </div>
 
             <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#16A34A]"></div>
               <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">SOCIAL</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">{caseData.stats.social}</span>
+              <span className="font-mono text-base font-bold text-[#191C1E]">4</span>
             </div>
 
             <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#7C3AED]"></div>
               <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">IPDR</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">{caseData.stats.ipdr}</span>
+              <span className="font-mono text-base font-bold text-[#191C1E]">18</span>
             </div>
 
             <div className="bg-white border border-[#DC2626]/40 rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden bg-[#DC2626]/5 shadow-xs">
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#DC2626]"></div>
               <span className="text-[10px] font-bold text-[#DC2626] mb-0.5 font-mono">ANOMALIES</span>
-              <span className="font-mono text-base font-bold text-[#DC2626]">{caseData.stats.anomalies}</span>
+              <span className="font-mono text-base font-bold text-[#DC2626]">7</span>
             </div>
 
             <div className="bg-white border border-[#D9E1EA] rounded p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-xs">
               <div className="absolute top-0 left-0 w-full h-[3px] bg-[#0B5CAB]"></div>
               <span className="text-[10px] font-bold text-[#64748B] mb-0.5 font-mono">EVIDENCE</span>
-              <span className="font-mono text-base font-bold text-[#191C1E]">{caseData.stats.evidence}</span>
+              <span className="font-mono text-base font-bold text-[#191C1E]">6</span>
             </div>
           </div>
 
@@ -314,10 +305,10 @@ export const CaseWorkspace: React.FC = () => {
           <div className="bg-white border border-[#D9E1EA] rounded-md p-4 shadow-xs flex flex-col">
             <div className="flex justify-between items-center border-b border-[#EDF0F4] pb-2 mb-3">
               <h3 className="text-[11px] font-bold text-[#424751] tracking-widest uppercase">
-                KEY EVENT TIMELINE ({timelineEvents[0]?.timestamp ? new Date(timelineEvents[0].timestamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : 'NO DATE'})
+                KEY EVENT TIMELINE (15 AUG 2026)
               </h3>
               <Link
-                to={`/cases/${caseId}/timeline`}
+                to="/cases/2847/timeline"
                 className="text-xs text-[#0B5CAB] font-semibold hover:underline flex items-center gap-0.5"
               >
                 <span>Full Timeline</span>
@@ -326,24 +317,80 @@ export const CaseWorkspace: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-3 relative pl-2 pr-1">
-              {timelineEvents.slice(0, 5).map((event, index) => {
-                const color = event.domain === 'CDR' ? '#0891B2' : event.domain === 'IPDR' ? '#7C3AED' : event.domain === 'BANK' ? (event.description?.toUpperCase().includes('ATM') ? '#F97316' : '#DC2626') : event.domain === 'SOCIAL' ? '#16A34A' : '#C8102E';
-                const icon = event.domain === 'CDR' ? 'call' : event.domain === 'IPDR' ? 'router' : event.domain === 'BANK' ? (event.description?.toUpperCase().includes('ATM') ? 'local_atm' : 'account_balance') : event.domain === 'SOCIAL' ? 'forum' : 'description';
-                return (
-                  <div key={event.id ?? index} className={`flex items-start gap-3 ${event.isCritical ? 'bg-[#DC2626]/5 border border-[#DC2626]/20 p-2 rounded' : 'hover:bg-[#F8FAFC] p-1.5 rounded'} transition-colors`}>
-                    <div className={`font-mono text-xs ${event.isCritical ? 'text-[#DC2626] font-bold' : 'text-[#64748B]'} w-12 pt-0.5 text-right shrink-0`}>{event.timeDisplay}</div>
-                    <div className="w-2.5 h-2.5 rounded-full mt-1 shrink-0 ring-4" style={{ backgroundColor: color, boxShadow: `0 0 0 4px ${color}33` }}></div>
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-xs ${event.isCritical ? 'font-bold text-[#DC2626]' : 'font-semibold text-[#191C1E]'} flex items-center gap-1.5`}>
-                        <span className="material-symbols-outlined text-[14px]" style={{ color }}>{icon}</span>
-                        {event.title}
-                      </div>
-                      <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">{event.description}</div>
-                    </div>
+              {/* Event 1 */}
+              <div className="flex items-start gap-3 hover:bg-[#F8FAFC] p-1.5 rounded transition-colors">
+                <div className="font-mono text-xs text-[#64748B] w-12 pt-0.5 text-right shrink-0">09:15</div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#16A34A] mt-1 shrink-0 ring-4 ring-[#16A34A]/20"></div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-[#191C1E] flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[14px] text-[#16A34A]">forum</span>
+                    Initial Social Contact
                   </div>
-                );
-              })}
-              {timelineEvents.length === 0 && <div className="text-xs text-[#64748B] p-2">No timeline events returned.</div>}
+                  <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">
+                    WhatsApp MSG from +44 7700 900077
+                  </div>
+                </div>
+              </div>
+
+              {/* Event 2 */}
+              <div className="flex items-start gap-3 hover:bg-[#F8FAFC] p-1.5 rounded transition-colors">
+                <div className="font-mono text-xs text-[#64748B] w-12 pt-0.5 text-right shrink-0">14:00</div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#0891B2] mt-1 shrink-0 ring-4 ring-[#0891B2]/20"></div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-[#191C1E] flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[14px] text-[#0891B2]">call</span>
+                    Voice Call (CDR)
+                  </div>
+                  <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">
+                    Duration: 14m 23s (Tower: Cell ID 45892)
+                  </div>
+                </div>
+              </div>
+
+              {/* Event 3 */}
+              <div className="flex items-start gap-3 hover:bg-[#F8FAFC] p-1.5 rounded transition-colors">
+                <div className="font-mono text-xs text-[#64748B] w-12 pt-0.5 text-right shrink-0">14:28</div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#7C3AED] mt-1 shrink-0 ring-4 ring-[#7C3AED]/20"></div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-[#191C1E] flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[14px] text-[#7C3AED]">router</span>
+                    Active Data Session
+                  </div>
+                  <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">
+                    IP: 103.76.234.12 (Port 443) Data: 2.4MB
+                  </div>
+                </div>
+              </div>
+
+              {/* Event 4 (IMPS Transfer - Highlighted) */}
+              <div className="flex items-start gap-3 bg-[#DC2626]/5 border border-[#DC2626]/20 p-2 rounded">
+                <div className="font-mono text-xs text-[#DC2626] font-bold w-12 pt-0.5 text-right shrink-0">14:32</div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#DC2626] mt-1 shrink-0 ring-4 ring-[#DC2626]/30 animate-pulse"></div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-[#DC2626] flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[14px]">account_balance</span>
+                    Fraudulent Transfer (IMPS ₹48,000)
+                  </div>
+                  <div className="font-mono text-[11px] text-[#191C1E] mt-0.5">
+                    Amount: ₹48,000 → HDFC XXXXXXX4521
+                  </div>
+                </div>
+              </div>
+
+              {/* Event 5 */}
+              <div className="flex items-start gap-3 hover:bg-[#F8FAFC] p-1.5 rounded transition-colors">
+                <div className="font-mono text-xs text-[#64748B] w-12 pt-0.5 text-right shrink-0">15:10</div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#F97316] mt-1 shrink-0 ring-4 ring-[#F97316]/20"></div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-[#191C1E] flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[14px] text-[#F97316]">local_atm</span>
+                    ATM Withdrawal
+                  </div>
+                  <div className="font-mono text-[11px] text-[#64748B] mt-0.5 truncate">
+                    Location: ATM ID SIB8922, Sector 22
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -356,7 +403,7 @@ export const CaseWorkspace: React.FC = () => {
         isOpen={isAddNoteModalOpen}
         onClose={() => setIsAddNoteModalOpen(false)}
         title="Add Investigator Note"
-        subtitle="Record observations in the official case diary."
+        subtitle="Record observations in the Case #2847 official diary."
         icon="note_add"
         footer={
           <>
@@ -383,7 +430,7 @@ export const CaseWorkspace: React.FC = () => {
         isOpen={isCloseCaseModalOpen}
         onClose={() => setIsCloseCaseModalOpen(false)}
         title="Confirm Case Closure"
-        subtitle="Are you sure you want to mark this case as Closed?"
+        subtitle="Are you sure you want to mark Case #2847 as Closed?"
         icon="task_alt"
         footer={
           <>

@@ -8,7 +8,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from backend.auth.audit import log_action
 from backend.auth.jwt import get_current_user
@@ -35,26 +35,10 @@ class FindingSummary(BaseModel):
 
 
 class FindingDetail(FindingSummary):
-    events: List[Dict[str, Any]] = Field(default_factory=list)
+    events: List[Dict[str, Any]] = []
 
 
 
-
-
-
-def _event_confidence_tier(conn, case_id: str, entity_id: str | None) -> str:
-    if not entity_id:
-        return "CANDIDATE"
-    from sqlalchemy import select
-    from backend.shared.schema import entity_links_table
-    rows = conn.execute(
-        select(entity_links_table.c.confidence_tier).where(
-            entity_links_table.c.case_id == case_id,
-            (entity_links_table.c.entity_a == entity_id) | (entity_links_table.c.entity_b == entity_id),
-        )
-    ).fetchall()
-    order = {"CANDIDATE": 0, "PROBABLE": 1, "CONFIRMED": 2}
-    return min((str(r.confidence_tier) for r in rows), key=lambda x: order.get(x, 0), default="CONFIRMED")
 
 
 def _parse_json_field(val: Any) -> list:
@@ -86,24 +70,14 @@ async def get_alerts(
 
     from sqlalchemy import select
     from backend.db.connection import get_connection
-    from backend.shared.schema import findings_table, cases_table
+    from backend.shared.schema import findings_table
 
     with get_connection() as conn:
-        if conn.execute(select(cases_table.c.id).where(cases_table.c.id == case_id)).fetchone() is None:
-            raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
         rows = conn.execute(
             select(findings_table).where(findings_table.c.case_id == case_id)
         ).fetchall()
 
         if rows:
-            from backend.shared.schema import episodes_table
-            episode_ids = [r.episode_id for r in rows if r.episode_id]
-            episode_map = {}
-            if episode_ids:
-                ep_rows = conn.execute(
-                    select(episodes_table).where(episodes_table.c.id.in_(episode_ids))
-                ).fetchall()
-                episode_map = {ep.id: ep.summary for ep in ep_rows}
             results = []
             for r in rows:
                 results.append({
@@ -120,7 +94,6 @@ async def get_alerts(
                     "source_rows": _parse_json_field(r.source_rows),
                     "explanation": r.explanation,
                     "episode_id": r.episode_id,
-                    "episode_summary": episode_map.get(r.episode_id),
                     "created_at": r.created_at,
                 })
 
@@ -146,10 +119,7 @@ async def get_alert_detail(case_id: str, finding_id: str):
 
     with get_connection() as conn:
         f_row = conn.execute(
-            select(findings_table).where(
-                findings_table.c.id == finding_id,
-                findings_table.c.case_id == case_id,
-            )
+            select(findings_table).where(findings_table.c.id == finding_id)
         ).fetchone()
 
         if f_row:
@@ -169,7 +139,7 @@ async def get_alert_detail(case_id: str, finding_id: str):
                         "ts_end": ev.ts_end,
                         "actor_entity_id": ev.actor_entity_id or "",
                         "actor_raw": ev.actor_raw,
-                        "actor_confidence_tier": _event_confidence_tier(conn, case_id, ev.actor_entity_id),
+                        "actor_confidence_tier": "CONFIRMED",
                         "peer_raw": ev.peer_raw,
                         "amount": ev.amount,
                         "location_raw": ev.location_raw,

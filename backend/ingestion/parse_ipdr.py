@@ -13,7 +13,7 @@ Conventions:
     - payload stores src_ip, dst_ip, bytes_up, bytes_down.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import polars as pl
 
@@ -26,10 +26,10 @@ def _parse_ts(raw: str) -> str:
     raw = str(raw).strip()
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%d-%m-%Y %H:%M:%S"):
         try:
-            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc).isoformat()
+            return datetime.strptime(raw, fmt).isoformat()
         except ValueError:
             continue
-    raise ValueError(f"invalid timestamp: {raw}")
+    return raw
 
 
 def parse_ipdr(
@@ -78,7 +78,6 @@ def parse_ipdr(
                         "dst_ip": dst_ip,
                         "bytes_up": bytes_up,
                         "bytes_down": bytes_down,
-                        "source_fields": {str(k): str(v) for k, v in row.items()},
                     },
                     source_file_id=file_id,
                     source_row=row_idx,

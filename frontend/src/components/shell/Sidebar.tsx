@@ -68,9 +68,10 @@ export const Sidebar: React.FC = () => {
           <span>Universal Search</span>
         </NavLink>
 
-        <NavLink to={activeCaseId ? `/cases/${activeCaseId}/alerts` : "/alerts"} className={navItemClass}>
+        <NavLink to="/alerts" className={navItemClass}>
           <span className="material-symbols-outlined text-[18px]">notifications</span>
           <span className="flex-1">Alerts</span>
+          <span className="px-1.5 py-0.5 bg-[#DC2626]/10 text-[#DC2626] rounded text-[10px] font-mono font-bold">3</span>
         </NavLink>
 
         <NavLink to="/sentinelwatch" className={navItemClass}>

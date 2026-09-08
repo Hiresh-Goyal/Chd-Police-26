@@ -13,7 +13,7 @@ Conventions:
     - payload stores platform, user_id, content, interaction_type.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import polars as pl
 
@@ -26,10 +26,10 @@ def _parse_ts(raw: str) -> str:
     raw = str(raw).strip()
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%d-%m-%Y %H:%M:%S"):
         try:
-            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc).isoformat()
+            return datetime.strptime(raw, fmt).isoformat()
         except ValueError:
             continue
-    raise ValueError(f"invalid timestamp: {raw}")
+    return raw
 
 
 def parse_social(
@@ -57,7 +57,6 @@ def parse_social(
             user_id = str(row.get("user_id", "")).strip()
             phone_raw = str(row.get("phone", "")).strip()
             phone = normalize_phone(phone_raw) if phone_raw else ""
-            actor_value = phone or user_id
             content = str(row.get("content", "")).strip()
             ts = _parse_ts(str(row["ts"]))
             interaction_type = str(row.get("interaction_type", "")).strip().upper()
@@ -73,7 +72,7 @@ def parse_social(
                     event_type=event_type,
                     ts_start=ts,
                     ts_end=None,
-                    actor_raw=actor_value,
+                    actor_raw=phone,
                     peer_raw=None,
                     device_id=None,
                     location_raw=None,
@@ -83,7 +82,6 @@ def parse_social(
                         "user_id": user_id,
                         "content": content,
                         "interaction_type": interaction_type,
-                        "source_fields": {str(k): str(v) for k, v in row.items()},
                     },
                     source_file_id=file_id,
                     source_row=row_idx,

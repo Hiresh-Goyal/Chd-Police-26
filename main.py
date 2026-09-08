@@ -19,8 +19,6 @@ from backend.routers import (
     graph,
     score,
     timeline,
-    admin,
-    dashboard,
 )
 
 app = FastAPI(
@@ -58,8 +56,6 @@ app.include_router(criminalflow.router, prefix="/api")
 app.include_router(geospatial.router, prefix="/api")
 app.include_router(correlation.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
-app.include_router(admin.router, prefix="/api")
-app.include_router(dashboard.router, prefix="/api")
 
 
 @app.get("/api/health", tags=["Health"])

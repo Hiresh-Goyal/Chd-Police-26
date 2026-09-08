@@ -1,76 +1,63 @@
-"""Resolve bank account identifiers and evidence-backed owner links."""
-
-import json
-from collections import defaultdict
-
-from sqlalchemy import select, update
 from sqlalchemy.engine import Connection
-
-from backend.resolution.strategies.common import create_entity, insert_link
-from backend.shared.schema import canonical_events_table
-
-
-def _payload(value):
-    try:
-        parsed = json.loads(value or "{}")
-        return parsed if isinstance(parsed, dict) else {}
-    except Exception:
-        return {}
-
-
-def _owners(payload: dict) -> tuple[str | None, str | None]:
-    fields = payload.get("source_fields", {})
-    if not isinstance(fields, dict): return None, None
-    lowered = {str(k).lower(): v for k, v in fields.items()}
-    def first(keys):
-        for key in keys:
-            value = lowered.get(key)
-            if value not in (None, "", "null", "None"):
-                return str(value).strip()
-        return None
-    common = first(("account_holder", "account_owner", "owner", "customer_name", "name"))
-    return (first(("sender_name", "sender_holder", "sender_owner")) or common,
-            first(("beneficiary_name", "receiver_name", "beneficiary_holder", "beneficiary_owner")) or common)
-
+from sqlalchemy import text
+import uuid
+from datetime import datetime, timezone
+from backend.shared.schema import canonical_events_table, entities_table, ConfidenceTier
+import json
 
 def execute(conn: Connection, case_id: str) -> dict:
-    rows = conn.execute(select(canonical_events_table).where(
-        canonical_events_table.c.case_id == case_id,
-        canonical_events_table.c.event_type == "BANK_TRANSFER",
-    )).fetchall()
-    account_ids: dict[str, str] = {}
-    owners: dict[str, list[str]] = defaultdict(list)
-    for row in rows:
-        for raw in (row.actor_raw, row.peer_raw):
-            value = (raw or "").strip()
-            if value and value not in account_ids:
-                account_ids[value] = create_entity(
-                    conn, case_id, "ACCOUNT", value, f"Account {value}",
-                    {"source": "account_match", "raw_values": [value]},
-                )
-        sender_owner, beneficiary_owner = _owners(_payload(row.payload))
-        if sender_owner and row.actor_raw:
-            owners[row.actor_raw.strip()].append(sender_owner)
-        if beneficiary_owner and row.peer_raw:
-            owners[row.peer_raw.strip()].append(beneficiary_owner)
+    query = text("""
+        SELECT DISTINCT raw_val FROM (
+            SELECT actor_raw as raw_val FROM canonical_events 
+            WHERE case_id = :case_id AND event_type = 'BANK_TRANSFER' AND actor_raw IS NOT NULL AND actor_raw != ''
+            UNION
+            SELECT peer_raw as raw_val FROM canonical_events 
+            WHERE case_id = :case_id AND event_type = 'BANK_TRANSFER' AND peer_raw IS NOT NULL AND peer_raw != ''
+        ) sub
+    """)
+    rows = conn.execute(query, {"case_id": case_id}).fetchall()
+    
+    unique_accounts = {}
+    for r in rows:
+        norm = r.raw_val.strip()
+        if norm and norm not in unique_accounts:
+            unique_accounts[norm] = {"raw_vals": set()}
+        if norm:
+            unique_accounts[norm]["raw_vals"].add(r.raw_val)
+            
+    now_iso = datetime.now(timezone.utc).isoformat()
+    new_entities = []
+    entities_created = 0
+    
+    for norm_acc, data in unique_accounts.items():
+        entity_id = str(uuid.uuid4())
+        data["entity_id"] = entity_id
+        new_entities.append({
+            "id": entity_id,
+            "case_id": case_id,
+            "entity_type": "ACCOUNT",
+            "canonical_id": norm_acc,
+            "label": f"Account {norm_acc}",
+            "metadata_json": json.dumps({"source": "account_match", "raw_values": list(data["raw_vals"])}),
+            "created_at": now_iso
+        })
+        entities_created += 1
+        
+    if new_entities:
+        conn.execute(entities_table.insert(), new_entities)
+        
+    for norm_acc, data in unique_accounts.items():
+        for raw_val in data["raw_vals"]:
+            conn.execute(text("""
+                UPDATE canonical_events
+                SET actor_entity_id = :ent_id
+                WHERE case_id = :case_id AND actor_raw = :raw_val AND event_type = 'BANK_TRANSFER'
+            """), {"ent_id": data["entity_id"], "case_id": case_id, "raw_val": raw_val})
+            
+            conn.execute(text("""
+                UPDATE canonical_events
+                SET peer_entity_id = :ent_id
+                WHERE case_id = :case_id AND peer_raw = :raw_val AND event_type = 'BANK_TRANSFER'
+            """), {"ent_id": data["entity_id"], "case_id": case_id, "raw_val": raw_val})
 
-    for row in rows:
-        conn.execute(update(canonical_events_table).where(canonical_events_table.c.id == row.id).values(
-            actor_entity_id=account_ids.get((row.actor_raw or "").strip()),
-            peer_entity_id=account_ids.get((row.peer_raw or "").strip()),
-        ))
-
-    links = 0
-    for account, names in owners.items():
-        # Only create an owner entity when the evidence identifies a stable name.
-        unique_names = sorted({n for n in names if n})
-        if len(unique_names) != 1 or account not in account_ids:
-            continue
-        name = unique_names[0]
-        person_id = create_entity(
-            conn, case_id, "PERSON", name, name,
-            {"source": "bank_evidence", "evidence_account": account},
-        )
-        event_ids = [r.id for r in rows if account in {r.actor_raw, r.peer_raw}]
-        links += int(insert_link(conn, case_id, account_ids[account], person_id, "SAME_PERSON", 0.95, "CONFIRMED", event_ids))
-    return {"entities_created": len(account_ids), "links_created": links}
+    return {"entities_created": entities_created, "links_created": 0}

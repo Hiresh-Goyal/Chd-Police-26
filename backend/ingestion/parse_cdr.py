@@ -14,7 +14,7 @@ Conventions:
 """
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import polars as pl
 
@@ -44,15 +44,16 @@ def _parse_ts(raw: str) -> str:
     # Try ISO 8601 first
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
         try:
-            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc).isoformat()
+            return datetime.strptime(raw, fmt).isoformat()
         except ValueError:
             continue
     # Try DD-MM-YYYY HH:MM:SS
     try:
-        return datetime.strptime(raw, "%d-%m-%Y %H:%M:%S").replace(tzinfo=timezone.utc).isoformat()
+        return datetime.strptime(raw, "%d-%m-%Y %H:%M:%S").isoformat()
     except ValueError:
         pass
-    raise ValueError(f"invalid timestamp: {raw}")
+    # Fallback — return as-is
+    return raw
 
 
 def parse_cdr(
@@ -109,7 +110,6 @@ def parse_cdr(
                     payload={
                         "duration_sec": duration_sec,
                         "call_type": call_type,
-                        "source_fields": {str(k): str(v) for k, v in row.items()},
                     },
                     source_file_id=file_id,
                     source_row=row_idx,

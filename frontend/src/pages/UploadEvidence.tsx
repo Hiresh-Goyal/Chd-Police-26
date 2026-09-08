@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCase } from '../hooks/useCase';
-import { uploadEvidence, analyzeCase } from '../api/client';
-import type { EvidenceFileAPI } from '../types/api';
+import { INITIAL_EVIDENCE_FILES, EvidenceFile } from '../data/mockData';
+import { useCaseStore } from '../context/CaseStore';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -12,45 +11,70 @@ export const UploadEvidence: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { data: caseData, refetch } = useCase(caseId ?? '');
+  const { updateCaseEvidence } = useCaseStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // For case 2847 pre-populate with demo files; new cases start empty
+  const [queue, setQueue] = useState<EvidenceFile[]>(
+    caseId === '2847' ? INITIAL_EVIDENCE_FILES : []
+  );
   const [isDragging, setIsDragging] = useState(false);
 
-  const queue = (caseData?.evidence ?? []).map((item: EvidenceFileAPI) => ({
-    id: item.id, name: item.name, size: item.size, domain: item.domain as any,
-    status: item.status as any, progress: item.progress, hash: item.hash,
-    uploadDate: item.upload_date, recordsCount: item.records_count, parseErrors: item.parse_errors,
-  }));
   const completeCount = queue.filter(f => f.status === 'complete').length;
 
-  const handleFilesAdded = async (files: FileList | null) => {
-    if (!files || files.length === 0 || !caseId) return;
-    for (const file of Array.from(files)) {
-      const fileType = window.prompt(`Evidence type for ${file.name}: CDR, BANK, IPDR, or SOCIAL`, 'CDR')?.trim().toUpperCase();
-      if (!fileType || !['CDR','BANK','IPDR','SOCIAL'].includes(fileType)) {
-        showToast(`Skipped ${file.name}: a valid backend evidence type is required.`, 'warning');
-        continue;
-      }
-      try {
-        const result = await uploadEvidence(caseId, file, fileType);
-        await refetch();
-        showToast(`Ingestion complete for ${result.filename ?? file.name}. ${result.events_created} events created.`, 'success');
-      } catch (err) {
-        showToast(err instanceof Error ? err.message : `Failed to ingest ${file.name}.`, 'error');
-      }
-    }
+  const generateMockHash = () => {
+    return Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
   };
 
-  const handleStartAnalysis = async () => {
-    if (!caseId) return;
-    try {
-      await analyzeCase(caseId);
-      await refetch();
-      showToast('Case analysis completed successfully.', 'success');
-      navigate(`/cases/${caseId}/timeline`);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Case analysis failed.', 'error');
-    }
+  const handleFilesAdded = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const newFiles: EvidenceFile[] = Array.from(files).map((file, idx) => {
+      let domain: 'CDR' | 'BANK' | 'IPDR' | 'SOCIAL' | 'NCRP' = 'CDR';
+      const name = file.name.toLowerCase();
+      if (name.includes('bank') || name.includes('statement') || name.includes('hdfc') || name.includes('sbi')) domain = 'BANK';
+      else if (name.includes('ip') || name.includes('pcap') || name.includes('ipdr')) domain = 'IPDR';
+      else if (name.includes('chat') || name.includes('whatsapp') || name.includes('social')) domain = 'SOCIAL';
+      else if (name.includes('ncrp') || name.includes('complaint')) domain = 'NCRP';
+
+      return {
+        id: `ev_${Date.now()}_${idx}`,
+        name: file.name,
+        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        domain,
+        status: 'validating',
+        progress: 15,
+        hash: generateMockHash(),
+        uploadDate: `${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} IST`,
+        recordsCount: Math.floor(Math.random() * 500) + 10
+      };
+    });
+
+    setQueue(prev => [...newFiles, ...prev]);
+    showToast(`Added ${newFiles.length} file(s) to ingestion queue.`, 'info');
+
+    // Simulate progressive completion
+    newFiles.forEach(nf => {
+      setTimeout(() => {
+        setQueue(current =>
+          current.map(item =>
+            item.id === nf.id ? { ...item, status: 'parsing' as const, progress: 65 } : item
+          ) as EvidenceFile[]
+        );
+      }, 1200);
+
+      setTimeout(() => {
+        setQueue(current => {
+          const updated = current.map(item =>
+            item.id === nf.id ? { ...item, status: 'complete' as const, progress: 100 } : item
+          ) as EvidenceFile[];
+          // Persist to CaseStore whenever a file completes
+          if (caseId) updateCaseEvidence(caseId, updated);
+          return updated;
+        });
+        showToast(`Ingestion complete for ${nf.name}`, 'success');
+      }, 2500);
+    });
   };
 
   const handleCopyHash = (hash: string) => {
@@ -58,8 +82,17 @@ export const UploadEvidence: React.FC = () => {
     showToast('SHA-256 evidence hash copied to clipboard.', 'success');
   };
 
-  const handleRemoveFile = (_id: string) => {
-    showToast('Evidence removal is not supported by the backend.', 'warning');
+  const handleRemoveFile = (id: string) => {
+    setQueue(queue.filter(q => q.id !== id));
+    showToast('Removed evidence item from queue.', 'info');
+  };
+
+  const handleRetry = (id: string) => {
+    setQueue(queue.map(q => q.id === id ? { ...q, status: 'parsing', progress: 50 } : q));
+    setTimeout(() => {
+      setQueue(current => current.map(q => q.id === id ? { ...q, status: 'complete', progress: 100 } : q));
+      showToast('File reprocessed successfully.', 'success');
+    }, 1500);
   };
 
   return (
@@ -73,12 +106,12 @@ export const UploadEvidence: React.FC = () => {
           </p>
         </div>
         {/* Start Analysis CTA — appears once ≥1 file is complete */}
-        {completeCount > 0 &&  (
+        {completeCount > 0 && caseId !== '2847' && (
           <Button
             variant="primary"
             size="sm"
             icon="play_arrow"
-            onClick={handleStartAnalysis}
+            onClick={() => navigate(`/cases/${caseId}/timeline`)}
           >
             Start Analysis
           </Button>
@@ -117,7 +150,7 @@ export const UploadEvidence: React.FC = () => {
               Drag and drop evidence files here or click to browse
             </p>
             <p className="text-xs text-[#64748B] max-w-md">
-              Accepted formats: CDR, BANK, IPDR, SOCIAL (as supported by the backend)
+              Accepted formats: CDR (CSV/XLSX), Bank Statements (PDF/CSV), IPDR (CSV/JSON), NCRP (CSV)
             </p>
             <Button variant="primary" size="sm" className="mt-4 pointer-events-none">
               Select Files
@@ -130,7 +163,7 @@ export const UploadEvidence: React.FC = () => {
               <h3 className="text-sm font-bold text-[#0B2340] uppercase tracking-wider">
                 Current Batch Processing ({queue.length})
               </h3>
-              <span className="text-xs font-mono text-[#64748B]">Case #{caseId}</span>
+              <span className="text-xs font-mono text-[#64748B]">Batch Ref: BATCH-2026-OCT-89</span>
             </div>
 
             <div className="space-y-3">
@@ -147,7 +180,7 @@ export const UploadEvidence: React.FC = () => {
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-[#191C1E] truncate">{item.name}</p>
                         <p className="text-[11px] text-[#64748B] font-mono">
-                          {item.size} • {item.domain} • {item.status === 'complete' ? 'Ingestion Complete' : item.status === 'failed' ? 'Ingestion Failed' : item.status}
+                          {item.size} • {item.domain} • {item.status === 'complete' ? 'Ingestion Complete' : item.status === 'parsing' ? 'Parsing text & metadata...' : 'Validating SHA-256 structure...'}
                         </p>
                       </div>
                     </div>

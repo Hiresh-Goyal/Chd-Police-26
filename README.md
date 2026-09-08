@@ -50,31 +50,3 @@ Member 3 — Detection Engine & FraudScore (feature/detection-engine)
 Member 4 — FastAPI Layer (feature/api-layer)
 Member 5 — Frontend Integration (feature/frontend-hooks)
 Hiresh Goyal — Integration Lead
-
-## Backend/frontend data contract
-
-The API is the source of truth for all application data shown by the React investigation UI. The only frontend-only data surfaces intentionally excluded from this contract are Universal Search and Sentinel Watch.
-
-Case detail responses include the core case metadata plus derived workspace data: resolved entities, risk levels, evidence inventory, activity statistics, findings/alerts, assigned-investigator profile fields, incident date, estimated loss, and fraud score summary.
-
-Case analysis endpoints:
-
-- `GET /api/cases/{case_id}` — complete case/workspace view
-- `GET /api/cases/{case_id}/evidence` — evidence inventory, SHA-256, size, record count and ingestion status
-- `GET /api/cases/{case_id}/timeline` — canonical events plus source/provenance/metadata
-- `GET /api/cases/{case_id}/graph` — resolved entity nodes and evidence-backed links
-- `GET /api/cases/{case_id}/alerts` — complete findings
-- `GET /api/cases/{case_id}/alerts/{finding_id}` — finding + linked canonical events
-- `GET /api/cases/{case_id}/fraudscore` — score plus fully expanded top finding details; IDs remain the persisted storage representation
-- `GET /api/cases/{case_id}/criminalflow` — bank transfer graph with transaction provenance
-- `GET /api/cases/{case_id}/geospatial` — evidence-backed coordinates only
-- `GET /api/cases/{case_id}/correlation-matrix` — cross-source entity presence
-- `GET /api/cases/{case_id}/report` — consolidated backend report snapshot
-- `GET /api/cases/{case_id}/notes` / `POST /api/cases/{case_id}/notes` — investigator notes
-- `GET /api/admin/users` — backend-owned personnel directory
-- `GET /api/dashboard/overview` — operational dashboard summary
-- `GET /api/audit/logs` — enriched audit records for the UI
-
-Analysis is rebuilt deterministically on each run: resolution output, episodes, findings and the fraud score are replaced as one transaction. Re-running analysis therefore does not accumulate stale derived rows.
-
-Unknown geospatial identifiers are not assigned synthetic coordinates. A location is mapped only when it is explicitly provided as coordinates or exists in the configured tower lookup.

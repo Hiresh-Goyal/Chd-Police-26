@@ -26,19 +26,29 @@ export type EvidenceFileType = 'CDR' | 'BANK' | 'IPDR' | 'SOCIAL';
  * Canonical Event representation returned by /api/cases/{case_id}/timeline
  */
 export interface CanonicalEventAPI {
-  id: string; case_id?: string; event_type: string; ts_start: string; ts_end: string | null;
-  actor_entity_id: string | null; actor_raw: string; actor_confidence_tier: string;
-  peer_entity_id?: string | null; peer_raw: string | null; amount: number | null; location_raw: string | null;
-  source_file_id: string; source_row: number; domain?: string; title?: string | null; description?: string | null;
-  time_display?: string | null; source?: string | null; provenance?: string | null; is_critical?: boolean; metadata?: Record<string,string>;
+  id: string;
+  event_type: string;
+  ts_start: string;
+  ts_end: string | null;
+  actor_entity_id: string;
+  actor_raw: string;
+  actor_confidence_tier: string;
+  peer_raw: string | null;
+  amount: number | null;
+  location_raw: string | null;
+  source_file_id: string;
+  source_row: number;
 }
 
 /**
  * Entity Graph Node
  */
 export interface GraphNode {
-  id: string; type: string; canonical_value: string; label?: string | null; role?: string | null; domain?: string | null;
-  risk_score?: number; risk_level?: string; confidence_tier: string; fraud_score_contribution: number; details?: Record<string,string>;
+  id: string;
+  type: string;
+  canonical_value: string;
+  confidence_tier: string;
+  fraud_score_contribution: number;
 }
 
 /**
@@ -96,25 +106,36 @@ export interface FindingDetailAPI extends FindingAPI {
  * Fraud score summary response
  */
 export interface FraudScoreAPI {
-  score: number; risk_level: string; top_findings: FindingAPI[]; total_findings: number;
-  findings_breakdown: Record<string, number>; computed_at?: string | null;
+  score: number;
+  risk_level: string;
+  top_findings: FindingAPI[];
+  total_findings: number;
+  findings_breakdown?: Record<string, number>;
 }
 
 /**
  * Node in CriminalFlow money trail
  */
 export interface CriminalFlowNode {
-  id: string; label: string; type?: string; role?: string; account_number?: string; total_inflow?: number; total_outflow?: number;
-  owner?: string | null; status?: string | null; retained_balance?: number | null; freeze_priority?: string | null; ip_address?: string | null;
-  source_provenance?: string | null; details?: Record<string,string>;
+  id: string;
+  label: string;
+  type?: string;
+  role?: 'VICTIM' | 'MULE' | 'AGGREGATOR' | 'UNKNOWN';
+  account_number?: string;
+  total_inflow?: number;
+  total_outflow?: number;
 }
 
 /**
  * Edge representing money transfer in CriminalFlow
  */
 export interface CriminalFlowEdge {
-  id: string; source: string; target: string; amount: number; timestamp?: string | null; event_id?: string | null; method?: string | null;
-  source_file_id?: string | null; source_row?: number | null;
+  id: string;
+  source: string;
+  target: string;
+  amount: number;
+  timestamp?: string;
+  event_id?: string;
 }
 
 /**
@@ -129,9 +150,15 @@ export interface CriminalFlowData {
  * Geolocation event mapped via tower lookup table
  */
 export interface GeospatialEvent {
-  id: string; event_type: string; ts_start: string; actor_raw: string; peer_raw: string | null; location_raw: string | null;
-  lat: number; lng: number; location_name: string; domain?: string; time_display?: string | null; address?: string | null;
-  radius_km?: number | null; details?: string | null; source_file_id?: string | null; source_row?: number | null;
+  id: string;
+  event_type: string;
+  ts_start: string;
+  actor_raw: string;
+  peer_raw: string | null;
+  location_raw: string | null;
+  lat: number;
+  lng: number;
+  location_name: string;
 }
 
 /**
@@ -163,29 +190,25 @@ export interface CorrelationMatrixData {
 /**
  * Case metadata record
  */
-export interface CaseEntityAPI { id:string; name:string; type:string; identifier:string; role:string; risk_score:number; risk_level:string; domain:string; confidence_tier:string; details:Record<string,string>; }
-export interface CaseStatsAPI { cdr:number; bank:number; social:number; ipdr:number; anomalies:number; evidence:number; }
-export interface CaseNoteAPI { id:string; timestamp:string; author:string; text:string; }
-export interface CaseAlertPreviewAPI { id:string; title:string; description:string; severity:string; time_ago:string; rule_id?:string|null; fraud_weight?:number|null; confidence?:number|null; created_at?:string|null; }
-export interface EvidenceFileAPI { id:string; name:string; filename:string; size_bytes:number; size:string; domain:string; status:string; progress:number; hash:string; upload_date:string; records_count:number; parse_errors:string[]; }
 export interface CaseAPI {
-  id:string; name:string; title:string; case_type?:string|null; description?:string|null; status:string; priority:'LOW'|'MEDIUM'|'HIGH'|'CRITICAL';
-  assigned_io?:string|null; assigned_io_name?:string|null; assigned_io_role?:string|null; assigned_io_station?:string|null; entities_count:number;
-  created_at:string; last_activity:string; fraud_score:number; risk_level:string; estimated_loss:number; incident_date?:string|null; stats:CaseStatsAPI;
-  entities:CaseEntityAPI[]; notes:CaseNoteAPI[]; alerts:CaseAlertPreviewAPI[]; evidence:EvidenceFileAPI[];
-}
-export interface CreateCaseRequest {
+  id: string;
   name: string;
   title?: string;
-  description?: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  assigned_io?: string | null;
+  description: string | null;
+  status: string;
+  created_at: string;
 }
 
 /**
  * Upload file response
  */
-export interface UploadResponse { file_id:string; events_created:number; filename?:string; parse_errors?:string[]; status:string; }
+export interface UploadResponse {
+  file_id: string;
+  events_created: number;
+  filename?: string;
+  parse_errors?: string[];
+  status?: string;
+}
 
 /**
  * Analyze endpoint response (HTTP 202)
@@ -214,6 +237,3 @@ export interface LoginResponse {
 export interface HealthResponse {
   status: string;
 }
-
-export interface DashboardOverview { agency_name:string; current_time:string; total_cases:number; active_cases:number; critical_alerts:number; total_entities:number; total_evidence:number; evidence_by_domain:Record<string,number>; }
-export interface UserAPI { id:string; username:string; badge_id?:string|null; name:string; rank?:string|null; unit?:string|null; station?:string|null; email?:string|null; role:string; status:string; mfa_enabled:boolean; active_sessions:number; audit_count_24h:number; }

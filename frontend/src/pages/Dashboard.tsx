@@ -1,17 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCases } from '../hooks/useCases';
-import { useDashboard } from '../hooks/useDashboard';
 import { useToast } from '../components/common/Toast';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [isActivityPaused, setIsActivityPaused] = useState(false);
+  const [currentTime, setCurrentTime] = useState('Oct 24, 2024 | 14:45');
+
   const { data: cases, loading: casesLoading } = useCases();
-  const { data: overview, loading: overviewLoading } = useDashboard();
-  const currentTime = overview?.current_time ? new Date(overview.current_time).toLocaleString('en-US', {month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false}).replace(',', ' |') : '—';
-  const activeCasesCount = overviewLoading ? '…' : (overview?.active_cases ?? 0);
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const options: Intl.DateTimeFormatOptions = {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      };
+      setCurrentTime(now.toLocaleString('en-US', options).replace(',', ' |'));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const activeCasesCount = casesLoading ? '…' : cases.filter(c => c.status === 'OPEN' || c.status === 'Active').length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -25,7 +43,7 @@ export const Dashboard: React.FC = () => {
         <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-[#D9E1EA] shadow-xs self-start md:self-auto">
           <div className="flex items-center gap-1.5 text-[#0B5CAB] text-xs font-semibold">
             <span className="material-symbols-outlined text-[16px]">location_on</span>
-            <span>{overview?.agency_name ?? '—'}</span>
+            <span>Chandigarh Police UT</span>
           </div>
           <div className="w-px h-3.5 bg-[#C2C6D3]"></div>
           <div className="font-mono text-xs text-[#424751] flex items-center gap-1.5">
@@ -46,7 +64,7 @@ export const Dashboard: React.FC = () => {
           <div className="text-3xl font-bold text-[#191C1E] mb-1">{activeCasesCount}</div>
           <div className="text-xs text-[#424751] flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px] text-emerald-600">arrow_upward</span>
-            <span className="text-emerald-700 font-semibold">{overviewLoading ? '' : `${overview?.total_cases ?? cases.length} total`}</span>
+            <span className="text-emerald-700 font-semibold">{casesLoading ? '' : `${cases.length} total`}</span>
           </div>
         </div>
 
@@ -125,7 +143,7 @@ export const Dashboard: React.FC = () => {
                     {c.name}
                     <span className="text-xs text-[#64748B] font-normal block font-mono">{c.title ?? ''}</span>
                   </td>
-                  <td className="py-3.5 px-4 text-[#424751]">{c.case_type ?? '—'}</td>
+                  <td className="py-3.5 px-4 text-[#424751]">—</td>
                   <td className="py-3.5 px-4">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/20">
                       {c.status}
@@ -134,7 +152,7 @@ export const Dashboard: React.FC = () => {
                   <td className="py-3.5 px-4">
                     <span className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-semibold">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      {c.status === 'OPEN' ? 'Active' : c.status === 'IN_PROGRESS' ? 'Under Review' : c.status}
+                      Active
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-[#424751] font-mono text-xs">

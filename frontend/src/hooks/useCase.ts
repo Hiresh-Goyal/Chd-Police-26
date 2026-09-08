@@ -1,25 +1,38 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getCase } from '../api/client';
-import type { CaseAPI } from '../types/api';
+import { CASE_2847, ALL_CASES } from '../data/mockData';
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
 export const useCase = (caseId: string) => {
-  const [data, setData] = useState<CaseAPI | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!caseId) { setData(null); setLoading(false); return; }
+  useEffect(() => {
+    let isMounted = true;
     setLoading(true);
-    setError(null);
-    try {
-      const res = await getCase(caseId);
-      setData(res);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to load case.'));
-      setData(null);
-    } finally { setLoading(false); }
+    
+    const fetchData = async () => {
+      try {
+        if (USE_MOCK) {
+          await new Promise(r => setTimeout(r, 400));
+          const caseData = ALL_CASES.find(c => c.id === caseId) || CASE_2847;
+          if (isMounted) setData(caseData);
+        } else {
+          const res = await getCase(caseId);
+          if (isMounted) setData(res);
+        }
+      } catch (err: any) {
+        if (isMounted) setError(err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => { isMounted = false; };
   }, [caseId]);
 
-  useEffect(() => { void fetchData(); }, [fetchData]);
-  return { data, loading, error, refetch: fetchData };
+  return { data, loading, error };
 };

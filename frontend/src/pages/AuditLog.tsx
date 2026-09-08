@@ -21,8 +21,6 @@ export const AuditLog: React.FC = () => {
     }
   }, [logs]);
 
-  const auditRange = logs.length ? (() => { const times = logs.map((l: any) => new Date(l.timestamp ?? l.created_at).getTime()).filter(Number.isFinite); if (!times.length) return 'No dated audit activity'; const min = new Date(Math.min(...times)).toLocaleDateString('en-IN'); const max = new Date(Math.max(...times)).toLocaleDateString('en-IN'); return min === max ? min : `${min} - ${max}`; })() : 'No audit activity';
-
   const filteredLogs = logs.filter((l: any) => {
     const domain = l.domain ?? '';
     const action = l.action ?? '';
@@ -87,7 +85,7 @@ export const AuditLog: React.FC = () => {
                 </span>
                 <input
                   type="text"
-                  value={auditRange} readOnly
+                  defaultValue="Oct 24 - Oct 25, 2026"
                   className="pl-8 pr-3 py-1.5 border border-[#D9E1EA] rounded text-xs text-[#191C1E] bg-white w-48 cursor-pointer focus:outline-none focus:border-[#0B5CAB]"
                 />
               </div>
@@ -303,11 +301,7 @@ export const AuditLog: React.FC = () => {
                 variant="primary"
                 size="sm"
                 className="flex-1"
-                onClick={() => {
-                  const caseId = selectedLog?.case_id ?? selectedLog?.caseId;
-                  if (caseId) navigate(`/cases/${caseId}`);
-                  else showToast('This audit record is not associated with a case.', 'info');
-                }}
+                onClick={() => navigate('/cases/2847')}
               >
                 View Full Case
               </Button>

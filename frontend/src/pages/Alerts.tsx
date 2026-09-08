@@ -6,29 +6,10 @@ import { EvidenceChain } from '../components/EvidenceChain';
 
 export const Alerts: React.FC = () => {
   const navigate = useNavigate();
-  const { caseId } = useParams<{ caseId?: string }>();
+  const { caseId = '2847' } = useParams<{ caseId?: string }>();
   const { showToast } = useToast();
-  const { data: alerts, loading } = useAlerts(caseId ?? '');
+  const { data: alerts, loading } = useAlerts(caseId);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
-
-  if (!caseId) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 text-center">
-        <span className="material-symbols-outlined text-5xl text-[#CBD5E1]">notifications_active</span>
-        <div>
-          <h1 className="text-xl font-bold text-[#0B2340]">Case Alerts</h1>
-          <p className="text-sm text-[#64748B] mt-1">Open a case to view its detection findings and alert evidence.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate('/cases')}
-          className="px-4 py-2 rounded bg-[#0B5CAB] text-white text-sm font-semibold hover:bg-[#084A8B]"
-        >
-          Go to My Cases
-        </button>
-      </div>
-    );
-  }
 
   const criticalCount = (alerts ?? []).filter((a: any) => a.severity === 'CRITICAL').length;
   const highCount = (alerts ?? []).filter((a: any) => a.severity === 'HIGH').length;

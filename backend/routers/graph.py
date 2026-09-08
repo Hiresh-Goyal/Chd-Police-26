@@ -1,15 +1,14 @@
-"""Entity graph API derived from resolved entities and evidence-backed links."""
+"""
+backend/routers/graph.py
+
+Entity Graph endpoint returning nodes and edges with confidence tiers and fraud score contributions.
+"""
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from sqlalchemy import select
-
-from backend.db.connection import get_connection
-from backend.services.case_views import build_entity_views
-from backend.shared.schema import cases_table, entity_links_table
+from fastapi import APIRouter
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/cases", tags=["Graph"])
 
@@ -18,14 +17,8 @@ class GraphNode(BaseModel):
     id: str
     type: str
     canonical_value: str
-    label: Optional[str] = None
-    role: Optional[str] = None
-    domain: Optional[str] = None
-    risk_score: int = 0
-    risk_level: str = "LOW"
     confidence_tier: str
     fraud_score_contribution: float
-    details: Dict[str, str] = Field(default_factory=dict)
 
 
 class GraphEdge(BaseModel):
@@ -35,7 +28,7 @@ class GraphEdge(BaseModel):
     link_type: str
     confidence: float
     confidence_tier: str
-    evidence_event_ids: List[str] = Field(default_factory=list)
+    evidence_event_ids: List[str]
 
 
 class GraphResponse(BaseModel):
@@ -43,54 +36,80 @@ class GraphResponse(BaseModel):
     edges: List[GraphEdge]
 
 
-def _json_list(value: Any) -> list:
-    if isinstance(value, list): return value
-    if isinstance(value, str):
-        try:
-            parsed = json.loads(value)
-            return parsed if isinstance(parsed, list) else []
-        except Exception:
-            return []
-    return []
+
 
 
 @router.get("/{case_id}/graph", response_model=GraphResponse)
 async def get_case_graph(case_id: str):
-    """Return every resolved entity and every evidence-backed relationship."""
-    with get_connection() as conn:
-        exists = conn.execute(select(cases_table.c.id).where(cases_table.c.id == case_id)).fetchone()
-        if not exists:
-            raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+    """Retrieve entity graph for case with confidence-colored edge attributes."""
+    from sqlalchemy import select
+    from backend.db.connection import get_connection
+    from backend.shared.schema import (
+        entities_table,
+        entity_links_table,
+        findings_table,
+    )
 
-        entity_views = {item["id"]: item for item in build_entity_views(conn, case_id)}
+    with get_connection() as conn:
+        ent_rows = conn.execute(
+            select(entities_table).where(entities_table.c.case_id == case_id)
+        ).fetchall()
+
         link_rows = conn.execute(
             select(entity_links_table).where(entity_links_table.c.case_id == case_id)
         ).fetchall()
 
-        nodes = []
-        for item in entity_views.values():
-            nodes.append({
-                "id": item["id"],
-                "type": "IMEI" if item["type"] == "DEVICE" else item["type"],
-                "canonical_value": item["identifier"],
-                "label": item["name"],
-                "role": item["role"],
-                "domain": item["domain"],
-                "risk_score": item["risk_score"],
-                "risk_level": item["risk_level"],
-                "confidence_tier": item["confidence_tier"],
-                "fraud_score_contribution": float(item["risk_score"]),
-                "details": item["details"],
-            })
+        finding_rows = conn.execute(
+            select(findings_table).where(findings_table.c.case_id == case_id)
+        ).fetchall()
 
-        edges = [{
-            "id": row.id,
-            "source": row.entity_a,
-            "target": row.entity_b,
-            "link_type": row.link_type,
-            "confidence": float(row.confidence),
-            "confidence_tier": row.confidence_tier,
-            "evidence_event_ids": _json_list(row.evidence_event_ids),
-        } for row in link_rows]
+        if ent_rows:
+            # Compute fraud score contribution per entity
+            contributions: Dict[str, float] = {}
+            for f in finding_rows:
+                ent_ids = f.entity_ids
+                if isinstance(ent_ids, str):
+                    try:
+                        ent_ids = json.loads(ent_ids)
+                    except Exception:
+                        ent_ids = []
+                score_val = (f.fraud_weight or 20) * (f.confidence or 1.0)
+                for eid in ent_ids:
+                    contributions[eid] = contributions.get(eid, 0.0) + score_val
 
-        return {"nodes": nodes, "edges": edges}
+            # Map confidence tiers from links
+            ent_tier: Dict[str, str] = {}
+            for l in link_rows:
+                tier = l.confidence_tier
+                ent_tier[l.entity_a] = tier
+                ent_tier[l.entity_b] = tier
+
+            nodes = []
+            for row in ent_rows:
+                nodes.append({
+                    "id": row.id,
+                    "type": row.entity_type,
+                    "canonical_value": row.canonical_id,
+                    "confidence_tier": ent_tier.get(row.id, "CONFIRMED"),
+                    "fraud_score_contribution": round(contributions.get(row.id, 0.0), 2),
+                })
+
+            edges = []
+            for l in link_rows:
+                ev_ids = l.evidence_event_ids
+                if isinstance(ev_ids, str):
+                    try:
+                        ev_ids = json.loads(ev_ids)
+                    except Exception:
+                        ev_ids = []
+                edges.append({
+                    "id": l.id,
+                    "source": l.entity_a,
+                    "target": l.entity_b,
+                    "link_type": l.link_type,
+                    "confidence": l.confidence,
+                    "confidence_tier": l.confidence_tier,
+                    "evidence_event_ids": ev_ids,
+                })
+
+            return {"nodes": nodes, "edges": edges}

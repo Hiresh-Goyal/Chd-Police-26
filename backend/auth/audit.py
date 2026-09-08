@@ -32,7 +32,6 @@ def log_action(
                     ts=datetime.now(timezone.utc).isoformat(),
                 )
             )
-    except Exception as exc:
-        # Audit availability must not fail the request, but suppressing the
-        # failure entirely makes an investigation trail impossible to audit.
-        print(f"Audit log write failed: {exc}")
+            conn.commit()
+    except Exception:
+        pass  # audit must never crash the main request

@@ -24,12 +24,11 @@ from fastapi import (
     UploadFile,
     status,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import func
 
 from backend.auth.audit import log_action
 from backend.auth.jwt import get_current_user
-from backend.services.case_views import build_case_detail, build_case_notes, build_evidence_views
 
 
 # ──────────────────────────────────────────────
@@ -57,11 +56,9 @@ class CreateCaseRequest(BaseModel):
     """
 
     name: str
-    title: str
     description: Optional[str] = None
     priority: str = "MEDIUM"
     assigned_io: Optional[str] = None
-    case_type: Optional[str] = None
 
 
 class UpdateCaseRequest(BaseModel):
@@ -72,80 +69,29 @@ class UpdateCaseRequest(BaseModel):
     """
 
     name: Optional[str] = None
-    title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
     priority: Optional[str] = None
     assigned_io: Optional[str] = None
-    case_type: Optional[str] = None
-
-
-class CaseEntityResponse(BaseModel):
-    id: str
-    name: str
-    type: str
-    identifier: str
-    role: str
-    risk_score: int
-    risk_level: str
-    domain: str
-    confidence_tier: str
-    details: Dict[str, str] = {}
-
-
-class CaseStatsResponse(BaseModel):
-    cdr: int = 0
-    bank: int = 0
-    social: int = 0
-    ipdr: int = 0
-    anomalies: int = 0
-    evidence: int = 0
-
-
-class CaseNoteResponse(BaseModel):
-    id: str
-    timestamp: str
-    author: str
-    text: str
-
-
-class CaseAlertPreview(BaseModel):
-    id: str
-    title: str
-    description: str
-    severity: str
-    time_ago: str
-    rule_id: Optional[str] = None
-    fraud_weight: Optional[int] = None
-    confidence: Optional[float] = None
-    created_at: Optional[str] = None
 
 
 class CaseResponse(BaseModel):
-    """Complete backend-owned case view used by case list and workspace."""
+    """
+    API representation of a case.
+
+    entities_count is calculated from the entities table.
+    updated_at is exposed to the frontend as last_activity.
+    """
+
     id: str
     name: str
-    title: str
-    case_type: Optional[str] = None
     description: Optional[str] = None
     status: str
     priority: str
     assigned_io: Optional[str] = None
-    assigned_io_name: Optional[str] = None
-    assigned_io_role: Optional[str] = None
-    assigned_io_station: Optional[str] = None
     entities_count: int
     created_at: str
     last_activity: str
-    fraud_score: int = 0
-    risk_level: str = "LOW"
-    estimated_loss: float = 0.0
-    incident_date: Optional[str] = None
-    stats: CaseStatsResponse = Field(default_factory=CaseStatsResponse)
-    entities: List[CaseEntityResponse] = Field(default_factory=list)
-    notes: List[CaseNoteResponse] = Field(default_factory=list)
-    alerts: List[CaseAlertPreview] = Field(default_factory=list)
-    evidence: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class UploadResponse(BaseModel):
@@ -230,12 +176,45 @@ def _validate_case_priority(value: str) -> str:
 
 
 def _get_case_with_entity_count(case_id: str) -> Dict[str, Any]:
+    """
+    Fetch a case and calculate its current resolved-entity count.
+
+    entities_count is deliberately not stored in the cases table.
+    """
+
     from backend.db.connection import get_connection
+    from backend.shared.schema import cases_table, entities_table
+
     with get_connection() as conn:
-        detail = build_case_detail(conn, case_id)
-        if not detail:
-            raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
-        return detail
+        case_row = conn.execute(
+            cases_table.select().where(cases_table.c.id == case_id)
+        ).fetchone()
+
+        if case_row is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Case {case_id} not found",
+            )
+
+        entity_count = conn.execute(
+            func.count(entities_table.c.id)
+        ).select_from(
+            entities_table
+        ).where(
+            entities_table.c.case_id == case_id
+        ).scalar_one()
+
+        return {
+            "id": case_row.id,
+            "name": case_row.name,
+            "description": case_row.description,
+            "status": case_row.status,
+            "priority": case_row.priority,
+            "assigned_io": case_row.assigned_io,
+            "entities_count": int(entity_count or 0),
+            "created_at": case_row.created_at,
+            "last_activity": case_row.updated_at,
+        }
 
 
 # ──────────────────────────────────────────────
@@ -258,7 +237,32 @@ async def list_cases():
         if not rows:
             return []
 
-        return [build_case_detail(conn, row.id) for row in rows]
+        # Count resolved entities for all cases in one query.
+        entity_counts = conn.execute(
+            entities_table.select()
+        ).fetchall()
+
+        counts_by_case: Dict[str, int] = {}
+
+        for entity in entity_counts:
+            counts_by_case[entity.case_id] = (
+                counts_by_case.get(entity.case_id, 0) + 1
+            )
+
+        return [
+            {
+                "id": row.id,
+                "name": row.name,
+                "description": row.description,
+                "status": row.status,
+                "priority": row.priority,
+                "assigned_io": row.assigned_io,
+                "entities_count": counts_by_case.get(row.id, 0),
+                "created_at": row.created_at,
+                "last_activity": row.updated_at,
+            }
+            for row in rows
+        ]
 
 
 @router.post(
@@ -288,26 +292,17 @@ async def create_case(
     now_iso = _now_iso()
 
     case_name = case_data.name.strip()
-    case_title = case_data.title.strip()
     description = case_data.description or ""
-
-    if not case_title:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Case title cannot be empty",
-        )
 
     with get_connection() as conn:
         conn.execute(
             cases_table.insert().values(
                 id=case_id,
                 name=case_name,
-                title=case_title,
                 description=description,
                 status=CaseStatus.OPEN.value,
                 priority=priority,
                 assigned_io=case_data.assigned_io,
-                case_type=case_data.case_type,
                 created_at=now_iso,
                 updated_at=now_iso,
             )
@@ -334,12 +329,10 @@ async def create_case(
     return {
         "id": case_id,
         "name": case_name,
-        "title": case_title,
         "description": description,
         "status": CaseStatus.OPEN.value,
         "priority": priority,
         "assigned_io": case_data.assigned_io,
-        "case_type": case_data.case_type,
         "entities_count": 0,
         "created_at": now_iso,
         "last_activity": now_iso,
@@ -386,15 +379,6 @@ async def update_case(
 
         update_values["name"] = case_data.name.strip()
 
-    if "title" in case_data.model_fields_set:
-        if case_data.title is None or not case_data.title.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Case title cannot be empty",
-            )
-
-        update_values["title"] = case_data.title.strip()
-
     if "description" in case_data.model_fields_set:
         update_values["description"] = case_data.description
 
@@ -420,9 +404,6 @@ async def update_case(
 
     if "assigned_io" in case_data.model_fields_set:
         update_values["assigned_io"] = case_data.assigned_io
-
-    if "case_type" in case_data.model_fields_set:
-        update_values["case_type"] = case_data.case_type
 
     if not update_values:
         return _get_case_with_entity_count(case_id)
@@ -459,56 +440,6 @@ async def update_case(
     )
 
     return _get_case_with_entity_count(case_id)
-
-
-# ──────────────────────────────────────────────
-#  Case Notes
-# ──────────────────────────────────────────────
-
-
-class CreateCaseNoteRequest(BaseModel):
-    text: str
-
-
-@router.get("/{case_id}/notes", response_model=List[CaseNoteResponse])
-async def get_case_notes(case_id: str):
-    from backend.db.connection import get_connection
-    from backend.shared.schema import cases_table
-    with get_connection() as conn:
-        if conn.execute(cases_table.select().where(cases_table.c.id == case_id)).fetchone() is None:
-            raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
-        return build_case_notes(conn, case_id)
-
-
-@router.post("/{case_id}/notes", response_model=CaseNoteResponse, status_code=status.HTTP_201_CREATED)
-async def create_case_note(
-    case_id: str,
-    note_data: CreateCaseNoteRequest,
-    request: Request,
-    current_user: dict = Depends(get_current_user),
-):
-    text_value = note_data.text.strip()
-    if not text_value:
-        raise HTTPException(status_code=400, detail="Note text cannot be empty")
-    from backend.db.connection import get_connection
-    from backend.shared.schema import case_notes_table, cases_table
-    username = current_user.get("username", "") if isinstance(current_user, dict) else str(current_user or "")
-    now = _now_iso()
-    note_id = str(uuid.uuid4())
-    with get_connection() as conn:
-        if conn.execute(cases_table.select().where(cases_table.c.id == case_id)).fetchone() is None:
-            raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
-        conn.execute(case_notes_table.insert().values(
-            id=note_id, case_id=case_id, author=username or "Unknown",
-            text=text_value, created_at=now
-        ))
-        conn.execute(cases_table.update().where(cases_table.c.id == case_id).values(updated_at=now))
-    log_action(
-        user=username or "Unknown", action="CREATE_CASE_NOTE", case_id=case_id, target=note_id,
-        detail={"note_length": len(text_value)},
-        ip_address=request.client.host if request.client else None,
-    )
-    return {"id": note_id, "timestamp": now, "author": username or "Unknown", "text": text_value}
 
 
 # ──────────────────────────────────────────────
@@ -573,7 +504,6 @@ async def upload_evidence(
             case_id,
             str(target_path),
             file_type_upper.lower(),
-            original_filename=safe_filename,
         )
 
         result = {
@@ -624,22 +554,6 @@ async def upload_evidence(
 
 
 # ──────────────────────────────────────────────
-#  Evidence Inventory
-# ──────────────────────────────────────────────
-
-
-@router.get("/{case_id}/evidence")
-async def get_case_evidence(case_id: str):
-    """Return persisted evidence-file metadata for the case."""
-    from backend.db.connection import get_connection
-    with get_connection() as conn:
-        detail = build_case_detail(conn, case_id)
-        if not detail:
-            raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
-        return detail["evidence"]
-
-
-# ──────────────────────────────────────────────
 #  Case Analysis
 # ──────────────────────────────────────────────
 
@@ -677,16 +591,11 @@ async def analyze_case(
         else str(current_user or "admin")
     )
 
-    # Rebuild all derived analysis output atomically. A rule failure now rolls
-    # back resolution as well as episodes/findings/scores.
-    with get_connection() as conn:
-        resolve(case_id, connection=conn)
-        det_res = run_detection(case_id, connection=conn)
-        conn.execute(
-            cases_table.update()
-            .where(cases_table.c.id == case_id)
-            .values(updated_at=_now_iso())
-        )
+    # 1. Entity resolution
+    resolve(case_id)
+
+    # 2. Detection engine
+    det_res = run_detection(case_id)
 
     findings_list = []
 
@@ -711,6 +620,16 @@ async def analyze_case(
                 "source_rows": finding.source_rows,
                 "explanation": finding.explanation,
             }
+        )
+
+    # Analysis completed successfully: update last_activity.
+    now_iso = _now_iso()
+
+    with get_connection() as conn:
+        conn.execute(
+            cases_table.update()
+            .where(cases_table.c.id == case_id)
+            .values(updated_at=now_iso)
         )
 
     log_action(
@@ -772,8 +691,6 @@ async def get_case_report(
     from backend.routers.graph import get_case_graph
     from backend.routers.score import get_fraud_score
     from backend.routers.timeline import get_timeline
-    from backend.db.connection import get_connection
-    from backend.services.case_views import build_case_notes, build_evidence_views
 
     alerts = await get_alerts(case_id)
     score = await get_fraud_score(case_id)
@@ -781,9 +698,6 @@ async def get_case_report(
     timeline = await get_timeline(case_id)
     flow = await get_criminal_flow(case_id)
     geo = await get_geospatial(case_id)
-    with get_connection() as conn:
-        evidence = build_evidence_views(conn, case_id)
-        notes = build_case_notes(conn, case_id)
 
     return {
         "case": case,
@@ -793,16 +707,5 @@ async def get_case_report(
         "timeline": timeline,
         "criminal_flow": flow,
         "geospatial": geo,
-        "evidence": evidence,
-        "notes": notes,
-        "report_sections": [
-            {"id": "sec_1", "name": "Executive Case Overview & Complainant Details", "available": True},
-            {"id": "sec_2", "name": "Critical Modus Operandi Nexus", "available": True},
-            {"id": "sec_3", "name": "Cross-Domain Chronological Timeline", "available": True},
-            {"id": "sec_4", "name": "Entity Link Analysis & Multi-Domain Associations", "available": True},
-            {"id": "sec_5", "name": "CriminalFlow Financial Trail & Mule Dispersal", "available": True},
-            {"id": "sec_6", "name": "Cryptographic Evidence Integrity (SHA-256 Ledger)", "available": True},
-            {"id": "sec_7", "name": "Section 65B Indian Evidence Act Certification", "available": True},
-        ],
         "generated_at": _now_iso(),
     }

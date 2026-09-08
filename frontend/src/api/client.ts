@@ -6,6 +6,7 @@
  */
 
 /// <reference types="vite/client" />
+
 import type {
   AnalyzeResponse,
   CanonicalEventAPI,
@@ -21,8 +22,6 @@ import type {
   HealthResponse,
   LoginResponse,
   UploadResponse,
-  CreateCaseRequest,
-  DashboardOverview, UserAPI, EvidenceFileAPI,
 } from '../types/api';
 
 const BASE_URL =
@@ -136,11 +135,6 @@ export const api = {
     });
   },
 
-  patch: <T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', ...config?.headers };
-    return request<T>(url, { ...config, method: 'PATCH', headers, body: data !== undefined ? JSON.stringify(data) : undefined });
-  },
-
   put: <T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>> => {
     const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
     const headers: Record<string, string> = {
@@ -207,16 +201,10 @@ export const getCase = async (caseId: string): Promise<CaseAPI> => {
   return res.data;
 };
 
-export const createCase = async (data: CreateCaseRequest): Promise<CaseAPI> => {
+export const createCase = async (data: { name?: string; title?: string; description?: string }): Promise<CaseAPI> => {
   const res = await api.post<CaseAPI>('/cases', data);
   return res.data;
 };
-
-export const updateCase = async (caseId: string, data: Partial<Pick<CaseAPI, 'name' | 'title' | 'description' | 'status' | 'priority' | 'assigned_io'>>): Promise<CaseAPI> => {
-  const res = await api.patch<CaseAPI>(`/cases/${caseId}`, data);
-  return res.data;
-};
-
 
 // Evidence Upload
 export const uploadEvidence = async (
@@ -293,13 +281,3 @@ export const getCaseReport = async (caseId: string): Promise<any> => {
   const res = await api.get<any>(`/cases/${caseId}/report`);
   return res.data;
 };
-
-
-
-export const getDashboardOverview = async (): Promise<DashboardOverview> => (await api.get<DashboardOverview>('/dashboard/overview')).data;
-export const getEvidence = async (caseId:string): Promise<EvidenceFileAPI[]> => (await api.get<EvidenceFileAPI[]>(`/cases/${caseId}/evidence`)).data;
-export const getUsers = async (): Promise<UserAPI[]> => (await api.get<UserAPI[]>('/admin/users')).data;
-export const createUser = async (data: Omit<UserAPI,'id'|'status'|'active_sessions'|'audit_count_24h'>): Promise<UserAPI> => (await api.post<UserAPI>('/admin/users', data)).data;
-export const getCaseNotes = async (caseId:string) => (await api.get<any[]>(`/cases/${caseId}/notes`)).data;
-
-export const createCaseNote = async (caseId:string, text:string) => (await api.post<any>(`/cases/${caseId}/notes`, {text})).data;

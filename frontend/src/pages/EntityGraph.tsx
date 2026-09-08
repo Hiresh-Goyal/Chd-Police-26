@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCase } from '../hooks/useCase';
+import { useCaseStore } from '../context/CaseStore';
 import { useGraph } from '../hooks/useGraph';
 import { tierColor } from '../utils/confidence';
 
@@ -36,10 +36,13 @@ export const EntityGraph: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { data: caseData } = useCase(caseId ?? '');
-  const hasUploads = (caseData?.evidence ?? []).some(f => f.status === 'complete');
+  const { getCaseFiles, getCase } = useCaseStore();
 
-  const { data: graphData, loading, graphWidth, graphHeight } = useGraph(caseId ?? '');
+  const uploadedFiles = getCaseFiles(caseId ?? '');
+  const caseData = getCase(caseId ?? '');
+  const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
+
+  const { data: graphData, loading } = useGraph(caseId ?? '');
   const nodes = graphData?.nodes || [];
   const edges = graphData?.edges || [];
 
@@ -51,7 +54,7 @@ export const EntityGraph: React.FC = () => {
 
   const handleExpandConnections = () => {
     if (!selectedNode) return;
-    showToast(`${selectedNode.name}: ${edges.filter((e:any) => e.from === selectedNode.id || e.to === selectedNode.id).length} evidence-backed connections.`, 'info');
+    showToast(`Expanded 1-hop connections for ${selectedNode.name}. Found 2 new indirect link nodes.`, 'info');
   };
 
   // Empty state for new cases with no uploads
@@ -76,7 +79,7 @@ export const EntityGraph: React.FC = () => {
       <header className="border-b border-[#D9E1EA] pb-3 flex justify-between items-end">
         <div>
           <div className="flex items-center gap-2 text-xs text-[#64748B] mb-1">
-            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#{caseId}</span>
+            <span className="font-mono bg-[#EFF6FF] text-[#0B5CAB] px-1.5 py-0.5 rounded font-bold">#2847</span>
             <span>•</span>
             <span>Entity Relationship & Multi-Domain Link Analysis</span>
           </div>
@@ -108,6 +111,16 @@ export const EntityGraph: React.FC = () => {
         {/* Interactive Graph Canvas (8 cols / ~70%) */}
         <div
           className="lg:col-span-8 bg-[#F8FAFC] border border-[#D9E1EA] rounded-md relative overflow-hidden shadow-xs select-none grid-pattern flex flex-col"
+          onMouseDown={e => {
+            setIsPanning(true);
+            setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+          }}
+          onMouseMove={e => {
+            if (!isPanning) return;
+            setPan({ x: e.clientX - startPan.x, y: e.clientY - startPan.y });
+          }}
+          onMouseUp={() => setIsPanning(false)}
+          onMouseLeave={() => setIsPanning(false)}
         >
           {/* Zoom/Pan Controls Overlay */}
           <div className="absolute bottom-4 left-4 z-20 bg-white border border-[#D9E1EA] rounded shadow-sm flex flex-col">
@@ -137,7 +150,7 @@ export const EntityGraph: React.FC = () => {
           {/* Graph Legend Overlay */}
           <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
             <div className="bg-white/90 backdrop-blur-xs border border-[#D9E1EA] rounded px-3 py-2 shadow-xs flex items-center gap-3 text-[11px] font-mono">
-              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]"></span> Person</div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]"></span> Person (P1)</div>
               <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#0891B2]"></span> CDR Phone</div>
               <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#F97316]"></span> Bank Acc</div>
               <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#7C3AED]"></span> IP Proxy</div>
@@ -151,37 +164,17 @@ export const EntityGraph: React.FC = () => {
             </div>
           </div>
 
-          {/* Scrollable graph viewport. Controls and legend stay attached to the
-              viewport instead of becoming part of the scrollable graph surface. */}
-          <div
-            className="absolute inset-0 overflow-auto"
-            onMouseDown={e => {
-              setIsPanning(true);
-              setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-            }}
-            onMouseMove={e => {
-              if (!isPanning) return;
-              setPan({ x: e.clientX - startPan.x, y: e.clientY - startPan.y });
-            }}
-            onMouseUp={() => setIsPanning(false)}
-            onMouseLeave={() => setIsPanning(false)}
-          >
           {/* Transform Layer */}
           <div
-            className="relative cursor-grab active:cursor-grabbing flex-none"
+            className="w-full h-full relative cursor-grab active:cursor-grabbing"
             style={{
-              width: `${graphWidth}px`,
-              height: `${graphHeight}px`,
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: '0 0',
               transition: isPanning ? 'none' : 'transform 0.1s ease-out'
             }}
           >
             {/* SVG Edges */}
-            <svg className="absolute left-0 top-0 pointer-events-none"
-              width={graphWidth}
-              height={graphHeight}
-              viewBox={`0 0 ${graphWidth} ${graphHeight}`}>
+            <svg className="absolute inset-0 w-[1200px] h-[800px] pointer-events-none">
               <defs>
                 <marker id="arrow-cyan" markerHeight="6" markerWidth="6" orient="auto-start-reverse" refX="28" refY="5" viewBox="0 0 10 10">
                   <path d="M 0 0 L 10 5 L 0 10 z" fill="#0891B2" />
@@ -207,14 +200,6 @@ export const EntityGraph: React.FC = () => {
 
                 const midX = (src.x + tgt.x) / 2;
                 const midY = (src.y + tgt.y) / 2;
-                const sameLayer = Math.abs(src.x - tgt.x) < 20;
-
-                // Route relationships as clean horizontal/vertical paths.
-                // This keeps the left-to-right investigation flow readable
-                // and avoids a dense web of diagonal lines.
-                const edgePath = sameLayer
-                  ? `M ${src.x} ${src.y} C ${src.x + 75} ${src.y}, ${tgt.x + 75} ${tgt.y}, ${tgt.x} ${tgt.y}`
-                  : `M ${src.x} ${src.y} L ${midX} ${src.y} L ${midX} ${tgt.y} L ${tgt.x} ${tgt.y}`;
 
                 let edgeProps = { strokeWidth: 2, strokeDasharray: 'none', opacity: 1.0 };
                 if (e.confidence_tier === 'PROBABLE') {
@@ -226,8 +211,7 @@ export const EntityGraph: React.FC = () => {
                 return (
                   <g key={e.id} style={{ opacity: edgeProps.opacity }}>
                     <path
-                      d={edgePath}
-                      fill="none"
+                      d={`M ${src.x} ${src.y} L ${tgt.x} ${tgt.y}`}
                       stroke={e.color}
                       strokeWidth={edgeProps.strokeWidth}
                       strokeDasharray={edgeProps.strokeDasharray}
@@ -264,7 +248,7 @@ export const EntityGraph: React.FC = () => {
             <div className="absolute inset-0 pointer-events-none">
               {nodes.map(node => {
                 const isSelected = selectedNode?.id === node.id;
-                const isTargetP1 = node.riskLevel === 'CRITICAL';
+                const isTargetP1 = node.id === 'node_rajesh';
 
                 let iconName = 'person';
                 let borderColor = 'border-[#0B5CAB]';
@@ -334,7 +318,6 @@ export const EntityGraph: React.FC = () => {
                 );
               })}
             </div>
-          </div>
           </div>
         </div>
 

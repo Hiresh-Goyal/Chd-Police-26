@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import { useCaseStore } from '../context/CaseStore';
 import { useGeospatial } from '../hooks/useApi';
@@ -76,12 +76,21 @@ const mapApiEventToNode = (e: GeospatialEvent): GeoLocationNode => {
 const createColoredIcon = (color: string, number?: number) =>
   L.divIcon({
     className: '',
-    html: `<div style="width:34px;height:34px;background:${color};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;position:relative;">
+    html: `<div style="width:34px;height:34px;background:${color};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;position:relative;transition: transform 0.2s;">
              <span style="transform:rotate(45deg);color:white;font-weight:bold;font-size:14px;line-height:1;">${number !== undefined ? number : ''}</span>
            </div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
     popupAnchor: [0, -38],
+  });
+
+// Arrow marker icon
+const createArrowIcon = (angle: number) =>
+  L.divIcon({
+    className: '',
+    html: `<div style="transform: rotate(${angle}deg); color: #DC2626; font-size: 14px; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 3px white, 0 0 3px white; width: 14px; height: 14px; line-height: 1;">▲</div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
   });
 
 // Component to re-center map
@@ -137,7 +146,16 @@ export const GeospatialMap: React.FC = () => {
     );
   };
 
-  const filteredPoints = geoPoints.filter(p => selectedLocations.includes(p.address || p.name));
+  const filteredPoints = React.useMemo(() => {
+    return geoPoints.filter(p => {
+      const showByDomain = 
+        (p.domain === 'CDR' && layers.cdr) ||
+        (p.domain === 'BANK' && layers.bank) ||
+        (p.domain === 'IPDR' && layers.ipdr);
+      const showByLocation = selectedLocations.includes(p.address || p.name);
+      return showByDomain && showByLocation;
+    });
+  }, [geoPoints, selectedLocations, layers]);
 
   const defaultCenter: [number, number] = [30.7350, 76.7760];
   const CENTER: [number, number] = filteredPoints.length > 0 ? [filteredPoints[0].lat, filteredPoints[0].lng] : defaultCenter;
@@ -167,6 +185,21 @@ export const GeospatialMap: React.FC = () => {
   });
 
   const trajectoryPath: [number, number][] = jitteredPoints.map(p => [p.displayLat, p.displayLng]);
+
+  const arrowMarkers: { id: string, lat: number, lng: number, angle: number }[] = [];
+  for (let i = 0; i < trajectoryPath.length - 1; i++) {
+    const p1 = trajectoryPath[i];
+    const p2 = trajectoryPath[i + 1];
+    if (Math.abs(p1[0] - p2[0]) > 0.0001 || Math.abs(p1[1] - p2[1]) > 0.0001) {
+      const midLat = (p1[0] + p2[0]) / 2;
+      const midLng = (p1[1] + p2[1]) / 2;
+      const dy = p2[0] - p1[0];
+      const dx = (p2[1] - p1[1]) * Math.cos(p1[0] * Math.PI / 180);
+      const angleRad = Math.atan2(dy, dx);
+      const cssAngle = 90 - (angleRad * (180 / Math.PI));
+      arrowMarkers.push({ id: `arrow-${i}`, lat: midLat, lng: midLng, angle: cssAngle });
+    }
+  }
 
   // Empty state for new cases with no uploads
   if (!hasUploads) {
@@ -318,6 +351,11 @@ export const GeospatialMap: React.FC = () => {
 
             {/* Suspect trajectory line */}
             <Polyline positions={trajectoryPath} color="#DC2626" weight={3} dashArray="8, 6" opacity={0.85} />
+            
+            {/* Directional Arrows */}
+            {arrowMarkers.map(am => (
+              <Marker key={am.id} position={[am.lat, am.lng]} icon={createArrowIcon(am.angle)} interactive={false} />
+            ))}
 
             {/* Radius buffer circle (from slider) */}
             {filteredPoints.length > 0 && (
@@ -327,18 +365,21 @@ export const GeospatialMap: React.FC = () => {
 
             {/* Individual geo-point markers */}
             {jitteredPoints.map((pt) => {
-              const show =
-                (pt.domain === 'CDR' && layers.cdr) ||
-                (pt.domain === 'BANK' && layers.bank) ||
-                (pt.domain === 'IPDR' && layers.ipdr);
-              if (!show) return null;
-
               return (
                 <React.Fragment key={pt.id}>
                   <Circle center={[pt.lat, pt.lng]} radius={pt.radiusKm * 1000}
                     pathOptions={{ color: pt.color, fillColor: pt.color, fillOpacity: 0.04, weight: 1.5, dashArray: '5,5' }} />
                   <Marker position={[pt.displayLat, pt.displayLng]} icon={createColoredIcon(pt.color, pt.sequenceIndex)}
-                    eventHandlers={{ click: () => setSelectedPoint(pt) }}>
+                    eventHandlers={{ 
+                      click: () => setSelectedPoint(pt),
+                      mouseover: (e) => e.target.setZIndexOffset(1000),
+                      mouseout: (e) => e.target.setZIndexOffset(0)
+                    }}>
+                    <Tooltip direction="top" offset={[0, -38]} opacity={1}>
+                      <div className="font-mono text-xs font-bold text-[#0B2340]">
+                        #{pt.sequenceIndex} - <span className="font-sans font-normal text-[#424751]">{pt.name}</span>
+                      </div>
+                    </Tooltip>
                     <Popup maxWidth={260}>
                       <div style={{ fontFamily: 'inherit', fontSize: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>

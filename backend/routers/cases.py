@@ -193,6 +193,7 @@ async def get_case_files(case_id: str):
                     "size": f"{row.row_count or 0} rows",
                     "status": "complete",
                     "uploadedAt": row.uploaded_at,
+                    "sha256": row.sha256,
                 }
                 for row in rows
             ]

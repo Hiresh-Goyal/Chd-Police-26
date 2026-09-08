@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useToast } from '../components/common/Toast';
 import { useCaseStore } from '../context/CaseStore';
-import { getFraudScore, getAlerts, getTimeline } from '../api/client';
+import { getFraudScore, getAlerts, getTimeline, getCaseFiles } from '../api/client';
 import { FraudScoreAPI, FindingAPI, CanonicalEventAPI } from '../types/api';
 
 interface ReportSectionItem {
@@ -13,14 +13,27 @@ interface ReportSectionItem {
 
 /* ── helpers ────────────────────────────────────────────────── */
 
-function generateReportHTML(sections: ReportSectionItem[], certOfficer: string, caseSummary: any, fraudScore: FraudScoreAPI | null, alerts: FindingAPI[], timeline: CanonicalEventAPI[]): string {
+function generateReportHTML(
+  sections: ReportSectionItem[], 
+  certOfficer: string, 
+  caseSummary: any, 
+  fraudScore: FraudScoreAPI | null, 
+  alerts: FindingAPI[], 
+  timeline: CanonicalEventAPI[],
+  files: { id: string, name: string, type: string, sha256: string, uploaded_at: string }[]
+): string {
   const includedNames = sections.filter(s => s.included).map(s => s.name);
   
   const caseId = caseSummary?.id || '#Unknown';
   const subjectName = caseSummary?.title || 'Unknown Subject';
-  const estLoss = '₹4,82,000'; // mocked or could be extracted
+  
+  const totalLoss = timeline
+    .filter(t => t.event_type === 'BANK_TRANSFER' && t.amount != null)
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
+  const estLoss = totalLoss > 0 ? `₹${totalLoss.toLocaleString('en-IN')}` : 'Unknown / Pending';
+  
   const status = caseSummary?.status || 'Active';
-  const io = 'Insp. Amrit Singh, Sr. Inspector, Sector 17 Unit';
+  const io = certOfficer || localStorage.getItem('ds_user') || 'Assigned Officer';
   const score = fraudScore ? fraudScore.score : 0;
   const level = fraudScore ? fraudScore.risk_level : 'UNKNOWN';
 
@@ -60,16 +73,19 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string, 
       <p>The financial trail analysis maps the dispersion of funds through suspected mule accounts.</p>
       <table>
         <tr><th>From</th><th>To</th><th>Amount</th><th>Method</th></tr>
-        <tr><td>Victim Account</td><td>HDFC XXXXXXX4521</td><td>₹48,000</td><td>IMPS</td></tr>
-        <tr><td>HDFC XXXXXXX4521</td><td>ATM SIB8922</td><td>₹47,500</td><td>Cash Withdrawal</td></tr>
+        ${timeline
+          .filter(t => t.event_type === 'BANK_TRANSFER')
+          .slice(0, 10)
+          .map(t => `<tr><td>${t.actor_raw}</td><td>${t.peer_raw || 'Unknown'}</td><td>₹${t.amount?.toLocaleString('en-IN')}</td><td>Transfer</td></tr>`)
+          .join('') || '<tr><td colspan="4">No financial transactions found.</td></tr>'}
       </table>`,
     sec_6: `
       <h2>6. Cryptographic Evidence Integrity (SHA-256 Ledger)</h2>
       <table>
-        <tr><th>Evidence File</th><th>SHA-256 Hash</th></tr>
-        <tr><td>CDR_Export_15Aug.csv</td><td>a3f1...9d2e (truncated for display)</td></tr>
-        <tr><td>IPDR_Session_Log.json</td><td>b7c4...1f8a (truncated for display)</td></tr>
-        <tr><td>BANK_Stmt_HDFC4521.pdf</td><td>d9e2...3c5b (truncated for display)</td></tr>
+        <tr><th>Evidence File</th><th>Type</th><th>SHA-256 Hash</th></tr>
+        ${files.length > 0 
+          ? files.map(f => `<tr><td>${f.name}</td><td>${f.type}</td><td style="font-family: monospace; font-size: 11px;">${f.sha256}</td></tr>`).join('') 
+          : '<tr><td colspan="3">No evidence files uploaded.</td></tr>'}
       </table>`,
     sec_7: `
       <h2>7. Section 65B Indian Evidence Act Certification</h2>
@@ -77,7 +93,7 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string, 
         <p><strong>Certificate Under Section 65B(4) of Indian Evidence Act, 1872</strong></p>
         <p><em>"I hereby certify that the electronic output provided herein is a true reproduction of system records maintained during ordinary course of investigative duty without tampering or modification."</em></p>
         <p style="margin-top:24px"><strong>${certOfficer}</strong><br/>
-        Digital Signature ID: DS-2026-CHDPOL-1042<br/>
+        Digital Signature ID: DS-${new Date().getFullYear()}-${caseId.substring(0, 6).toUpperCase()}<br/>
         Date: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
       </div>`,
   };
@@ -86,6 +102,8 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string, 
     .filter(s => s.included)
     .map(s => sectionBlocks[s.id] ?? '')
     .join('\n');
+
+  const incidentDate = caseSummary?.openedDate ? new Date(caseSummary.openedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -127,8 +145,8 @@ function generateReportHTML(sections: ReportSectionItem[], certOfficer: string, 
     <div><span>Case Reference:</span><span>FIR #${caseId} / 2026</span></div>
     <div><span>Subject / Accused:</span><span>${subjectName}</span></div>
     <div><span>Total Defraud Amount:</span><span class="red">${estLoss}</span></div>
-    <div><span>Primary Incident Date:</span><span>15 August 2026</span></div>
-    <div><span>Investigating Officer:</span><span>Insp. Amrit Singh</span></div>
+    <div><span>Case Registration Date:</span><span>${incidentDate}</span></div>
+    <div><span>Investigating Officer:</span><span>${io}</span></div>
     <div><span>Report Generated:</span><span>${new Date().toLocaleString('en-IN')}</span></div>
   </div>
 
@@ -152,20 +170,22 @@ export const EvidenceReport: React.FC = () => {
   const [fraudScore, setFraudScore] = useState<FraudScoreAPI | null>(null);
   const [alerts, setAlerts] = useState<FindingAPI[]>([]);
   const [timeline, setTimeline] = useState<CanonicalEventAPI[]>([]);
+  const [files, setFiles] = useState<{ id: string, name: string, type: string, sha256: string, uploaded_at: string }[]>([]);
 
   React.useEffect(() => {
     if (caseId) {
       getFraudScore(caseId).then(setFraudScore).catch(console.error);
       getAlerts(caseId).then(setAlerts).catch(console.error);
       getTimeline(caseId).then(setTimeline).catch(console.error);
+      getCaseFiles(caseId).then(setFiles).catch(console.error);
     }
   }, [caseId]);
 
-  const [certOfficer, setCertOfficer] = useState('Insp. Amrit Singh, Senior Inspector (ID: 1042)');
+  const [certOfficer, setCertOfficer] = useState(localStorage.getItem('ds_user') ? `${localStorage.getItem('ds_user')} (IO)` : 'Investigating Officer');
   const [sections, setSections] = useState<ReportSectionItem[]>([
     { id: 'sec_1', name: '1. Executive Case Overview & Complainant Details', included: true },
-    { id: 'sec_2', name: '2. Critical Modus Operandi Nexus (Call → IPDR → IMPS → ATM)', included: true },
-    { id: 'sec_3', name: '3. Cross-Domain Chronological Timeline (15 Aug 2026)', included: true },
+    { id: 'sec_2', name: '2. Critical Modus Operandi Nexus', included: true },
+    { id: 'sec_3', name: '3. Cross-Domain Chronological Timeline', included: true },
     { id: 'sec_4', name: '4. Entity Link Analysis & Multi-Domain Associations', included: true },
     { id: 'sec_5', name: '5. CriminalFlow Financial Trail & Mule Dispersal', included: true },
     { id: 'sec_6', name: '6. Cryptographic Evidence Integrity (SHA-256 Ledger)', included: true },
@@ -178,7 +198,7 @@ export const EvidenceReport: React.FC = () => {
 
   /** Build a Blob URL from the generated HTML */
   const buildBlobUrl = (): string => {
-    const html = generateReportHTML(sections, certOfficer, caseSummary, fraudScore, alerts, timeline);
+    const html = generateReportHTML(sections, certOfficer, caseSummary, fraudScore, alerts, timeline, files);
     const blob = new Blob([html], { type: 'text/html' });
     return URL.createObjectURL(blob);
   };
@@ -258,14 +278,14 @@ export const EvidenceReport: React.FC = () => {
               <div className="font-bold text-[#0B2340] text-sm">{caseSummary?.subject || 'Subject'}</div>
             </div>
             <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4]">
-              <label className="text-[#64748B] block mb-0.5 font-medium">Incident Date</label>
-              <div className="font-bold text-[#0B2340] text-sm">15 Aug 2026</div>
+              <label className="text-[#64748B] block mb-0.5 font-medium">Case Registration Date</label>
+              <div className="font-bold text-[#0B2340] text-sm">{caseSummary?.openedDate ? new Date(caseSummary.openedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown'}</div>
             </div>
             <div className="bg-[#F8FAFC] p-3 rounded border border-[#EDF0F4] col-span-2 sm:col-span-3">
               <label className="text-[#64748B] block mb-1 font-medium">Investigating Officer (IO)</label>
               <div className="font-semibold text-[#0B2340] flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[#0B2340] text-white flex items-center justify-center text-[9px] font-bold shrink-0">AS</span>
-                Insp. Amrit Singh, Senior Inspector • Sector 17 Unit
+                <span className="w-6 h-6 rounded-full bg-[#0B2340] text-white flex items-center justify-center text-[9px] font-bold shrink-0">{localStorage.getItem('ds_user') ? localStorage.getItem('ds_user')?.substring(0, 2).toUpperCase() : 'IO'}</span>
+                {localStorage.getItem('ds_user') || 'Assigned Officer'}
               </div>
             </div>
           </div>

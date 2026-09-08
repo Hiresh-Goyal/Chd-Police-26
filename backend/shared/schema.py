@@ -137,24 +137,16 @@ metadata = MetaData()
 cases_table = Table(
     "cases",
     metadata,
-    Column("id", Text, primary_key=True),                              # uuid4
+    Column("id", Text, primary_key=True),
     Column("name", Text, nullable=False),
+    Column("title", Text, nullable=False),
     Column("description", Text),
-    Column(
-        "status",
-        Text,
-        nullable=False,
-        server_default=CaseStatus.OPEN.value,
-    ),                                                                 # CaseStatus
-    Column(
-        "priority",
-        Text,
-        nullable=False,
-        server_default=CasePriority.MEDIUM.value,
-    ),                                                                 # CasePriority
-    Column("assigned_io", Text),                                       # assigned investigator
-    Column("created_at", Text, nullable=False),                       # immutable UTC ISO-8601
-    Column("updated_at", Text, nullable=False),                       # latest case modification
+    Column("status", Text, nullable=False, server_default=CaseStatus.OPEN.value),
+    Column("priority", Text, nullable=False, server_default=CasePriority.MEDIUM.value),
+    Column("assigned_io", Text),
+    Column("case_type", Text),
+    Column("created_at", Text, nullable=False),
+    Column("updated_at", Text, nullable=False),
 )
 
 
@@ -172,6 +164,9 @@ raw_files_table = Table(
     Column("sha256", Text, nullable=False),
     Column("row_count", Integer),
     Column("uploaded_at", Text, nullable=False),                      # UTC ISO-8601
+    Column("file_size_bytes", Integer),
+    Column("status", Text, nullable=False, server_default="complete"),
+    Column("parse_errors", Text),                                      # JSON array
 )
 
 
@@ -323,6 +318,38 @@ audit_logs = Table(
 )
 
 
+# Case investigator notes
+case_notes_table = Table(
+    "case_notes",
+    metadata,
+    Column("id", Text, primary_key=True),
+    Column("case_id", Text, ForeignKey("cases.id"), nullable=False),
+    Column("author", Text, nullable=False),
+    Column("text", Text, nullable=False),
+    Column("created_at", Text, nullable=False),
+)
+
+
+# Department personnel directory. Authentication credentials remain separate
+# from directory metadata; passwords are never stored in this table.
+users_table = Table(
+    "users",
+    metadata,
+    Column("id", Text, primary_key=True),
+    Column("username", Text, nullable=False, unique=True),
+    Column("badge_id", Text),
+    Column("name", Text, nullable=False),
+    Column("rank", Text),
+    Column("unit", Text),
+    Column("station", Text),
+    Column("email", Text),
+    Column("role", Text, nullable=False),
+    Column("status", Text, nullable=False, server_default="ACTIVE"),
+    Column("mfa_enabled", Integer, nullable=False, server_default="1"),
+    Column("created_at", Text, nullable=False),
+)
+
+
 # ──────────────────────────────────────────────
 #  Pydantic Models
 # ──────────────────────────────────────────────
@@ -338,6 +365,7 @@ class Case(BaseModel):
 
     id: Optional[str] = None
     name: str
+    title: str
     description: Optional[str] = None
     status: str = CaseStatus.OPEN.value
 
@@ -346,6 +374,7 @@ class Case(BaseModel):
 
     # Investigator assigned to this case.
     assigned_io: Optional[str] = None
+    case_type: Optional[str] = None
 
     # Calculated from entities.case_id.
     entities_count: int = 0
@@ -365,6 +394,9 @@ class RawFile(BaseModel):
     sha256: str
     row_count: Optional[int] = None
     uploaded_at: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    status: str = "complete"
+    parse_errors: list[str] = []
 
 
 class CanonicalEvent(BaseModel):
@@ -446,3 +478,15 @@ class FraudScore(BaseModel):
     top_findings: list[str]
     total_findings: int
     computed_at: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Backward-compatible table aliases
+# ---------------------------------------------------------------------------
+
+canonical_events = canonical_events_table
+entities = entities_table
+entity_links = entity_links_table
+findings = findings_table
+episodes = episodes_table
+fraud_scores = fraud_scores_table

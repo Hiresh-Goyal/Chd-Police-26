@@ -15,7 +15,7 @@ Conventions:
 
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 
 import polars as pl
 
@@ -27,10 +27,10 @@ def _parse_ts(raw: str) -> str:
     raw = str(raw).strip()
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%d-%m-%Y %H:%M:%S"):
         try:
-            return datetime.strptime(raw, fmt).isoformat()
+            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc).isoformat()
         except ValueError:
             continue
-    return raw
+    raise ValueError(f"invalid timestamp: {raw}")
 
 
 def _parse_rows(
@@ -48,6 +48,13 @@ def _parse_rows(
             ts = _parse_ts(str(row["ts"]))
             txn_type = str(row.get("txn_type", "")).strip().upper()
             ref_id = str(row.get("ref_id", "")).strip() or None
+            location_raw = (
+                str(row.get("location", "")).strip()
+                or str(row.get("location_raw", "")).strip()
+                or str(row.get("atm_id", "")).strip()
+                or str(row.get("branch", "")).strip()
+                or None
+            )
 
             events.append(
                 CanonicalEvent(
@@ -58,11 +65,12 @@ def _parse_rows(
                     actor_raw=account,
                     peer_raw=peer_account,
                     device_id=None,
-                    location_raw=None,
+                    location_raw=location_raw,
                     amount=amount,
                     payload={
                         "txn_type": txn_type,
                         "ref_id": ref_id,
+                        "source_fields": {str(k): str(v) for k, v in row.items()},
                     },
                     source_file_id=file_id,
                     source_row=row_idx,

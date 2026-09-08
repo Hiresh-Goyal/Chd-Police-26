@@ -113,9 +113,9 @@ export const Login: React.FC = () => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-ds-blue hover:text-ds-blue-hover transition-colors">
+                <button type="button" onClick={() => showToast('Please contact your administrator to reset your password.', 'info')} className="font-medium text-ds-blue hover:text-ds-blue-hover transition-colors">
                   Forgot credentials?
-                </a>
+                </button>
               </div>
             </div>
 

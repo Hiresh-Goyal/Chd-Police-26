@@ -127,6 +127,7 @@ export const MyCases: React.FC = () => {
     try {
       const created: CaseAPI = await createCase({
         name: newCaseSubject.trim(),
+        title: newCaseSubject.trim(),
         description: '',
         priority: newCasePriority,
         assigned_io: newCaseAssignedIO.trim() || null,

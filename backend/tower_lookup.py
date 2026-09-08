@@ -1,16 +1,13 @@
-"""
-backend/tower_lookup.py
+"""Configured geospatial lookup for evidence-provided tower/location identifiers.
 
-Cell tower coordinate lookup table and parser for Chandigarh & Tri-city area.
-Translates location_raw (tower IDs or lat/lng strings) into geographic coordinates.
+Unknown identifiers are *not* assigned fabricated coordinates. They remain
+unmapped until a real lookup entry or explicit latitude/longitude is present.
 """
 
-import hashlib
 import re
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
-# Pre-defined telecom towers in Chandigarh & surrounding areas
-TOWER_DATABASE: Dict[str, Dict[str, any]] = {
+TOWER_DATABASE: Dict[str, Dict[str, object]] = {
     "TOW-17-01": {"lat": 30.7398, "lng": 76.7827, "name": "Sector 17 City Centre, Chandigarh"},
     "TOW-17-02": {"lat": 30.7380, "lng": 76.7780, "name": "Sector 17 ISBT, Chandigarh"},
     "TOW-22-01": {"lat": 30.7350, "lng": 76.7680, "name": "Sector 22 Market, Chandigarh"},
@@ -25,65 +22,25 @@ TOWER_DATABASE: Dict[str, Dict[str, any]] = {
     "TOW-AIRPORT": {"lat": 30.6730, "lng": 76.7885, "name": "Shaheed Bhagat Singh Intl Airport, Chandigarh"},
     "TOW-ZIRAKPUR": {"lat": 30.6420, "lng": 76.8170, "name": "VIP Road Junction, Zirakpur"},
     "TOW-SUKHNA": {"lat": 30.7421, "lng": 76.8188, "name": "Sukhna Lake, Chandigarh"},
+    # The demo/design data uses Cell ID 45892 for Sector 17 Tower A.
+    "45892": {"lat": 30.7398, "lng": 76.7827, "name": "Sector 17 Tower A, Chandigarh"},
 }
 
 
-def _deterministic_coords(raw: str) -> Tuple[float, float, str]:
-    """Deterministically map an unrecognized tower ID to the Chandigarh bounding box."""
-    digest = hashlib.md5(raw.encode("utf-8")).hexdigest()
-    int_val_lat = int(digest[:8], 16)
-    int_val_lng = int(digest[8:16], 16)
-
-    # Chandigarh bounding box: Lat 30.68 to 30.78, Lng 76.70 to 76.85
-    lat = 30.6800 + (int_val_lat % 10000) / 100000.0
-    lng = 76.7000 + (int_val_lng % 15000) / 100000.0
-    name = f"Cell Site ({raw})"
-    return round(lat, 5), round(lng, 5), name
-
-
-def lookup_tower(location_raw: Optional[str]) -> Optional[Dict[str, any]]:
-    """Resolve location_raw string into {lat, lng, location_name}.
-
-    Handles:
-    - Known tower identifiers (e.g., 'TOW-17-01')
-    - Explicit coordinates string (e.g., '30.7398,76.7827' or '30.7398, 76.7827')
-    - Fallback deterministic hashing for other tower strings
-    """
+def lookup_tower(location_raw: Optional[str]) -> Optional[Dict[str, object]]:
     if not location_raw:
         return None
-
-    raw_clean = location_raw.strip()
-    if not raw_clean:
+    raw = str(location_raw).strip()
+    if not raw:
         return None
 
-    # 1. Direct dictionary match (case-insensitive)
-    upper_raw = raw_clean.upper()
-    if upper_raw in TOWER_DATABASE:
-        item = TOWER_DATABASE[upper_raw]
-        return {
-            "lat": item["lat"],
-            "lng": item["lng"],
-            "location_name": item["name"],
-        }
+    item = TOWER_DATABASE.get(raw.upper())
+    if item:
+        return {"lat": float(item["lat"]), "lng": float(item["lng"]), "location_name": str(item["name"])}
 
-    # 2. Check for comma-separated lat, lng pattern (e.g., "30.7398, 76.7827")
-    coord_match = re.match(r"^[-+]?([0-9]*\.[0-9]+|[0-9]+)\s*,\s*[-+]?([0-9]*\.[0-9]+|[0-9]+)$", raw_clean)
-    if coord_match:
-        try:
-            lat = float(coord_match.group(1))
-            lng = float(coord_match.group(2))
-            return {
-                "lat": lat,
-                "lng": lng,
-                "location_name": f"Coordinates ({lat:.4f}, {lng:.4f})",
-            }
-        except ValueError:
-            pass
+    match = re.match(r"^\s*([-+]?\d+(?:\.\d+)?)\s*,\s*([-+]?\d+(?:\.\d+)?)\s*$", raw)
+    if match:
+        lat, lng = float(match.group(1)), float(match.group(2))
+        return {"lat": lat, "lng": lng, "location_name": f"Coordinates ({lat:.4f}, {lng:.4f})"}
 
-    # 3. Deterministic coordinate generation inside Chandigarh area
-    lat, lng, name = _deterministic_coords(raw_clean)
-    return {
-        "lat": lat,
-        "lng": lng,
-        "location_name": name,
-    }
+    return None

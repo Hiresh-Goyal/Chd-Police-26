@@ -1,0 +1,3 @@
+import {useCallback,useEffect,useState} from 'react';
+import {getUsers,createUser} from '../api/client';import type {UserAPI} from '../types/api';
+export const useUsers=()=>{const[data,setData]=useState<UserAPI[]>([]);const[loading,setLoading]=useState(true);const[error,setError]=useState<Error|null>(null);const refetch=useCallback(async()=>{setLoading(true);setError(null);try{setData(await getUsers())}catch(e){setError(e instanceof Error?e:new Error('Failed to load users.'))}finally{setLoading(false)}},[]);useEffect(()=>{void refetch()},[refetch]);const add=async(payload:Omit<UserAPI,'id'|'status'|'active_sessions'|'audit_count_24h'>)=>{const u=await createUser(payload);setData(v=>[...v,u]);return u};return{data,loading,error,refetch,add}};

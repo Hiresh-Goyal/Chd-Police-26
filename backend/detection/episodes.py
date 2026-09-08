@@ -1,82 +1,64 @@
-from sqlalchemy.engine import Connection
-from sqlalchemy import select
-import uuid
-from backend.shared.schema import canonical_events, entity_links, entities
-from datetime import timedelta
+"""Build schema-valid temporal clusters from resolved canonical events."""
 
-def build_episodes(conn: Connection, case_id: str) -> list:
+import json
+import uuid
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import select
+from sqlalchemy.engine import Connection
+
+from backend.shared.schema import canonical_events_table
+
+
+def _parse_time(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def build_episodes(conn: Connection, case_id: str) -> list[dict]:
+    """Cluster entity-connected events separated by no more than four hours.
+
+    The table stores JSON as TEXT, so returned rows are ready for direct insert.
     """
-    (1) seed from events in CONFIRMED entity clusters
-    (2) expand: add events within 4-hour window sharing >=1 CONFIRMED or >=2 PROBABLE entity links
-    (3) merge proto-episodes that share an entity and overlap within +-30 min
-    (4) cap episode duration at 48 hours
-    """
-    # For hackathon purposes, let's implement a simplified version of episode building
-    # We group all events for a given entity that occur within a 48-hour window.
-    
-    # 1. Fetch all events associated with entities
-    stmt = select(
-        entities.c.id.label('entity_id'),
-        entities.c.canonical_value,
-        entities.c.source_ids
-    ).where(
-        entities.c.case_id == case_id,
-        entities.c.confidence_tier == 'CONFIRMED'
-    )
-    ent_rows = conn.execute(stmt).fetchall()
-    
-    # Extract event ids for each CONFIRMED entity
-    event_ids_set = set()
-    entity_to_events = {}
-    for r in ent_rows:
-        e_ids = r.source_ids or []
-        entity_to_events[r.entity_id] = e_ids
-        for eid in e_ids:
-            event_ids_set.add(eid)
-            
-    if not event_ids_set:
-        return []
-        
-    # Fetch event timestamps
-    ev_stmt = select(
-        canonical_events.c.id,
-        canonical_events.c.ts_start
-    ).where(
-        canonical_events.c.id.in_(list(event_ids_set))
-    )
-    ev_rows = conn.execute(ev_stmt).fetchall()
-    ev_times = {r.id: r.ts_start for r in ev_rows}
-    
-    episodes = []
-    
-    # Simple clustering: group by entity, create an episode if events span less than 48 hours
-    for ent_id, e_ids in entity_to_events.items():
-        if not e_ids:
-            continue
-        
-        times = [ev_times[eid] for eid in e_ids if eid in ev_times]
-        if not times:
-            continue
-            
-        start_time = min(times)
-        end_time = max(times)
-        
-        # Cap at 48 hours (if more, we just truncate or create one episode up to 48h)
-        if (end_time - start_time).total_seconds() > 48 * 3600:
-            end_time = start_time + timedelta(hours=48)
-            # filter events within this window
-            valid_e_ids = [eid for eid in e_ids if eid in ev_times and ev_times[eid] <= end_time]
-        else:
-            valid_e_ids = e_ids
-            
-        episodes.append({
-            "id": str(uuid.uuid4()),
-            "case_id": case_id,
-            "ts_start": start_time,
-            "ts_end": end_time,
-            "summary": f"Episode for entity {ent_id}",
-            "entity_ids": [ent_id],
-            "event_ids": valid_e_ids
+    rows = conn.execute(select(canonical_events_table).where(
+        canonical_events_table.c.case_id == case_id,
+        (canonical_events_table.c.actor_entity_id.is_not(None)) |
+        (canonical_events_table.c.peer_entity_id.is_not(None)),
+    ).order_by(canonical_events_table.c.ts_start)).fetchall()
+    clusters: list[dict] = []
+    active: list[tuple[datetime, object]] = []
+    active_entities: set[str] = set()
+
+    def flush() -> None:
+        nonlocal active, active_entities
+        if not active:
+            return
+        start = active[0][0]
+        end = max(item[0] for item in active)
+        event_ids = [item[1].id for item in active]
+        entity_ids = sorted(active_entities)
+        clusters.append({
+            "id": str(uuid.uuid4()), "case_id": case_id,
+            "ts_start": start.isoformat(), "ts_end": end.isoformat(),
+            "entity_ids": json.dumps(entity_ids), "event_ids": json.dumps(event_ids),
+            "label": f"Resolved activity episode ({len(event_ids)} events)",
+            "summary": f"Temporal cluster involving {len(entity_ids)} resolved entities and {len(event_ids)} events.",
+            "created_at": datetime.now(timezone.utc).isoformat(),
         })
-        
-    return episodes
+        active, active_entities = [], set()
+
+    for row in rows:
+        try:
+            when = _parse_time(row.ts_start)
+        except (TypeError, ValueError):
+            continue
+        row_entities = {value for value in (row.actor_entity_id, row.peer_entity_id) if value}
+        if active:
+            last = active[-1][0]
+            connected = bool(active_entities & row_entities)
+            if not connected or when - last > timedelta(hours=4) or when - active[0][0] > timedelta(hours=48):
+                flush()
+        active.append((when, row))
+        active_entities.update(row_entities)
+    flush()
+    return clusters

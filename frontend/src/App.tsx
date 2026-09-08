@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './components/common/Toast';
 import { AppShell } from './components/shell/AppShell';
-import { CaseStoreProvider } from './context/CaseStore';
 
 // Pages
 import { Login } from './pages/Login';
@@ -24,7 +23,6 @@ import { AuditLog } from './pages/AuditLog';
 export const App: React.FC = () => {
   return (
     <ToastProvider>
-      <CaseStoreProvider>
         <BrowserRouter>
           <Routes>
             {/* Public Route */}
@@ -39,6 +37,7 @@ export const App: React.FC = () => {
               <Route path="cases" element={<MyCases />} />
 
               {/* Dynamic Case Contextual Analysis Routes — works for any case ID */}
+              <Route path="/cases/:caseId/alerts" element={<Alerts />} />
               <Route path="/cases/:caseId" element={<CaseWorkspace />} />
               <Route path="/cases/:caseId/upload-evidence" element={<UploadEvidence />} />
               <Route path="/cases/:caseId/timeline" element={<Timeline />} />
@@ -58,7 +57,6 @@ export const App: React.FC = () => {
             </Route>
           </Routes>
         </BrowserRouter>
-      </CaseStoreProvider>
     </ToastProvider>
   );
 };

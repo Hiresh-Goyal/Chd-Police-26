@@ -8,6 +8,7 @@ class FraudScoreResult:
     risk_level: str
     top_findings: List[FindingResult] # top 3 by weight*confidence
     total_findings: int
+    findings_breakdown: dict[str, int]
 
 def compute_fraud_score(case_id: str, findings: List[FindingResult]) -> FraudScoreResult:
     """
@@ -57,5 +58,9 @@ def compute_fraud_score(case_id: str, findings: List[FindingResult]) -> FraudSco
         score=final_score,
         risk_level=risk_level,
         top_findings=kept_findings[:3],
-        total_findings=len(kept_findings)
+        total_findings=len(kept_findings),
+        findings_breakdown={
+            rule_id: sum(int(item.weight * item.confidence) for item in kept_findings if item.rule_id == rule_id)
+            for rule_id in sorted({item.rule_id for item in kept_findings})
+        },
     )

@@ -1,37 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getCriminalFlow } from '../api/client';
-import { MONEY_TRAIL_NODES } from '../data/mockData';
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+import type { CriminalFlowData } from '../types/api';
 
 export const useCriminalFlow = (caseId: string) => {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<CriminalFlowData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-
   useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
-    
-    const fetchData = async () => {
-      try {
-        if (USE_MOCK) {
-          await new Promise(r => setTimeout(r, 400));
-          if (isMounted) setData([...MONEY_TRAIL_NODES]);
-        } else {
-          const res = await getCriminalFlow(caseId);
-          if (isMounted) setData(res);
-        }
-      } catch (err: any) {
-        if (isMounted) setError(err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    fetchData();
-    return () => { isMounted = false; };
+    let mounted = true;
+    if (!caseId) { setData(null); setLoading(false); return; }
+    setLoading(true); setError(null);
+    getCriminalFlow(caseId).then(res => { if (mounted) setData(res); })
+      .catch(err => { if (mounted) { setError(err instanceof Error ? err : new Error('Failed to load money trail.')); setData(null); } })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, [caseId]);
-
   return { data, loading, error };
 };

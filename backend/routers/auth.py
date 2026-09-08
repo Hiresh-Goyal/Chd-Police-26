@@ -47,6 +47,12 @@ async def login(credentials: LoginRequest, request: Request):
     """
     user = authenticate_user(credentials.username, credentials.password)
     if not user:
+        log_action(
+            user=credentials.username or "unknown",
+            action="LOGIN_FAILED",
+            detail={"status": "FAILED", "resource_type": "system_auth", "auth_method": "password"},
+            ip_address=request.client.host if request.client else None,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

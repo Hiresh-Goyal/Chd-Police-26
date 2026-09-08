@@ -1,67 +1,29 @@
+"""Resolve phone identifiers and attach them to canonical events."""
+
+from sqlalchemy import select, update
 from sqlalchemy.engine import Connection
-from sqlalchemy import text
-import uuid
-from datetime import datetime, timezone
-from backend.shared.schema import canonical_events_table, entities_table, ConfidenceTier
+
 from backend.resolution.phone_norm import normalize_phone
-import json
+from backend.resolution.strategies.common import PHONE_EVENTS, create_entity
+from backend.shared.schema import canonical_events_table
+
 
 def execute(conn: Connection, case_id: str) -> dict:
-    # Get all distinct actor_raw and peer_raw for phone-based events
-    query = text("""
-        SELECT DISTINCT raw_val FROM (
-            SELECT actor_raw as raw_val FROM canonical_events 
-            WHERE case_id = :case_id AND event_type IN ('CALL', 'SMS', 'IPDR_SESSION', 'LOCATION_PING') AND actor_raw IS NOT NULL AND actor_raw != ''
-            UNION
-            SELECT peer_raw as raw_val FROM canonical_events 
-            WHERE case_id = :case_id AND event_type IN ('CALL', 'SMS', 'IPDR_SESSION', 'LOCATION_PING') AND peer_raw IS NOT NULL AND peer_raw != ''
-        ) sub
-    """)
-    rows = conn.execute(query, {"case_id": case_id}).fetchall()
-    
-    unique_phones = {}
-    for r in rows:
-        norm = normalize_phone(r.raw_val)
-        if norm and norm not in unique_phones:
-            unique_phones[norm] = {"raw_vals": set()}
-        if norm:
-            unique_phones[norm]["raw_vals"].add(r.raw_val)
-            
-    now_iso = datetime.now(timezone.utc).isoformat()
-    new_entities = []
-    entities_created = 0
-    
-    # Insert entities
-    for norm_phone, data in unique_phones.items():
-        entity_id = str(uuid.uuid4())
-        data["entity_id"] = entity_id
-        new_entities.append({
-            "id": entity_id,
-            "case_id": case_id,
-            "entity_type": "PHONE",
-            "canonical_id": norm_phone,
-            "label": f"Phone {norm_phone}",
-            "metadata_json": json.dumps({"source": "msisdn_match", "raw_values": list(data["raw_vals"])}),
-            "created_at": now_iso
-        })
-        entities_created += 1
-        
-    if new_entities:
-        conn.execute(entities_table.insert(), new_entities)
-        
-    # Update canonical_events actor_entity_id
-    for norm_phone, data in unique_phones.items():
-        for raw_val in data["raw_vals"]:
-            conn.execute(text("""
-                UPDATE canonical_events
-                SET actor_entity_id = :ent_id
-                WHERE case_id = :case_id AND actor_raw = :raw_val
-            """), {"ent_id": data["entity_id"], "case_id": case_id, "raw_val": raw_val})
-            
-            conn.execute(text("""
-                UPDATE canonical_events
-                SET peer_entity_id = :ent_id
-                WHERE case_id = :case_id AND peer_raw = :raw_val
-            """), {"ent_id": data["entity_id"], "case_id": case_id, "raw_val": raw_val})
-
-    return {"entities_created": entities_created, "links_created": 0}
+    rows = conn.execute(select(canonical_events_table).where(
+        canonical_events_table.c.case_id == case_id,
+        canonical_events_table.c.event_type.in_(PHONE_EVENTS),
+    )).fetchall()
+    ids: dict[str, str] = {}
+    for row in rows:
+        for raw in (row.actor_raw, row.peer_raw):
+            value = normalize_phone(raw or "")
+            if value and value.isdigit() and len(value) == 10 and value not in ids:
+                ids[value] = create_entity(conn, case_id, "PHONE", value, f"Phone {value}", {
+                    "source": "msisdn_match", "raw_values": [value],
+                })
+    for row in rows:
+        conn.execute(update(canonical_events_table).where(canonical_events_table.c.id == row.id).values(
+            actor_entity_id=ids.get(normalize_phone(row.actor_raw or "")),
+            peer_entity_id=ids.get(normalize_phone(row.peer_raw or "")),
+        ))
+    return {"entities_created": len(ids), "links_created": 0}

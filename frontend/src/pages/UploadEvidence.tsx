@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { INITIAL_EVIDENCE_FILES, EvidenceFile } from '../data/mockData';
-import { useCaseStore } from '../context/CaseStore';
+import { useUploadedFiles } from '../hooks/useUploadedFiles';
+import { uploadEvidence } from '../api/client';
+import type { UploadedFileRecord } from '../types/api';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -11,25 +12,20 @@ export const UploadEvidence: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { updateCaseEvidence } = useCaseStore();
+  const { data: uploadedFiles, refresh } = useUploadedFiles(caseId ?? '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // For case 2847 pre-populate with demo files; new cases start empty
-  const [queue, setQueue] = useState<EvidenceFile[]>(
-    caseId === '2847' ? INITIAL_EVIDENCE_FILES : []
-  );
+  // queue is used just for UI optimistic updates while uploading
+  const [queue, setQueue] = useState<(UploadedFileRecord & { progress: number, status: 'parsing' | 'validating' | 'complete' })[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  const completeCount = queue.filter(f => f.status === 'complete').length;
+  const completeCount = uploadedFiles.length;
 
-  const generateMockHash = () => {
-    return Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-  };
+  const handleFilesAdded = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !caseId) return;
 
-  const handleFilesAdded = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    const newFiles: EvidenceFile[] = Array.from(files).map((file, idx) => {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       let domain: 'CDR' | 'BANK' | 'IPDR' | 'SOCIAL' | 'NCRP' = 'CDR';
       const name = file.name.toLowerCase();
       if (name.includes('bank') || name.includes('statement') || name.includes('hdfc') || name.includes('sbi')) domain = 'BANK';
@@ -37,44 +33,30 @@ export const UploadEvidence: React.FC = () => {
       else if (name.includes('chat') || name.includes('whatsapp') || name.includes('social')) domain = 'SOCIAL';
       else if (name.includes('ncrp') || name.includes('complaint')) domain = 'NCRP';
 
-      return {
-        id: `ev_${Date.now()}_${idx}`,
-        name: file.name,
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        domain,
-        status: 'validating',
+      const tempId = `temp_${Date.now()}_${i}`;
+      setQueue(prev => [{
+        id: tempId,
+        case_id: caseId,
+        filename: file.name,
+        file_type: domain,
+        sha256: 'validating...',
+        events_created: 0,
+        parse_errors: [],
+        uploaded_at: new Date().toISOString(),
         progress: 15,
-        hash: generateMockHash(),
-        uploadDate: `${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} IST`,
-        recordsCount: Math.floor(Math.random() * 500) + 10
-      };
-    });
+        status: 'parsing'
+      }, ...prev]);
 
-    setQueue(prev => [...newFiles, ...prev]);
-    showToast(`Added ${newFiles.length} file(s) to ingestion queue.`, 'info');
-
-    // Simulate progressive completion
-    newFiles.forEach(nf => {
-      setTimeout(() => {
-        setQueue(current =>
-          current.map(item =>
-            item.id === nf.id ? { ...item, status: 'parsing' as const, progress: 65 } : item
-          ) as EvidenceFile[]
-        );
-      }, 1200);
-
-      setTimeout(() => {
-        setQueue(current => {
-          const updated = current.map(item =>
-            item.id === nf.id ? { ...item, status: 'complete' as const, progress: 100 } : item
-          ) as EvidenceFile[];
-          // Persist to CaseStore whenever a file completes
-          if (caseId) updateCaseEvidence(caseId, updated);
-          return updated;
-        });
-        showToast(`Ingestion complete for ${nf.name}`, 'success');
-      }, 2500);
-    });
+      try {
+        const res = await uploadEvidence(caseId, file, domain);
+        showToast(`Uploaded ${res.filename} successfully (${res.events_created} events).`, 'success');
+        refresh();
+        setQueue(prev => prev.filter(q => q.id !== tempId));
+      } catch (err: any) {
+        showToast(err.message ?? 'Upload failed', 'error');
+        setQueue(prev => prev.filter(q => q.id !== tempId));
+      }
+    }
   };
 
   const handleCopyHash = (hash: string) => {
@@ -83,16 +65,11 @@ export const UploadEvidence: React.FC = () => {
   };
 
   const handleRemoveFile = (id: string) => {
-    setQueue(queue.filter(q => q.id !== id));
-    showToast('Removed evidence item from queue.', 'info');
+    showToast('Cannot delete file from live system yet.', 'info');
   };
 
   const handleRetry = (id: string) => {
-    setQueue(queue.map(q => q.id === id ? { ...q, status: 'parsing', progress: 50 } : q));
-    setTimeout(() => {
-      setQueue(current => current.map(q => q.id === id ? { ...q, status: 'complete', progress: 100 } : q));
-      showToast('File reprocessed successfully.', 'success');
-    }, 1500);
+    showToast('Cannot retry from here yet.', 'info');
   };
 
   return (
@@ -167,7 +144,7 @@ export const UploadEvidence: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              {queue.map(item => (
+              {[...queue, ...uploadedFiles.map(f => ({ ...f, status: 'complete' as const, progress: 100 }))].map(item => (
                 <div
                   key={item.id}
                   className="bg-white border border-[#D9E1EA] rounded p-3 flex flex-col gap-2 hover:border-[#0B5CAB]/40 transition-colors"
@@ -175,12 +152,12 @@ export const UploadEvidence: React.FC = () => {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="shrink-0">
-                        <DomainBadge domain={item.domain} size="sm" />
+                        <DomainBadge domain={item.file_type} size="sm" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-[#191C1E] truncate">{item.name}</p>
+                        <p className="text-xs font-semibold text-[#191C1E] truncate">{item.filename}</p>
                         <p className="text-[11px] text-[#64748B] font-mono">
-                          {item.size} • {item.domain} • {item.status === 'complete' ? 'Ingestion Complete' : item.status === 'parsing' ? 'Parsing text & metadata...' : 'Validating SHA-256 structure...'}
+                          {item.file_type} • {item.status === 'complete' ? `Ingestion Complete (${item.events_created} events)` : item.status === 'parsing' ? 'Parsing text & metadata...' : 'Validating SHA-256 structure...'}
                         </p>
                       </div>
                     </div>
@@ -195,13 +172,15 @@ export const UploadEvidence: React.FC = () => {
                           <span className="font-mono text-xs font-bold text-[#0B5CAB]">{item.progress}%</span>
                         </div>
                       )}
-                      <button
-                        onClick={() => handleRemoveFile(item.id)}
-                        className="text-[#94A3B8] hover:text-[#DC2626] p-1 rounded transition-colors"
-                        title="Remove file"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">close</span>
-                      </button>
+                      {item.status !== 'complete' && (
+                        <button
+                          onClick={() => handleRemoveFile(item.id)}
+                          className="text-[#94A3B8] hover:text-[#DC2626] p-1 rounded transition-colors"
+                          title="Remove file"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -217,9 +196,9 @@ export const UploadEvidence: React.FC = () => {
 
                   {/* Cryptographic SHA-256 Hash */}
                   <div className="flex items-center justify-between bg-[#F8FAFC] px-2.5 py-1 rounded border border-[#EDF0F4] text-[10px] font-mono text-[#64748B]">
-                    <span className="truncate mr-2">SHA-256: {item.hash}</span>
+                    <span className="truncate mr-2">SHA-256: {item.sha256}</span>
                     <button
-                      onClick={() => handleCopyHash(item.hash)}
+                      onClick={() => handleCopyHash(item.sha256)}
                       className="text-[#0B5CAB] hover:underline font-bold shrink-0 flex items-center gap-0.5"
                     >
                       <span className="material-symbols-outlined text-[12px]">content_copy</span>

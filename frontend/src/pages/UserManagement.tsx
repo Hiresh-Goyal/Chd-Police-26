@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { SYSTEM_USERS, UserOfficer } from '../data/mockData';
+import { useUsers } from '../hooks/useUsers';
+import { createUser } from '../api/client';
 import { StatusBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -8,7 +9,7 @@ import { useToast } from '../components/common/Toast';
 export const UserManagement: React.FC = () => {
   const { showToast } = useToast();
 
-  const [users, setUsers] = useState<UserOfficer[]>(SYSTEM_USERS);
+  const { data: users, refresh } = useUsers();
   const [searchTerm, setSearchTerm] = useState('');
   const [unitFilter, setUnitFilter] = useState('');
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -21,37 +22,33 @@ export const UserManagement: React.FC = () => {
 
   const filteredUsers = users.filter(u => {
     const matchesSearch =
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.badgeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.rank.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesUnit = !unitFilter || u.unit.toLowerCase().includes(unitFilter.toLowerCase());
+      (u.full_name || u.username).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.role).toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesUnit = !unitFilter || (u as any).unit?.toLowerCase().includes(unitFilter.toLowerCase());
     return matchesSearch && matchesUnit;
   });
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserName.trim()) return;
 
-    const idNum = Math.floor(Math.random() * 9000) + 1000;
-    const newUser: UserOfficer = {
-      id: `usr_${idNum}`,
-      badgeId: `ID: ${idNum}`,
-      name: newUserName.trim(),
-      rank: newUserRank,
-      unit: newUserUnit,
-      station: 'Sector 17, Chandigarh UT',
-      email: `${newUserName.toLowerCase().replace(/\s+/g, '.')}@chdpolice.gov.in`,
-      role: newUserRole,
-      status: 'ACTIVE',
-      mfaEnabled: true,
-      activeSessions: 0,
-      auditCount24h: 0
-    };
+    try {
+      await createUser({
+        name: newUserName.trim(),
+        full_name: newUserName.trim(),
+        username: newUserName.trim().toLowerCase().replace(/\s+/g, '.'),
+        role: newUserRole,
+        rank: newUserRank,
+        unit: newUserUnit
+      } as any);
 
-    setUsers([...users, newUser]);
-    setIsAddUserModalOpen(false);
-    setNewUserName('');
-    showToast(`Personnel ${newUser.name} provisioned with role ${newUser.role}.`, 'success');
+      await refresh();
+      setIsAddUserModalOpen(false);
+      setNewUserName('');
+      showToast(`Personnel ${newUserName.trim()} provisioned.`, 'success');
+    } catch (err: any) {
+      showToast(err.message ?? 'Failed to create user', 'error');
+    }
   };
 
   return (
@@ -130,18 +127,18 @@ export const UserManagement: React.FC = () => {
                   <td className="py-3 px-4 font-medium text-[#191C1E]">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded bg-[#0B2340] text-white font-bold flex items-center justify-center text-[10px]">
-                        {u.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        {(u.full_name || u.username).split(' ').map(n => n[0]).join('').slice(0, 2)}
                       </div>
                       <div>
-                        <div className="font-semibold text-sm text-[#191C1E]">{u.name}</div>
-                        <div className="text-[11px] text-[#64748B] font-mono">{u.rank} • {u.badgeId}</div>
+                        <div className="font-semibold text-sm text-[#191C1E]">{u.full_name || u.username}</div>
+                        <div className="text-[11px] text-[#64748B] font-mono">{u.rank || 'Officer'} • {u.badge_id || 'ID: UNK'}</div>
                       </div>
                     </div>
                   </td>
 
                   <td className="py-3 px-4 text-[#424751]">
-                    <div>{u.unit}</div>
-                    <div className="text-[11px] text-[#64748B]">{u.station}</div>
+                    <div>{u.unit || 'Unknown Unit'}</div>
+                    <div className="text-[11px] text-[#64748B]">{u.station || 'Unknown Station'}</div>
                   </td>
 
                   <td className="py-3 px-4">
@@ -151,7 +148,7 @@ export const UserManagement: React.FC = () => {
                   </td>
 
                   <td className="py-3 px-4">
-                    <StatusBadge status={u.status} />
+                    <StatusBadge status={u.is_active ? 'ACTIVE' : 'INACTIVE'} />
                   </td>
 
                   <td className="py-3 px-4 text-center">
@@ -161,12 +158,12 @@ export const UserManagement: React.FC = () => {
                   </td>
 
                   <td className="py-3 px-4 text-right font-mono font-bold text-[#191C1E]">
-                    {u.auditCount24h} logs
+                    0 logs
                   </td>
 
                   <td className="py-3 px-4 text-right">
                     <button
-                      onClick={() => showToast(`Audit trail filtered for officer ${u.name}.`, 'info')}
+                      onClick={() => showToast(`Audit trail filtered for officer ${u.username}.`, 'info')}
                       className="text-[#0B5CAB] hover:underline font-mono text-xs font-semibold"
                     >
                       Audit

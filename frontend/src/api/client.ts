@@ -22,6 +22,13 @@ import type {
   HealthResponse,
   LoginResponse,
   UploadResponse,
+  User,
+  SentinelWatch,
+  AuditLog,
+  CaseNote,
+  UploadedFileRecord,
+  SearchResultItem,
+  CaseReportData,
 } from '../types/api';
 
 const BASE_URL =
@@ -277,7 +284,80 @@ export const getCorrelationMatrix = async (caseId: string): Promise<CorrelationM
 };
 
 // Snapshot Report
-export const getCaseReport = async (caseId: string): Promise<any> => {
-  const res = await api.get<any>(`/cases/${caseId}/report`);
+export const getCaseReport = async (caseId: string): Promise<CaseReportData> => {
+  const res = await api.get<CaseReportData>(`/cases/${caseId}/report`);
   return res.data;
+};
+
+// Users
+export const getUsers = async (): Promise<User[]> => {
+  const res = await api.get<User[]>('/users');
+  return res.data;
+};
+
+export const createUser = async (data: Partial<User>): Promise<User> => {
+  const res = await api.post<User>('/users', data);
+  return res.data;
+};
+
+export const updateUser = async (userId: string, data: Partial<User>): Promise<User> => {
+  const res = await api.put<User>(`/users/${userId}`, data);
+  return res.data;
+};
+
+export const deleteUser = async (userId: string): Promise<void> => {
+  await api.delete(`/users/${userId}`);
+};
+
+// SentinelWatch
+export const getWatches = async (status?: string): Promise<SentinelWatch[]> => {
+  const res = await api.get<SentinelWatch[]>('/sentinelwatch', { params: { status } });
+  return res.data;
+};
+
+export const createWatch = async (data: Partial<SentinelWatch>): Promise<SentinelWatch> => {
+  const res = await api.post<SentinelWatch>('/sentinelwatch', data);
+  return res.data;
+};
+
+export const updateWatch = async (watchId: string, data: Partial<SentinelWatch>): Promise<SentinelWatch> => {
+  const res = await api.put<SentinelWatch>(`/sentinelwatch/${watchId}`, data);
+  return res.data;
+};
+
+export const deleteWatch = async (watchId: string): Promise<void> => {
+  await api.delete(`/sentinelwatch/${watchId}`);
+};
+
+// Audit Logs
+export const getAuditLogs = async (params?: { case_id?: string; from_date?: string; to_date?: string; limit?: number }): Promise<AuditLog[]> => {
+  const res = await api.get<AuditLog[]>('/audit/logs', { params });
+  return res.data;
+};
+
+// Search
+export const searchAll = async (q: string, types?: string): Promise<SearchResultItem[]> => {
+  const res = await api.get<SearchResultItem[]>('/search', { params: { q, types } });
+  return res.data;
+};
+
+// Case Files
+export const getCaseFiles = async (caseId: string): Promise<UploadedFileRecord[]> => {
+  const res = await api.get<UploadedFileRecord[]>(`/cases/${caseId}/files`);
+  return res.data;
+};
+
+// Case Notes
+export const getCaseNotes = async (caseId: string): Promise<CaseNote[]> => {
+  const res = await api.get<CaseNote[]>(`/cases/${caseId}/notes`);
+  return res.data;
+};
+
+export const addCaseNote = async (caseId: string, text: string): Promise<CaseNote> => {
+  const res = await api.post<CaseNote>(`/cases/${caseId}/notes`, { text });
+  return res.data;
+};
+
+export const deleteCaseNote = async (caseId: string, noteId: string): Promise<void> => {
+  await api.delete(`/cases/${caseId}/notes/${noteId}`);
 };

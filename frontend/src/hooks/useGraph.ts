@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getGraph } from '../api/client';
 import type { GraphNode as GraphNodeAPI, GraphEdge as GraphEdgeAPI } from '../types/api';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
 // Normalize backend GraphNode → display shape with x/y layout
 function layoutNodes(nodes: GraphNodeAPI[]): any[] {
@@ -132,15 +131,10 @@ export const useGraph = (caseId: string) => {
     
     const fetchData = async () => {
       try {
-        if (USE_MOCK) {
-          await new Promise(r => setTimeout(r, 400));
-          if (isMounted) setData(mockGraphData);
-        } else {
-          const res = await getGraph(caseId);
-          const normalizedNodes = layoutNodes(res.nodes);
-          const normalizedEdges = normalizeEdges(res.edges, normalizedNodes);
-          if (isMounted) setData({ nodes: normalizedNodes, edges: normalizedEdges });
-        }
+        const res = await getGraph(caseId);
+        const normalizedNodes = layoutNodes(res.nodes);
+        const normalizedEdges = normalizeEdges(res.edges, normalizedNodes);
+        if (isMounted) setData({ nodes: normalizedNodes, edges: normalizedEdges });
       } catch (err: any) {
         if (isMounted) setError(err);
       } finally {

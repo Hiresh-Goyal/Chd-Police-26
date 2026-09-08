@@ -12,6 +12,9 @@ def log_action(
     target: str = None,
     detail: dict = None,
     ip_address: str = None,
+    user_role: str = None,
+    domain: str = "SYS",
+    status: str = "SUCCESS",
 ):
     """
     Write one row to audit_logs.
@@ -23,15 +26,20 @@ def log_action(
             conn.execute(
                 audit_logs.insert().values(
                     id=str(uuid4()),
-                    case_id=case_id,
-                    user=user,
-                    action=action,
-                    target=target,
-                    detail=json.dumps(detail) if detail else None,
-                    ip_address=ip_address,
                     ts=datetime.now(timezone.utc).isoformat(),
+                    user=user,
+                    user_role=user_role,
+                    action=action,
+                    case_id=case_id,
+                    target_entity=target,
+                    domain=domain,
+                    ip_address=ip_address,
+                    device_id=None,
+                    status=status,
+                    metadata=json.dumps(detail) if detail else None,
                 )
             )
             conn.commit()
-    except Exception:
+    except Exception as e:
+        print(f"Audit Error: {e}")
         pass  # audit must never crash the main request

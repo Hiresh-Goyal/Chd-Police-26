@@ -131,6 +131,65 @@ metadata = MetaData()
 
 
 # ──────────────────────────────────────────────
+# Users
+# ──────────────────────────────────────────────
+
+users_table = Table(
+    "users", metadata,
+    Column("id", Text, primary_key=True),               # uuid4
+    Column("username", Text, nullable=False, unique=True),
+    Column("password_hash", Text, nullable=False),       # bcrypt hash
+    Column("full_name", Text, nullable=False),
+    Column("badge_id", Text),
+    Column("rank", Text),
+    Column("unit", Text),
+    Column("station", Text),
+    Column("email", Text),
+    Column("role", Text, nullable=False, default="investigator"),
+                                                         # admin | lead_investigator | investigator | analyst
+    Column("status", Text, nullable=False, default="ACTIVE"),
+                                                         # ACTIVE | PENDING | REVOKED
+    Column("mfa_enabled", Text, default="false"),
+    Column("created_at", Text, nullable=False),
+    Column("updated_at", Text, nullable=False),
+)
+
+# ──────────────────────────────────────────────
+# Sentinel Watches
+# ──────────────────────────────────────────────
+
+sentinel_watches_table = Table(
+    "sentinel_watches", metadata,
+    Column("id", Text, primary_key=True),
+    Column("identifier", Text, nullable=False),     # phone / IP / account / IMEI
+    Column("name", Text),
+    Column("stream_type", Text, nullable=False),    # CDR | BANK | IPDR | ALL
+    Column("threshold", Text, nullable=False),      # Any Activity | High Volume | Flagged Contacts
+    Column("risk_score", Integer, default=0),
+    Column("status", Text, nullable=False, default="ACTIVE"),  # ACTIVE | TRIGGERED | STANDBY
+    Column("last_activity", Text),
+    Column("case_ref", Text),
+    Column("expiry_date", Text),
+    Column("created_by", Text),
+    Column("created_at", Text, nullable=False),
+    Column("updated_at", Text, nullable=False),
+)
+
+# ──────────────────────────────────────────────
+# Case Notes
+# ──────────────────────────────────────────────
+
+case_notes_table = Table(
+    "case_notes", metadata,
+    Column("id", Text, primary_key=True),
+    Column("case_id", Text, ForeignKey("cases.id"), nullable=False),
+    Column("author", Text, nullable=False),          # username from JWT
+    Column("text", Text, nullable=False),
+    Column("created_at", Text, nullable=False),
+)
+
+
+# ──────────────────────────────────────────────
 # Cases
 # ──────────────────────────────────────────────
 
@@ -310,16 +369,19 @@ fraud_scores_table = Table(
 # ──────────────────────────────────────────────
 
 audit_logs = Table(
-    "audit_logs",
-    metadata,
+    "audit_logs", metadata,
     Column("id", Text, primary_key=True),
-    Column("case_id", Text, ForeignKey("cases.id"), nullable=True),
+    Column("ts", Text, nullable=False),
     Column("user", Text, nullable=False),
+    Column("user_role", Text),
     Column("action", Text, nullable=False),
-    Column("target", Text, nullable=True),
-    Column("detail", Text, nullable=True),
-    Column("ip_address", Text, nullable=True),
-    Column("ts", Text, nullable=False),                               # UTC ISO-8601
+    Column("case_id", Text),
+    Column("target_entity", Text),
+    Column("domain", Text),               # CDR | BANK | IPDR | SOCIAL | SYS
+    Column("ip_address", Text),
+    Column("device_id", Text),
+    Column("status", Text, default="SUCCESS"),   # SUCCESS | FAILED | WARNING
+    Column("metadata", Text),             # JSON blob for extended fields
 )
 
 
@@ -355,6 +417,9 @@ class Case(BaseModel):
 
     # Latest meaningful modification/activity.
     updated_at: Optional[str] = None
+    
+    fraud_score: Optional[int] = None
+    risk_level: Optional[str] = None
 
 
 class RawFile(BaseModel):

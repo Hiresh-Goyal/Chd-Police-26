@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCaseStore } from '../context/CaseStore';
+import { useCase } from '../hooks/useCase';
+import { useUploadedFiles } from '../hooks/useUploadedFiles';
 import { useTimeline } from '../hooks/useTimeline';
 
 import { DomainBadge } from '../components/common/Badge';
@@ -12,10 +13,9 @@ export const Timeline: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { getCaseFiles, getCase } = useCaseStore();
+  const { data: uploadedFiles } = useUploadedFiles(caseId ?? '');
+  const { data: caseData } = useCase(caseId ?? '');
 
-  const uploadedFiles = getCaseFiles(caseId ?? '');
-  const caseData = getCase(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
   const [activeDomains, setActiveDomains] = useState<string[]>(['CDR', 'IPDR', 'BANK', 'SOCIAL', 'NCRP']);
   const [searchQuery, setSearchQuery] = useState('');

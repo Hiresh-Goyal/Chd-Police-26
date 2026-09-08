@@ -193,10 +193,43 @@ export interface CorrelationMatrixData {
 export interface CaseAPI {
   id: string;
   name: string;
-  title?: string;
   description: string | null;
   status: string;
+  priority: string;
+  assigned_io: string | null;
+  entities_count: number;
+  fraud_score?: number;
+  risk_level?: string;
   created_at: string;
+  last_activity: string;
+}
+
+export interface UploadedFileRecord {
+  id: string;
+  case_id: string;
+  filename: string;
+  file_type: string;
+  sha256: string;
+  events_created: number;
+  parse_errors: string[];
+  uploaded_at: string;
+}
+
+export interface CaseNote {
+  id: string;
+  case_id: string;
+  author: string;
+  text: string;
+  created_at: string;
+}
+
+export interface CaseReportData {
+  case: CaseAPI;
+  timeline: CanonicalEventAPI[];
+  entities: GraphNode[];
+  findings: FindingAPI[];
+  fraud_score: FraudScoreAPI;
+  files: UploadedFileRecord[];
 }
 
 /**
@@ -229,6 +262,8 @@ export interface LoginResponse {
   token_type: string;
   role: string;
   username: string;
+  full_name: string;
+  id: string;
 }
 
 /**
@@ -236,4 +271,61 @@ export interface LoginResponse {
  */
 export interface HealthResponse {
   status: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  full_name: string;
+  badge_id: string | null;
+  rank: string | null;
+  unit: string | null;
+  station: string | null;
+  email: string | null;
+  role: string;
+  status: string;
+  mfa_enabled: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SentinelWatch {
+  id: string;
+  identifier: string;
+  name: string | null;
+  stream_type: string;
+  threshold: string;
+  risk_score: number;
+  status: string;
+  last_activity: string | null;
+  case_ref: string | null;
+  expiry_date: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  ts: string;
+  user: string;
+  user_role: string | null;
+  action: string;
+  case_id: string | null;
+  target_entity: string | null;
+  domain: string | null;
+  ip_address: string | null;
+  device_id: string | null;
+  status: string;
+  metadata: string | null;
+}
+
+export interface SearchResultItem {
+  source_type: string;
+  case_id: string;
+  event_id: string | null;
+  entity_id: string | null;
+  snippet: string;
+  matched_field: string;
+  ts: string | null;
 }

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { useCaseStore } from '../context/CaseStore';
 import { useCase } from '../hooks/useCase';
 import { useFraudScore } from '../hooks/useFraudScore';
+import { useUploadedFiles } from '../hooks/useUploadedFiles';
+import { useCaseNotes } from '../hooks/useCaseNotes';
+import { addCaseNote } from '../api/client';
 
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -12,14 +14,11 @@ export const CaseWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
-  const { getCaseFiles } = useCaseStore();
-
   const { data: caseData, loading: caseLoading } = useCase(caseId ?? '');
   const { data: fraudScoreData } = useFraudScore(caseId ?? '');
-  const uploadedFiles = getCaseFiles(caseId ?? '');
+  const { data: uploadedFiles } = useUploadedFiles(caseId ?? '');
+  const { data: notes, refresh: refreshNotes } = useCaseNotes(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
-
-  const [notes, setNotes] = useState((caseData as any)?.notes ?? []);
 
   const [newNoteText, setNewNoteText] = useState('');
   const [isAddNoteModalOpen, setIsAddNoteModalOpen] = useState(false);
@@ -39,19 +38,18 @@ export const CaseWorkspace: React.FC = () => {
     );
   }
 
-  const handleAddNote = (e: React.FormEvent) => {
+  const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newNoteText.trim()) return;
-    const newNote = {
-      id: `note_${Date.now()}`,
-      timestamp: `${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ASingh`,
-      author: 'Insp. Amrit Singh',
-      text: newNoteText.trim()
-    };
-    setNotes([newNote, ...notes]);
-    setNewNoteText('');
-    setIsAddNoteModalOpen(false);
-    showToast('Investigator note recorded in case diary.', 'success');
+    if (!newNoteText.trim() || !caseId) return;
+    try {
+      await addCaseNote(caseId, newNoteText.trim());
+      await refreshNotes();
+      setNewNoteText('');
+      setIsAddNoteModalOpen(false);
+      showToast('Investigator note recorded in case diary.', 'success');
+    } catch (err: any) {
+      showToast(err.message ?? 'Failed to add note', 'error');
+    }
   };
 
   const handleCloseCase = () => {

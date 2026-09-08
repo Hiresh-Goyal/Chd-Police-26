@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { SENTINEL_WATCH_ITEMS, SentinelWatchItem } from '../data/mockData';
+import { useWatchlist } from '../hooks/useWatchlist';
+import { createWatchlistItem } from '../api/client';
 import { DomainBadge, StatusBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { useToast } from '../components/common/Toast';
@@ -7,48 +8,40 @@ import { useToast } from '../components/common/Toast';
 export const SentinelWatch: React.FC = () => {
   const { showToast } = useToast();
 
-  const [items, setItems] = useState<SentinelWatchItem[]>(SENTINEL_WATCH_ITEMS);
+  const { data: items, refresh } = useWatchlist();
   const [identifier, setIdentifier] = useState('');
   const [name, setName] = useState('');
   const [streamType, setStreamType] = useState<'CDR' | 'BANK' | 'IPDR' | 'ALL'>('CDR');
   const [threshold, setThreshold] = useState<'Any Activity' | 'High Volume' | 'Flagged Contacts'>('Any Activity');
   const [expiryDate, setExpiryDate] = useState('2026-12-31');
 
-  const handleAddWatch = (e: React.FormEvent) => {
+  const handleAddWatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier.trim()) {
       showToast('Please provide an entity identifier.', 'warning');
       return;
     }
 
-    const newItem: SentinelWatchItem = {
-      id: `watch_${Date.now()}`,
-      identifier: identifier.trim(),
-      name: name.trim() || 'Monitored Target',
-      streamType,
-      threshold,
-      riskScore: 85,
-      status: 'ACTIVE',
-      lastActivity: 'Monitoring initialized just now',
-      caseRef: 'Case #2847',
-      expiryDate
-    };
+    try {
+      await createWatchlistItem({
+        target_identifier: identifier.trim(),
+        target_name: name.trim() || 'Monitored Target',
+        stream_type: streamType,
+        case_id: '2847', // Assuming a context or selecting from a list
+        notes: `Threshold: ${threshold}`
+      } as any);
 
-    setItems([newItem, ...items]);
-    setIdentifier('');
-    setName('');
-    showToast(`Target ${newItem.identifier} added to active SentinelWatch stream.`, 'success');
+      await refresh();
+      setIdentifier('');
+      setName('');
+      showToast(`Target ${identifier.trim()} added to active SentinelWatch stream.`, 'success');
+    } catch (err: any) {
+      showToast(err.message ?? 'Failed to add target', 'error');
+    }
   };
 
   const handleToggleStatus = (id: string) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const nextStatus = item.status === 'ACTIVE' ? 'STANDBY' : 'ACTIVE';
-        showToast(`Target ${item.identifier} monitoring status changed to ${nextStatus}.`, 'info');
-        return { ...item, status: nextStatus };
-      }
-      return item;
-    }));
+    showToast(`Target status update not implemented.`, 'info');
   };
 
   return (
@@ -169,11 +162,11 @@ export const SentinelWatch: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-sm text-[#0B2340]">
-                          {item.identifier}
+                          {item.target_identifier}
                         </span>
-                        <DomainBadge domain={item.streamType} size="sm" />
+                        <DomainBadge domain={item.stream_type} size="sm" />
                       </div>
-                      <div className="text-xs font-medium text-[#191C1E] mt-0.5">{item.name}</div>
+                      <div className="text-xs font-medium text-[#191C1E] mt-0.5">{item.target_name}</div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
@@ -199,17 +192,17 @@ export const SentinelWatch: React.FC = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] font-mono bg-[#F8FAFC] p-2 rounded border border-[#EDF0F4] text-[#424751]">
                     <div>
                       <span className="text-[#64748B] block text-[10px]">THRESHOLD</span>
-                      <span className="font-semibold">{item.threshold}</span>
+                      <span className="font-semibold">{item.notes || 'Any Activity'}</span>
                     </div>
                     <div>
                       <span className="text-[#64748B] block text-[10px]">LAST INTERCEPT</span>
                       <span className={isTriggered ? 'text-[#DC2626] font-bold' : 'text-[#191C1E]'}>
-                        {item.lastActivity}
+                        {'Monitoring initialized'}
                       </span>
                     </div>
                     <div>
                       <span className="text-[#64748B] block text-[10px]">CASE LINK</span>
-                      <span className="font-bold text-[#0B5CAB]">{item.caseRef}</span>
+                      <span className="font-bold text-[#0B5CAB]">Case #{item.case_id}</span>
                     </div>
                   </div>
                 </div>

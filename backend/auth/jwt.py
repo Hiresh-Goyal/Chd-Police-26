@@ -13,6 +13,11 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
+import bcrypt
+
+from sqlalchemy import select
+from backend.db.connection import get_connection
+from backend.shared.schema import users_table
 
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
@@ -25,18 +30,6 @@ load_dotenv(_env_path)
 JWT_SECRET = os.getenv("JWT_SECRET", "digitalsentinel_hackathon_secret_2026")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
-
-# Hardcoded users per specification
-USERS: Dict[str, Dict[str, str]] = {
-    "admin": {
-        "password": "sentinel_admin",
-        "role": "admin",
-    },
-    "investigator": {
-        "password": "sentinel_inv",
-        "role": "investigator",
-    },
-}
 
 security = HTTPBearer(auto_error=False)
 
@@ -136,15 +129,25 @@ def decode_access_token(token: str) -> dict:
 
 
 def authenticate_user(username: str, password: str) -> Optional[Dict[str, str]]:
-    """Validate username and password against USERS store."""
-    user = USERS.get(username)
+    """Validate username and password against users table."""
+    with get_connection() as conn:
+        stmt = select(users_table).where(users_table.c.username == username)
+        user = conn.execute(stmt).fetchone()
+        
     if not user:
         return None
-    if user["password"] != password:
+        
+    try:
+        if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+            return None
+    except Exception:
         return None
+        
     return {
-        "username": username,
-        "role": user["role"],
+        "username": user.username,
+        "role": user.role,
+        "full_name": user.full_name,
+        "id": user.id,
     }
 
 
@@ -168,8 +171,21 @@ async def get_current_user(
             detail="Token missing subject claim",
             headers={"WWW-Authenticate": "Bearer"},
         )
+        
+    with get_connection() as conn:
+        stmt = select(users_table).where(users_table.c.username == username)
+        user = conn.execute(stmt).fetchone()
+        
+    if not user or user.status != 'ACTIVE':
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     return {
-        "username": username,
-        "role": payload.get("role", "investigator"),
+        "username": user.username,
+        "role": user.role,
+        "full_name": user.full_name,
+        "id": user.id,
     }

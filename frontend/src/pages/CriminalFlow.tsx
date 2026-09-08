@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { CriminalFlowNode, CriminalFlowEdge } from '../types/api';
-import { useCaseStore } from '../context/CaseStore';
+import { useCase } from '../hooks/useCase';
+import { useUploadedFiles } from '../hooks/useUploadedFiles';
 import { useCriminalFlow } from '../hooks/useCriminalFlow';
 
 import { Button } from '../components/common/Button';
@@ -11,10 +12,10 @@ export const CriminalFlow: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { getCaseFiles } = useCaseStore();
+  const { data: uploadedFiles } = useUploadedFiles(caseId ?? '');
+  const { data: currentCase } = useCase(caseId ?? '');
 
-  const uploadedFiles = getCaseFiles(caseId ?? '');
-  const hasUploads = uploadedFiles.filter(f => f.status === 'complete' && (f.domain === 'BANK' || f.domain === 'CDR')).length > 0;
+  const hasUploads = uploadedFiles.filter(f => f.status === 'complete' && (f.file_type === 'BANK' || f.file_type === 'CDR')).length > 0;
 
   const { data: flowData, loading } = useCriminalFlow(caseId ?? '');
   const flowNodes: CriminalFlowNode[] = flowData?.nodes ?? [];

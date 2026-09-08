@@ -227,7 +227,7 @@ async def list_cases():
     """List all investigation cases."""
 
     from backend.db.connection import get_connection
-    from backend.shared.schema import cases_table, entities_table
+    from backend.shared.schema import cases_table, entities_table, fraud_scores_table
 
     with get_connection() as conn:
         rows = conn.execute(
@@ -243,11 +243,15 @@ async def list_cases():
         ).fetchall()
 
         counts_by_case: Dict[str, int] = {}
-
         for entity in entity_counts:
-            counts_by_case[entity.case_id] = (
-                counts_by_case.get(entity.case_id, 0) + 1
-            )
+            counts_by_case[entity.case_id] = counts_by_case.get(entity.case_id, 0) + 1
+
+        # Fetch fraud scores
+        from sqlalchemy import select
+        score_rows = conn.execute(
+            select(fraud_scores_table.c.case_id, fraud_scores_table.c.score, fraud_scores_table.c.risk_level)
+        ).fetchall()
+        scores_by_case = {r.case_id: {"score": r.score, "risk_level": r.risk_level} for r in score_rows}
 
         return [
             {
@@ -258,6 +262,8 @@ async def list_cases():
                 "priority": row.priority,
                 "assigned_io": row.assigned_io,
                 "entities_count": counts_by_case.get(row.id, 0),
+                "fraud_score": scores_by_case.get(row.id, {}).get("score"),
+                "risk_level": scores_by_case.get(row.id, {}).get("risk_level"),
                 "created_at": row.created_at,
                 "last_activity": row.updated_at,
             }
@@ -346,6 +352,7 @@ async def get_case(case_id: str):
     return _get_case_with_entity_count(case_id)
 
 
+@router.put("/{case_id}", response_model=CaseResponse)
 @router.patch("/{case_id}", response_model=CaseResponse)
 async def update_case(
     case_id: str,
@@ -692,6 +699,23 @@ async def get_case_report(
     from backend.routers.score import get_fraud_score
     from backend.routers.timeline import get_timeline
 
+    from backend.shared.schema import raw_files_table, findings_table
+    from sqlalchemy import select
+    from backend.db.connection import get_connection
+
+    # Fetch raw files explicitly
+    with get_connection() as conn:
+        files_rows = conn.execute(
+            select(raw_files_table).where(raw_files_table.c.case_id == case_id)
+        ).fetchall()
+        
+        findings_rows = conn.execute(
+            select(findings_table).where(findings_table.c.case_id == case_id)
+        ).fetchall()
+
+    files = [dict(r._mapping) for r in files_rows]
+    findings = [dict(f._mapping) for f in findings_rows]
+
     alerts = await get_alerts(case_id)
     score = await get_fraud_score(case_id)
     graph = await get_case_graph(case_id)
@@ -702,10 +726,87 @@ async def get_case_report(
     return {
         "case": case,
         "fraud_score": score,
-        "alerts": alerts,
-        "graph": graph,
+        "findings": findings,
+        "entities": graph.get("nodes", []),
         "timeline": timeline,
-        "criminal_flow": flow,
-        "geospatial": geo,
+        "files": files,
         "generated_at": _now_iso(),
     }
+
+# ──────────────────────────────────────────────
+#  Case Files Endpoints
+# ──────────────────────────────────────────────
+
+@router.get("/{case_id}/files")
+async def list_case_files(case_id: str):
+    from backend.db.connection import get_connection
+    from backend.shared.schema import raw_files_table
+    from sqlalchemy import select
+    
+    with get_connection() as conn:
+        rows = conn.execute(
+            select(raw_files_table).where(raw_files_table.c.case_id == case_id)
+        ).fetchall()
+        return [
+            {
+                "id": row.id,
+                "case_id": row.case_id,
+                "filename": row.filename,
+                "file_type": row.file_type,
+                "sha256": row.sha256,
+                "events_created": row.row_count or 0,
+                "parse_errors": [],
+                "uploaded_at": row.uploaded_at
+            } for row in rows
+        ]
+
+# ──────────────────────────────────────────────
+#  Case Notes Endpoints
+# ──────────────────────────────────────────────
+
+class NoteCreate(BaseModel):
+    text: str
+
+@router.get("/{case_id}/notes")
+async def list_case_notes(case_id: str):
+    from backend.db.connection import get_connection
+    from backend.shared.schema import case_notes_table
+    from sqlalchemy import select
+    
+    with get_connection() as conn:
+        rows = conn.execute(
+            select(case_notes_table).where(case_notes_table.c.case_id == case_id).order_by(case_notes_table.c.created_at.desc())
+        ).fetchall()
+        return [dict(r._mapping) for r in rows]
+
+@router.post("/{case_id}/notes")
+async def add_case_note(case_id: str, note: NoteCreate, current_user: dict = Depends(get_current_user)):
+    from backend.db.connection import get_connection
+    from backend.shared.schema import case_notes_table
+    from sqlalchemy import select
+    
+    new_id = str(uuid.uuid4())
+    now = _now_iso()
+    
+    with get_connection() as conn:
+        conn.execute(case_notes_table.insert().values(
+            id=new_id,
+            case_id=case_id,
+            author=current_user.get("full_name") or current_user.get("username", "Unknown"),
+            text=note.text,
+            created_at=now
+        ))
+        conn.commit()
+        row = conn.execute(select(case_notes_table).where(case_notes_table.c.id == new_id)).fetchone()
+        return dict(row._mapping)
+
+@router.delete("/{case_id}/notes/{note_id}")
+async def delete_case_note(case_id: str, note_id: str, current_user: dict = Depends(get_current_user)):
+    from backend.db.connection import get_connection
+    from backend.shared.schema import case_notes_table
+    from sqlalchemy import delete
+    
+    with get_connection() as conn:
+        conn.execute(delete(case_notes_table).where((case_notes_table.c.case_id == case_id) & (case_notes_table.c.id == note_id)))
+        conn.commit()
+    return {"status": "ok"}

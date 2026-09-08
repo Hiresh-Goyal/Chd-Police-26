@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { useCaseStore } from '../context/CaseStore';
+import { useCase } from '../hooks/useCase';
+import { useUploadedFiles } from '../hooks/useUploadedFiles';
 
 import { DomainBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -108,10 +109,10 @@ export const GeospatialMap: React.FC = () => {
   const { showToast } = useToast();
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { getCaseFiles } = useCaseStore();
+  const { data: uploadedFiles } = useUploadedFiles(caseId ?? '');
+  const { data: currentCase } = useCase(caseId ?? '');
 
   const isDemo = caseId === '2847';
-  const uploadedFiles = getCaseFiles(caseId ?? '');
   const hasUploads = uploadedFiles.filter(f => f.status === 'complete').length > 0;
 
   const [selectedPoint, setSelectedPoint] = useState<GeoLocationNode | null>(GEO_POINTS[0]);
